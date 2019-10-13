@@ -21,10 +21,10 @@ int i_Ent[5000] = -1;
 public Plugin myinfo = 
 {
     name = "l4d2 specating cheat",
-    author = "Harry Potter",
+    author = "Harry Potter , IA",
     description = "If a spectator watching survivor at first person view, would see the infected model glows though the wall",
     version = "1.1",
-    url = "https://steamcommunity.com/id/AkemiHomuraGoddess/"
+    url = "https://steamcommunity.com/id/AkemiHomuraGoddess/ https://steamcommunity.com/id/NanaShichi/"
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
