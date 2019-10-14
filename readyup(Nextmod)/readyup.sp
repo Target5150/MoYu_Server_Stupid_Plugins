@@ -16,10 +16,10 @@
 public Plugin:myinfo =
 {
 	name = "L4D2 Ready-Up with convenience fixes",
-	author = "CanadaRox, Harry Potter,Target",
+	author = "CanadaRox, Harry Potter, Target [Spoon Edit]",
 	description = "New and improved ready-up plugin with convenience fixes.",
-	version = "new v1.1",
-	url = "https://github.com/fbef0102 https://github.com/melt5150"
+	version = "???",
+	url = "https://github.com/fbef0102 https://github.com/melt5150 https://github.com/spoon-l4d2"
 };
 
 enum L4D2Team
@@ -40,11 +40,16 @@ new Handle:l4d_ready_enable_sound;
 new Handle:l4d_ready_chuckle;
 new Handle:l4d_ready_countdown_sound;
 new Handle:l4d_ready_live_sound;
+new Handle:l4d_ready_show_time;
+new Handle:l4d_ready_show_commands;
+
 //new Handle:l4d_ready_warp_team;
 
 new Handle:g_hVote;
 new Float:g_fButtonTime[MAXPLAYERS + 1];
 new g_fPlayerMouse[MAXPLAYERS + 1][2];
+
+new Float:liveTime;
 
 // Game Cvars
 new Handle:director_no_specials;
@@ -52,18 +57,19 @@ new Handle:god;
 new Handle:sb_stop;
 new Handle:survivor_limit;
 new Handle:z_max_player_zombies;
-new Handle:sv_infinite_primary_ammo;
+new Handle:sv_infinite_ammo;
 new Handle:ServerNamer;
 
 new Handle:casterTrie;
 new Handle:liveForward;
 new Handle:menuPanel;
 new Handle:readyCountdownTimer;
-new String:readyFooter[MAX_FOOTER_LEN];
+new String:readyFooter[MAX_FOOTERS][MAX_FOOTER_LEN];
 new bool:hiddenPanel[MAXPLAYERS + 1];
 new bool:inLiveCountdown = false;
 new bool:inReadyUp;
 new bool:isPlayerReady[MAXPLAYERS + 1];
+new footerCounter = 0;
 new readyDelay;
 new String:countdownSound[256];
 new String:liveSound[256];
@@ -75,7 +81,7 @@ new iCmd;
 new String:sCmd[MAX_NAME_LENGTH];
 
 new Handle:allowedCastersTrie;
-new TimeCount;
+
 new String:chuckleSound[MAX_SOUNDS][]=
 {
 	"/npc/moustachio/strengthattract01.wav",
@@ -88,6 +94,9 @@ new String:chuckleSound[MAX_SOUNDS][]=
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 {
 	CreateNative("AddStringToReadyFooter", Native_AddStringToReadyFooter);
+	CreateNative("EditFooterStringAtIndex", Native_EditFooterStringAtIndex);
+	CreateNative("FindIndexOfFooterString", Native_FindIndexOfFooterString);
+	CreateNative("GetFooterStringAtIndex", Native_GetFooterStringAtIndex);
 	CreateNative("IsInReady", Native_IsInReady);
 	CreateNative("IsClientCaster", Native_IsClientCaster);
 	CreateNative("IsIDCaster", Native_IsIDCaster);
@@ -108,7 +117,10 @@ public OnPluginStart()
 	l4d_ready_countdown_sound = CreateConVar("l4d_ready_countdown_sound", "buttons/blip1.wav", "The sound that plays when a round goes on countdown");	
 	l4d_ready_live_sound = CreateConVar("l4d_ready_live_sound", "buttons/blip2.wav", "The sound that plays when a round goes live");
 	l4d_ready_chuckle = CreateConVar("l4d_ready_chuckle", "0", "Enable random moustachio chuckle during countdown");
+	l4d_ready_show_time = CreateConVar("l4d_ready_show_time", "1", "Show time on ready up panel");
+	l4d_ready_show_commands = CreateConVar("l4d_ready_show_commands", "0", "Show commands on the ready up panel");
 	//l4d_ready_warp_team = CreateConVar("l4d_ready_warp_team", "1", "Should we warp the entire team when a player attempts to leave saferoom?");
+	
 	HookConVarChange(l4d_ready_survivor_freeze, SurvFreezeChange);
 
 	HookEvent("round_start", RoundStart_Event);
@@ -122,9 +134,8 @@ public OnPluginStart()
 	sb_stop = FindConVar("sb_stop");
 	survivor_limit = FindConVar("survivor_limit");
 	z_max_player_zombies = FindConVar("z_max_player_zombies");
-	sv_infinite_primary_ammo = FindConVar("sv_infinite_primary_ammo");
-	ServerNamer = FindConVar("sn_main_name");
-
+	sv_infinite_ammo = FindConVar("sv_infinite_ammo");
+	
 	if (FindConVar("sn_main_name") != INVALID_HANDLE){
 		ServerNamer = FindConVar("sn_main_name");
 	} else {
@@ -141,7 +152,7 @@ public OnPluginStart()
 	
 	AddCommandListener(Say_Callback, "say");
 	AddCommandListener(Say_Callback, "say_team");
-	//AddCommandListener(Vote_Callback, "Vote");
+//	AddCommandListener(Vote_Callback, "Vote");
 
 	RegConsoleCmd("sm_notcasting", NotCasting_Cmd, "Deregister yourself as a caster or allow admins to deregister other players");
 	RegConsoleCmd("sm_uncast", NotCasting_Cmd, "Deregister yourself as a caster or allow admins to deregister other players");
@@ -155,6 +166,7 @@ public OnPluginStart()
 	RegConsoleCmd("sm_kickspecs", KickSpecs_Cmd, "Let's vote to kick those Spectators!");
 	RegServerCmd("sm_resetcasters", ResetCaster_Cmd, "Used to reset casters between matches.  This should be in confogl_off.cfg or equivalent for your system");
 	RegServerCmd("sm_add_caster_id", AddCasterSteamID_Cmd, "Used for adding casters to the whitelist -- i.e. who's allowed to self-register as a caster");
+	RegConsoleCmd("\x73\x6d\x5f\x62\x6f\x6e\x65\x73\x61\x77", Secret_Cmd, "Every player has a different secret number between 0-1023");
 
 #if DEBUG
 	RegAdminCmd("sm_initready", InitReady_Cmd, ADMFLAG_ROOT);
@@ -171,14 +183,9 @@ public Action:Say_Callback(client, String:command[], args)
 }
 
 //Support to use "Vote Yes/No" to ready/unready(But in vote boss should have many problem)
-
-/*public Action:Vote_Callback(client, String:command[], args)
+/*
+public Action:Vote_Callback(client, String:command[], args)
 {
-if (IsBuiltinVoteInProgress()) 
-{
-	return Plugin_Continue;
-}
-
 	decl String:sArgs[32];
 	GetCmdArg(1, sArgs, sizeof(sArgs));
 	if (StrContains(sArgs, "Yes", false) != -1)
@@ -191,8 +198,8 @@ if (IsBuiltinVoteInProgress())
 	}
 	
 	return Plugin_Continue;
-}*/
-
+}
+*/
 public OnPluginEnd()
 {
 	if (inReadyUp)
@@ -258,13 +265,63 @@ public Native_AddStringToReadyFooter(Handle:plugin, numParams)
 {
 	decl String:footer[MAX_FOOTER_LEN];
 	GetNativeString(1, footer, sizeof(footer));
-	if (strlen(footer) < MAX_FOOTER_LEN)
+	if (footerCounter < MAX_FOOTERS)
 	{
-		strcopy(readyFooter, MAX_FOOTER_LEN, footer);
-		return _:true;
+		if (strlen(footer) < MAX_FOOTER_LEN)
+		{
+			strcopy(readyFooter[footerCounter], MAX_FOOTER_LEN, footer);
+			footerCounter++;
+			return _:footerCounter-1;
+		}
+	}
+	return _:-1;
+}
+
+public Native_EditFooterStringAtIndex(Handle:plugin, numParams)
+{
+	decl String:newString[MAX_FOOTER_LEN];
+	GetNativeString(2, newString, sizeof(newString));
+	int index = GetNativeCell(1);
+	
+	if (footerCounter < MAX_FOOTERS)
+	{
+		if (strlen(newString) < MAX_FOOTER_LEN)
+		{
+			readyFooter[index] = newString;
+			return _:true;
+		}
+	}
+	return _:false;
+}
+
+public Native_FindIndexOfFooterString(Handle:plugin, numParams)
+{
+	decl String:stringToSearchFor[MAX_FOOTER_LEN];
+	GetNativeString(1, stringToSearchFor, sizeof(stringToSearchFor));
+	
+	for (new i = 0; i < footerCounter; i++){
+		if (StrEqual(readyFooter[i], "\0", true)) continue;
+		
+		if (StrContains(readyFooter[i], stringToSearchFor, false) > -1){
+			return _:i;
+		}
 	}
 	
-	return _:false;
+	return _:-1;
+}
+
+public Native_GetFooterStringAtIndex(Handle:plugin, numParams)
+{
+	int index = GetNativeCell(1);
+	new String:buffer[65];
+	GetNativeString(2, buffer, 65);
+	
+	
+	if (index < MAX_FOOTERS){
+		buffer = readyFooter[index];
+	} 
+	
+	SetNativeString(2, buffer, 65, true);
 }
 
 public Native_IsInReady(Handle:plugin, numParams)
@@ -460,6 +517,24 @@ public Action:KickSpecs_Cmd(client, args)
 {
 	if (inReadyUp)
 	{
+		new AdminId:id;
+		id = GetUserAdmin(client);
+		new bool:hasFlag = false;
+		
+		if (id != INVALID_ADMIN_ID)
+		{
+			hasFlag = GetAdminFlag(id, Admin_Ban); // Check for specific admin flag
+		}
+		
+		if (hasFlag)
+		{
+			CreateTimer(2.0, Timer_KickSpecs);
+			new String:adminName[64];
+			GetClientName(client, adminName, 64);
+			CPrintToChatAll("{red}[{default}!{red}]{default} Spectators have been kicked by: {olive}%s{default}!", adminName);
+			return Plugin_Handled;
+		}
+		
 		StartKickSpecsVote(client);
 	}
 	return Plugin_Handled;
@@ -527,7 +602,7 @@ public ForceStartVoteResultHandler(Handle:vote, num_votes, num_clients, const cl
 	{
 		if (item_info[i][BUILTINVOTEINFO_ITEM_INDEX] == BUILTINVOTES_VOTE_YES)
 		{
-			if (item_info[i][BUILTINVOTEINFO_ITEM_VOTES] >= num_votes)
+			if (item_info[i][BUILTINVOTEINFO_ITEM_VOTES] > (num_clients / 2))
 			{
 				decl String:sBuffer[64];
 				FormatEx(sBuffer, sizeof(sBuffer), "Forcing start...");
@@ -555,7 +630,7 @@ public KickSpecsVoteResultHandler(Handle:vote, num_votes, num_clients, const cli
 			if (item_info[i][BUILTINVOTEINFO_ITEM_VOTES] > (num_clients / 2))
 			{
 				decl String:sBuffer[64];
-				FormatEx(sBuffer, sizeof(sBuffer), "Ciao Spectators!");
+				FormatEx(sBuffer, sizeof(sBuffer), "Be gone Spectators!");
 				DisplayBuiltinVotePass(vote, sBuffer);
 				CreateTimer(2.0, Timer_KickSpecs);
 				return;
@@ -575,8 +650,9 @@ public Action:Timer_KickSpecs(Handle:timer)
 		if (IsClientCaster(c)) { continue; }
 		if (GetUserAdmin(c) != INVALID_ADMIN_ID) { continue; }
 					
-		KickClient(c, "No Spectators, please!");
+		KickClient(c, "No Spectators, please! :]");
 	}
+
 }
 
 public Action:Ready_Cmd(client, args)
@@ -726,7 +802,6 @@ public Action:Return_Cmd(client, args)
 
 public RoundStart_Event(Handle:event, const String:name[], bool:dontBroadcast)
 {
-	TimeCount = 0;
 	InitiateReadyUp();
 }
 
@@ -734,7 +809,7 @@ public PlayerTeam_Event(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	new client = GetClientOfUserId(GetEventInt(event, "userid"));
 	SetEngineTime(client);
-	
+	CheckFullReady();
 	new L4D2Team:oldteam = L4D2Team:GetEventInt(event, "oldteam");
 	new L4D2Team:team = L4D2Team:GetEventInt(event, "team");
 	if (oldteam == L4D2Team_Survivor || oldteam == L4D2Team_Infected ||
@@ -811,25 +886,26 @@ UpdatePanel()
 	new String:cfgName[32];
 	PrintCmd();
 	
-	if (ServerNamer)
-	{
-		GetConVarString(ServerNamer, ServerName, sizeof(ServerName));
-	}
-	else
-	{
-		GetConVarString(FindConVar("hostname"), ServerName, sizeof(ServerName));
-	}
+	GetConVarString(ServerNamer, ServerName, sizeof(ServerName));
+
 	GetConVarString(l4d_ready_cfg_name, cfgName, sizeof(cfgName));
 	Format(ServerBuffer, sizeof(ServerBuffer), "▸ Server: %s \n▸ Slots: %d/%d\n▸ Config: %s", ServerName, GetSeriousClientCount(), GetConVarInt(FindConVar("sv_maxplayers")), cfgName);
 	DrawPanelText(menuPanel, ServerBuffer);
 	
-	FormatTime(ServerBuffer, sizeof(ServerBuffer), "▸ %m/%d/%Y - %I:%M%p");
-	Format(ServerBuffer, sizeof(ServerBuffer), "%s (%s%d:%s%d)", ServerBuffer, (TimeCount/60 < 10) ? "0" : "",TimeCount/60, (TimeCount%60 < 10) ? "0" : "", TimeCount%60);
-	DrawPanelText(menuPanel, ServerBuffer);
+	if (GetConVarBool(l4d_ready_show_time))
+	{
+		decl String:timeBuf[128];
+		Format(timeBuf, sizeof(timeBuf), "▸ Time: %02d:%02d", RoundToFloor((GetGameTime() - liveTime) / 60), RoundToFloor(GetGameTime() - liveTime) % 60);
+		DrawPanelText(menuPanel, timeBuf);
+	}
 	
-	DrawPanelText(menuPanel, " ");
-	DrawPanelText(menuPanel, "▸ Commands:");
-	DrawPanelText(menuPanel, sCmd);
+	if (GetConVarBool(l4d_ready_show_commands))
+	{
+		DrawPanelText(menuPanel, " ");
+		DrawPanelText(menuPanel, "▸ Commands:");
+		DrawPanelText(menuPanel, sCmd);
+	}
+	
 	DrawPanelText(menuPanel, " ");
 	
 	decl String:nameBuf[64];
@@ -852,17 +928,19 @@ UpdatePanel()
 			{
 				if (isPlayerReady[client])
 				{
-					if (!inLiveCountdown) PrintHintText(client, "You are ready.\nSay !unready to unready.");
+					if (L4D2Team:GetClientTeam(client) != L4D2Team_Spectator)
+						if (!inLiveCountdown) PrintHintText(client, "You are ready.\nSay !unready to unready.");
+						
 					switch (L4D2Team:GetClientTeam(client))
 					{
 						case L4D2Team_Survivor: {
 							surs++;
-							Format(nameBuf, sizeof(nameBuf), "->%d. ★%s\n",surs, nameBuf);
+							Format(nameBuf, sizeof(nameBuf), "♦ %s%s\n", nameBuf, ( IsPlayerAfk(client, fTime) ? " [AFK]" : "" ));
 							StrCat(survivorBuffer, sizeof(survivorBuffer), nameBuf);
 						}
 						case L4D2Team_Infected: {
 							infs++;
-							Format(nameBuf, sizeof(nameBuf), "->%d. ★%s\n",infs, nameBuf);
+							Format(nameBuf, sizeof(nameBuf), "♦ %s%s\n", nameBuf, ( IsPlayerAfk(client, fTime) ? " [AFK]" : "" ));
 							StrCat(infectedBuffer, sizeof(infectedBuffer), nameBuf);
 						}
 					}
@@ -870,17 +948,18 @@ UpdatePanel()
 				else 
 				{
 					if (L4D2Team:GetClientTeam(client) != L4D2Team_Spectator)
-					if (!inLiveCountdown) PrintHintText(client, "You are not ready.\nSay !ready to ready up.");
+						if (!inLiveCountdown) PrintHintText(client, "You are not ready.\nSay !ready to ready up.");
+						
 					switch (L4D2Team:GetClientTeam(client))
 					{
 						case L4D2Team_Survivor: {
 							surs++;
-							Format(nameBuf, sizeof(nameBuf), "->%d. ☆%s%s\n", surs,nameBuf, ( IsPlayerAfk(client, fTime) ? " [AFK]" : "" ));
+							Format(nameBuf, sizeof(nameBuf), "♢ %s%s\n",nameBuf, ( IsPlayerAfk(client, fTime) ? " [AFK]" : "" ));
 							StrCat(survivorBuffer, sizeof(survivorBuffer), nameBuf);
 						}
 						case L4D2Team_Infected: {
 							infs++;
-							Format(nameBuf, sizeof(nameBuf), "->%d. ☆%s%s\n", infs,nameBuf, ( IsPlayerAfk(client, fTime) ? " [AFK]" : "" ));
+							Format(nameBuf, sizeof(nameBuf), "♢ %s%s\n",nameBuf, ( IsPlayerAfk(client, fTime) ? " [AFK]" : "" ));
 							StrCat(infectedBuffer, sizeof(infectedBuffer), nameBuf);
 						}
 					}
@@ -890,7 +969,7 @@ UpdatePanel()
 			if (caster)
 			{
 				++casterCount;
-				Format(nameBuf, 64, "->%d. %s\n", casterCount,nameBuf);
+				Format(nameBuf, 64, "%s\n", nameBuf);
 				StrCat(casterBuffer, sizeof(casterBuffer), nameBuf);
 			}
 			else if (L4D2Team:GetClientTeam(client) == L4D2Team_Spectator)
@@ -898,7 +977,7 @@ UpdatePanel()
 				++specCount;
 				if (playerCount <= GetConVarInt(l4d_ready_max_players))
 				{
-					Format(nameBuf, sizeof(nameBuf), "->%d. %s\n", specCount,nameBuf);
+					Format(nameBuf, sizeof(nameBuf), "%s\n", nameBuf);
 					StrCat(specBuffer, sizeof(specBuffer), nameBuf);
 				}
 			}
@@ -912,7 +991,7 @@ UpdatePanel()
 		survivorBuffer[bufLen] = '\0';
 		ReplaceString(survivorBuffer, sizeof(survivorBuffer), "#buy", "<- TROLL");
 		ReplaceString(survivorBuffer, sizeof(survivorBuffer), "#", "_");
-		Format(nameBuf, sizeof(nameBuf), "Survivors.");
+		Format(nameBuf, sizeof(nameBuf), "->1. Survivors.");
 		DrawPanelText(menuPanel, nameBuf);
 		DrawPanelText(menuPanel, survivorBuffer);
 		
@@ -925,18 +1004,16 @@ UpdatePanel()
 		infectedBuffer[bufLen] = '\0';
 		ReplaceString(infectedBuffer, sizeof(infectedBuffer), "#buy", "<- TROLL");
 		ReplaceString(infectedBuffer, sizeof(infectedBuffer), "#", "_");
-		Format(nameBuf, sizeof(nameBuf), "Infected.", ++textCount);
+		Format(nameBuf, sizeof(nameBuf), "->2. Infected.", ++textCount);
 		DrawPanelText(menuPanel, nameBuf);
 		DrawPanelText(menuPanel, infectedBuffer);
 	}
-
-	if (casterCount || specCount) DrawPanelText(menuPanel, " ");
 	
 	bufLen = strlen(casterBuffer);
 	if (bufLen != 0)
 	{
 		casterBuffer[bufLen] = '\0';
-		Format(nameBuf, sizeof(nameBuf), "Casters.", ++textCount);
+		Format(nameBuf, sizeof(nameBuf), "->3. Casters.", ++textCount);
 		DrawPanelText(menuPanel, nameBuf);
 		ReplaceString(casterBuffer, sizeof(casterBuffer), "#", "_", true);
 		DrawPanelText(menuPanel, casterBuffer);
@@ -946,11 +1023,21 @@ UpdatePanel()
 	if (bufLen != 0)
 	{
 		specBuffer[bufLen] = '\0';
-		Format(nameBuf, sizeof(nameBuf), "Spectators.", ++textCount);
+		
+		if (casterCount > 0)
+		{
+			Format(nameBuf, sizeof(nameBuf), "->4. Spectators.", ++textCount);
+		}
+		else
+		{
+			Format(nameBuf, sizeof(nameBuf), "->3. Spectators.", ++textCount);
+		}
+		
 		DrawPanelText(menuPanel, nameBuf);
 		ReplaceString(specBuffer, sizeof(specBuffer), "#", "_");
-		if (playerCount > GetConVarInt(l4d_ready_max_players))
-			FormatEx(specBuffer, sizeof(specBuffer), "-> *Many (%d)", specCount);
+		if (specCount > 3)
+			FormatEx(specBuffer, sizeof(specBuffer), "Many (%d)", specCount);
+			
 		DrawPanelText(menuPanel, specBuffer);
 	}
 
@@ -960,12 +1047,13 @@ UpdatePanel()
 	DrawPanelText(menuPanel, cfgBuf);
 */
 
-	bufLen = strlen(readyFooter);
+	bufLen = strlen(readyFooter[0]);
 	if (bufLen != 0)
 	{
-		DrawPanelText(menuPanel, " ");
-	
-		DrawPanelText(menuPanel, readyFooter);
+		for (new i = 0; i < MAX_FOOTERS; i++)
+		{
+			DrawPanelText(menuPanel, readyFooter[i]);
+		}
 	}
 
 	for (new client = 1; client <= MaxClients; client++)
@@ -979,6 +1067,9 @@ UpdatePanel()
 
 InitiateReadyUp()
 {
+	liveTime = GetGameTime();
+
+
 	for (new i = 0; i <= MAXPLAYERS; i++)
 	{
 		isPlayerReady[i] = false;
@@ -999,29 +1090,15 @@ InitiateReadyUp()
 	}
 
 	DisableEntities();
-	SetConVarFlags(sv_infinite_primary_ammo, GetConVarFlags(god) & ~FCVAR_NOTIFY);
-	SetConVarBool(sv_infinite_primary_ammo, true);
-	SetConVarFlags(sv_infinite_primary_ammo, GetConVarFlags(god) | FCVAR_NOTIFY);
+	SetConVarFlags(sv_infinite_ammo, GetConVarFlags(god) & ~FCVAR_NOTIFY);
+	SetConVarBool(sv_infinite_ammo, true);
+	SetConVarFlags(sv_infinite_ammo, GetConVarFlags(god) | FCVAR_NOTIFY);
 	SetConVarFlags(god, GetConVarFlags(god) & ~FCVAR_NOTIFY);
 	SetConVarBool(god, true);
 	SetConVarFlags(god, GetConVarFlags(god) | FCVAR_NOTIFY);
 	SetConVarBool(sb_stop, true);
 
 	L4D2_CTimerStart(L4D2CT_VersusStartTimer, 99999.9);
-	
-	CreateTimer(1.0, TimerCountAdd, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
-}
-
-public Action:TimerCountAdd(Handle:timer)
-{
-	if(inReadyUp)
-	{
-		TimeCount++;
-		
-		UpdatePanel();
-		return Plugin_Continue;
-	}
-	return Plugin_Stop;
 }
 
 PrintCmd()
@@ -1072,9 +1149,9 @@ InitiateLive(bool:real = true)
 	SetTeamFrozen(L4D2Team_Survivor, false);
 
 	EnableEntities();
-	SetConVarFlags(sv_infinite_primary_ammo, GetConVarFlags(god) & ~FCVAR_NOTIFY);
-	SetConVarBool(sv_infinite_primary_ammo, false);
-	SetConVarFlags(sv_infinite_primary_ammo, GetConVarFlags(god) | FCVAR_NOTIFY);
+	SetConVarFlags(sv_infinite_ammo, GetConVarFlags(god) & ~FCVAR_NOTIFY);
+	SetConVarBool(sv_infinite_ammo, false);
+	SetConVarFlags(sv_infinite_ammo, GetConVarFlags(god) | FCVAR_NOTIFY);
 	SetConVarBool(director_no_specials, false);
 	SetConVarFlags(god, GetConVarFlags(god) & ~FCVAR_NOTIFY);
 	SetConVarBool(god, false);
@@ -1089,8 +1166,12 @@ InitiateLive(bool:real = true)
 				i + 4 * GameRules_GetProp("m_bAreTeamsFlipped"));
 	}
 
-	readyFooter = "";
+	for (new i = 0; i < MAX_FOOTERS; i++)
+	{
+		readyFooter[i] = "";
+	}
 
+	footerCounter = 0;
 	if (real)
 	{
 		Call_StartForward(liveForward);
@@ -1100,9 +1181,13 @@ InitiateLive(bool:real = true)
 
 public OnBossVote()
 {
-	if (StrContains(readyFooter, "Tank: ", true))
+	for (new i = 0; i < MAX_FOOTERS; i++)
 	{
-
+		if (StrContains(readyFooter[i], "Tank: ", true))
+		{
+			footerCounter = i;
+			break;
+		}
 	}
 }
 
@@ -1277,7 +1362,7 @@ stock SetClientFrozen(client, freeze)
 
 stock IsPlayerAfk(client, Float:fTime)
 {
-	return fTime - g_fButtonTime[client] > 15.0;
+	return __FLOAT_GT__(FloatSub(fTime, g_fButtonTime[client]), 15.0);
 }
 
 stock IsPlayer(client)
@@ -1301,47 +1386,123 @@ stock GetTeamHumanCount(L4D2Team:team)
 	return humans;
 }
 
-DisableEntities() {
-  ActivateEntities("prop_door_rotating", "SetUnbreakable");
-  MakePropsUnbreakable();
+DisableEntities() 
+{
+	ActivateEntities("prop_door_rotating", "SetUnbreakable");
+	MakePropsUnbreakable();
 }
 
-EnableEntities() {
-  ActivateEntities("prop_door_rotating", "SetBreakable");
-  MakePropsBreakable();
+EnableEntities() 
+{	
+	ActivateEntities("prop_door_rotating", "SetBreakable");
+	MakePropsBreakable();
 }
 
 
 ActivateEntities(String:className[], String:inputName[]) { 
-    new iEntity;
-    
-    while ( (iEntity = FindEntityByClassname(iEntity, className)) != -1 ) {
-        if ( !IsValidEdict(iEntity) || !IsValidEntity(iEntity) ) {
-            continue;
-        }
-        
-        AcceptEntityInput(iEntity, inputName);
-    }
+	new iEntity;
+	
+	while ( (iEntity = FindEntityByClassname(iEntity, className)) != -1 ) {
+		if ( !IsValidEdict(iEntity) || !IsValidEntity(iEntity) ) {
+			continue;
+		}
+			
+		if (GetEntProp(iEntity, Prop_Data, "m_spawnflags") & (1 << 19)) 
+		{
+			continue;
+		}
+	
+		AcceptEntityInput(iEntity, inputName);
+	}
 }
 
 MakePropsUnbreakable() {
-    new iEntity;
-    
-    while ( (iEntity = FindEntityByClassname(iEntity, "prop_physics")) != -1 ) {
-      if ( !IsValidEdict(iEntity) || !IsValidEntity(iEntity) ) {
-          continue;
-      }
-      DispatchKeyValueFloat(iEntity, "minhealthdmg", 10000.0);
-    }
+	new iEntity;
+	
+	while ( (iEntity = FindEntityByClassname(iEntity, "prop_physics")) != -1 ) {
+	if ( !IsValidEdict(iEntity) || !IsValidEntity(iEntity)) {
+		continue;
+	}
+	
+	
+	DispatchKeyValueFloat(iEntity, "minhealthdmg", 10000.0);
+	}
 }
 
 MakePropsBreakable() {
-    new iEntity;
-    
-    while ( (iEntity = FindEntityByClassname(iEntity, "prop_physics")) != -1 ) {
-      if ( !IsValidEdict(iEntity) ||  !IsValidEntity(iEntity) ) {
-          continue;
-      }
-      DispatchKeyValueFloat(iEntity, "minhealthdmg", 5.0);
-    }
+	new iEntity;
+	
+	while ( (iEntity = FindEntityByClassname(iEntity, "prop_physics")) != -1 ) {
+	if ( !IsValidEdict(iEntity) ||  !IsValidEntity(iEntity) ) {
+		continue;
+	}
+	DispatchKeyValueFloat(iEntity, "minhealthdmg", 5.0);
+	}
+}
+
+public Action:Secret_Cmd(client, args)
+{
+	if (inReadyUp)
+	{
+		decl String:steamid[64];
+		decl String:argbuf[30];
+		GetCmdArg(1, argbuf, sizeof(argbuf));
+		new arg = StringToInt(argbuf);
+		GetClientAuthId(client, AuthId_Steam2, steamid, sizeof(steamid));
+		new id = StringToInt(steamid[10]);
+
+		if ((id & 1023) ^ arg == 'C'+'a'+'n'+'a'+'d'+'a'+'R'+'o'+'x')
+		{
+			DoSecrets(client);
+			isPlayerReady[client] = true;
+			if (CheckFullReady())
+				InitiateLiveCountdown();
+
+			return Plugin_Handled;
+		}
+		
+	}
+	return Plugin_Continue;
+}
+
+stock DoSecrets(client)
+{
+	if (L4D2Team:GetClientTeam(client) == L4D2Team_Survivor && !blockSecretSpam[client])
+	{
+		new particle = CreateEntityByName("info_particle_system");
+		decl Float:pos[3];
+		GetClientAbsOrigin(client, pos);
+		pos[2] += 80;
+		TeleportEntity(particle, pos, NULL_VECTOR, NULL_VECTOR);
+		DispatchKeyValue(particle, "effect_name", "achieved");
+		DispatchKeyValue(particle, "targetname", "particle");
+		DispatchSpawn(particle);
+		ActivateEntity(particle);
+		AcceptEntityInput(particle, "start");
+		CreateTimer(5.0, killParticle, particle, TIMER_FLAG_NO_MAPCHANGE);
+		EmitSoundToAll("/level/gnomeftw.wav", client, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
+		CreateTimer(2.5, killSound);
+		CreateTimer(5.0, SecretSpamDelay, client);
+		blockSecretSpam[client] = true;
+	}
+}
+
+public Action:SecretSpamDelay(Handle:timer, any:client)
+{
+	blockSecretSpam[client] = false;
+}
+
+public Action:killParticle(Handle:timer, any:entity)
+{
+	if (entity > 0 && IsValidEntity(entity) && IsValidEdict(entity))
+	{
+		AcceptEntityInput(entity, "Kill");
+	}
+}
+
+public Action:killSound(Handle:timer)
+{
+	for (new i = 1; i <= MaxClients; i++)
+	if (IsClientInGame(i) && !IsFakeClient(i))
+	StopSound(i, SNDCHAN_AUTO, "/level/gnomeftw.wav");
 }
