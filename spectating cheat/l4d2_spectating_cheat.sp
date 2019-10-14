@@ -21,10 +21,10 @@ int i_Ent[5000] = -1;
 public Plugin myinfo = 
 {
     name = "l4d2 specating cheat",
-    author = "Harry Potter , IA",
-    description = "If a spectator watching survivor at first person view, would see the infected model glows though the wall",
-    version = "1.1",
-    url = "https://steamcommunity.com/id/AkemiHomuraGoddess/ https://steamcommunity.com/id/NanaShichi/"
+    author = "Harry Potter , IA , PaaNChaN ",
+    description = "A spectator who watching the survivor at first person view would see the infected model glows though the wall",
+    version = "1.3",
+    url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins/tree/master/spectating%20cheat"
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
@@ -40,8 +40,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-	g_hCvarColor =	CreateConVar(	"l4d2_specting_cheat_ghost_color",		"255 255 255",		"Three values between 0-255 separated by spaces. RGB Color255 - Red Green Blue.", FCVAR_NOTIFY);
-	g_hCvarColor2 =	CreateConVar(	"l4d2_specting_cheat_alive_color",		"255 0 0",			"Three values between 0-255 separated by spaces. RGB Color255 - Red Green Blue.", FCVAR_NOTIFY);
+	g_hCvarColor =	CreateConVar(	"l4d2_specting_cheat_ghost_color",		"255 255 255",		"Ghost glow color, Three values between 0-255 separated by spaces. RGB Color255 - Red Green Blue.", FCVAR_NOTIFY);
+	g_hCvarColor2 =	CreateConVar(	"l4d2_specting_cheat_alive_color",		"255 0 0",			"Alive glow color, Three values between 0-255 separated by spaces. RGB Color255 - Red Green Blue.", FCVAR_NOTIFY);
 	g_iCvarColor = GetColor(g_hCvarColor);
 	g_iCvarColor2 = GetColor(g_hCvarColor2);
 	HookConVarChange(g_hCvarColor, ConVarChanged_Glow);
@@ -55,6 +55,9 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_watchcheat", ToggleSpecCheatCmd, "Toggle Speatator watching cheat");
 	RegConsoleCmd("sm_lookcheat", ToggleSpecCheatCmd, "Toggle Speatator watching cheat");
 	RegConsoleCmd("sm_seecheat", ToggleSpecCheatCmd, "Toggle Speatator watching cheat");
+	RegConsoleCmd("sm_meetcheat", ToggleSpecCheatCmd, "Toggle Speatator watching cheat");
+	RegConsoleCmd("sm_starecheat", ToggleSpecCheatCmd, "Toggle Speatator watching cheat");
+	RegConsoleCmd("sm_hellocheat", ToggleSpecCheatCmd, "Toggle Speatator watching cheat");
 	
 	for (int i = 1; i <= MaxClients; i++) 
 		bSpecCheatActive[i] = false;  
@@ -71,9 +74,7 @@ public Action ToggleSpecCheatCmd(int client, int args)
 public Action Event_RoundStart(Handle event, const char[] name, bool dontBroadcast)
 {
 	for(int i = 1; i <= MaxClients; i++)
-	{
 		iZombieClass[i] = -1;
-	}
 }
 
 public Action Event_PlayerDeath(Handle event, const char[] name, bool dontBroadcast)
@@ -110,22 +111,21 @@ public Action CreateInfectedModelGlow(Handle timer, int client)
 	iZombieClass[client] != -1) return;
 	
 	///////設定發光物件//////////
+	// Get Client Model
 	char sModelName[64];
-	//法一. 自身模組發光//
 	GetEntPropString(client, Prop_Data, "m_ModelName", sModelName, sizeof(sModelName));
-	/////////////////////
-	//法二. 帽子模組發光//
-	//Format(sModelName, sizeof(sModelName), "models/props_fairgrounds/garbage_popcorn_box.mdl");
-	/////////////////////
 	//PrintToChatAll("%N: %s",client,sModelName);
 	
 	// Spawn dynamic prop entity
-	i_Ent[client] = CreateEntityByName("prop_dynamic_override");
+	i_Ent[client] = CreateEntityByName("prop_dynamic_ornament");
 	if (i_Ent[client] == -1) return;
 
+	// Set new fake model
+	PrecacheModel(sModelName);
 	SetEntityModel(i_Ent[client], sModelName);
 	DispatchSpawn(i_Ent[client]);
 
+	// Set outline glow color
 	SetEntProp(i_Ent[client], Prop_Send, "m_CollisionGroup", 0);
 	SetEntProp(i_Ent[client], Prop_Send, "m_nSolidType", 0);
 	SetEntProp(i_Ent[client], Prop_Send, "m_nGlowRange", 4500);
@@ -136,26 +136,20 @@ public Action CreateInfectedModelGlow(Handle timer, int client)
 		SetEntProp(i_Ent[client], Prop_Send, "m_glowColorOverride", g_iCvarColor2);
 	AcceptEntityInput(i_Ent[client], "StartGlowing");
 
+	// Set model invisible
 	SetEntityRenderMode(i_Ent[client], RENDER_TRANSCOLOR);
 	SetEntityRenderColor(i_Ent[client], 0, 0, 0, 0);
-
-	float vPos[3];
-	float vAng[3];
-	GetEntPropVector(client, Prop_Send, "m_vecOrigin", vPos);
-	GetEntPropVector(client, Prop_Send, "m_angRotation", vAng);
-	//法二. 帽子高度調整//
-	//vPos[2] += 50;
-	/////////////////////
-	SetEntPropVector(i_Ent[client], Prop_Send, "m_vecOrigin", vPos);
-	SetEntPropVector(i_Ent[client], Prop_Send, "m_angRotation", vAng);
-
-	SetVariantString("!activator");
-	AcceptEntityInput(i_Ent[client], "SetParent", client);
 	
-	TeleportEntity(i_Ent[client], Float:{0.0, 0.0, 0.0}, Float:{0.0, 0.0, 0.0}, NULL_VECTOR);
+	// Set model attach to client, and always synchronize
+	SetVariantString("!activator");
+	AcceptEntityInput(i_Ent[client], "SetAttached", client);
+	AcceptEntityInput(i_Ent[client], "TurnOn");
 	///////發光物件完成//////////
 	
+	//設定特感種類
 	iZombieClass[client] = GetEntProp(client, Prop_Send, "m_zombieClass");
+	
+	// Trace client and model
 	SDKHook(client, SDKHook_PreThinkPost, TracknfectedThink);
 	SDKHook(i_Ent[client], SDKHook_SetTransmit, Hook_SetTransmit);
 }
@@ -176,24 +170,6 @@ public void TracknfectedThink(int client)
 		iZombieClass[client] = -1;
 		SDKUnhook(client, SDKHook_PreThinkPost, TracknfectedThink);
 		SDKUnhook(i_Ent[client], SDKHook_SetTransmit, Hook_SetTransmit);
-		return;
-	}
-	
-	SetEntProp(i_Ent[client], Prop_Send, "m_nSequence", GetEntProp(client, Prop_Send, "m_nSequence"));
-	
-	SetEntPropFloat(i_Ent[client], Prop_Send, "m_flPlaybackRate", GetEntPropFloat(client, Prop_Send, "m_flPlaybackRate"));
-	SetEntProp(i_Ent[client], Prop_Send, "m_nSequence", GetEntProp(client, Prop_Send, "m_nSequence"));
-	SetEntPropFloat(i_Ent[client], Prop_Send, "m_flPoseParameter", GetEntPropFloat(client, Prop_Send, "m_flPoseParameter", 0), 0);
-	SetEntPropFloat(i_Ent[client], Prop_Send, "m_flCycle", GetEntPropFloat(client, Prop_Send, "m_flCycle"));
-	for (new i = 1; i < 23; i++)SetEntPropFloat(i_Ent[client], Prop_Send, "m_flPoseParameter", GetEntPropFloat(client, Prop_Send, "m_flPoseParameter", i), i);
-	
-	if(!(GetEntityFlags(client) &1<<5))
-	{
-	float vPos[3];
-	float vAng[3];
-	GetEntPropVector(client, Prop_Send, "m_vecOrigin", vPos);
-	GetEntPropVector(client, Prop_Send, "m_angRotation", vAng);
-	TeleportEntity(i_Ent[client], NULL_VECTOR, vAng, NULL_VECTOR);
 	}
 }
 
