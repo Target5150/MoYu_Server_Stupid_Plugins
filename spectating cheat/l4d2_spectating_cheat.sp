@@ -2,7 +2,6 @@
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
-#include <left4downtown>
 
 enum
 {
@@ -23,7 +22,7 @@ public Plugin myinfo =
     name = "l4d2 specating cheat",
     author = "Harry Potter , IA , PaaNChaN ",
     description = "A spectator who watching the survivor at first person view would see the infected model glows though the wall",
-    version = "1.3",
+    version = "1.4",
     url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins/tree/master/spectating%20cheat"
 }
 
@@ -86,6 +85,7 @@ public Action Event_PlayerDeath(Handle event, const char[] name, bool dontBroadc
 public OnClientPutInServer(client)
 {
 	iZombieClass[client] = -1;
+	bSpecCheatActive[client] = false;  
 }
 
 public L4D_OnEnterGhostState(int client)
