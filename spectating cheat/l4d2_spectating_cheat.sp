@@ -2,6 +2,7 @@
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
+#include <left4downtown>
 
 enum
 {
@@ -9,20 +10,21 @@ enum
 	L4D_TEAM_SURVIVOR,
 	L4D_TEAM_INFECTED
 }
-Handle g_hCvarColor;
-Handle g_hCvarColor2;
+ConVar g_hCvarColor;
+ConVar g_hCvarColor2;
 int g_iCvarColor;
 int g_iCvarColor2;
 static bool bSpecCheatActive[MAXPLAYERS + 1];
-int iZombieClass[MAXPLAYERS + 1] = -1;
+int iZombieClass[MAXPLAYERS + 1];
 int i_Ent[5000] = -1;
+Handle hClientGlowEnts       = INVALID_HANDLE;
 
 public Plugin myinfo = 
 {
     name = "l4d2 specating cheat",
     author = "Harry Potter , IA , PaaNChaN ",
     description = "A spectator who watching the survivor at first person view would see the infected model glows though the wall",
-    version = "1.4",
+    version = "1.6",
     url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins/tree/master/spectating%20cheat"
 }
 
@@ -41,14 +43,19 @@ public void OnPluginStart()
 {
 	g_hCvarColor =	CreateConVar(	"l4d2_specting_cheat_ghost_color",		"255 255 255",		"Ghost glow color, Three values between 0-255 separated by spaces. RGB Color255 - Red Green Blue.", FCVAR_NOTIFY);
 	g_hCvarColor2 =	CreateConVar(	"l4d2_specting_cheat_alive_color",		"255 0 0",			"Alive glow color, Three values between 0-255 separated by spaces. RGB Color255 - Red Green Blue.", FCVAR_NOTIFY);
-	g_iCvarColor = GetColor(g_hCvarColor);
-	g_iCvarColor2 = GetColor(g_hCvarColor2);
-	HookConVarChange(g_hCvarColor, ConVarChanged_Glow);
-	HookConVarChange(g_hCvarColor2, ConVarChanged_Glow_2);
+	
+	char sColor[16],sColor2[16];
+	g_hCvarColor.GetString(sColor, sizeof(sColor));
+	g_iCvarColor = GetColor(sColor);
+	g_hCvarColor2.GetString(sColor2, sizeof(sColor2));
+	g_iCvarColor2 = GetColor(sColor2);
+	
+	g_hCvarColor.AddChangeHook(ConVarChanged_Glow);
+	g_hCvarColor2.AddChangeHook(ConVarChanged_Glow_2);
 	
 	HookEvent("player_spawn", Event_PlayerSpawn);
 	HookEvent("player_death", Event_PlayerDeath);
-	HookEvent("round_start", Event_RoundStart);
+	HookEvent("player_disconnect", Event_PlayerDisconnect);
 	
 	RegConsoleCmd("sm_speccheat", ToggleSpecCheatCmd, "Toggle Speatator watching cheat");
 	RegConsoleCmd("sm_watchcheat", ToggleSpecCheatCmd, "Toggle Speatator watching cheat");
@@ -57,9 +64,36 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_meetcheat", ToggleSpecCheatCmd, "Toggle Speatator watching cheat");
 	RegConsoleCmd("sm_starecheat", ToggleSpecCheatCmd, "Toggle Speatator watching cheat");
 	RegConsoleCmd("sm_hellocheat", ToggleSpecCheatCmd, "Toggle Speatator watching cheat");
+	RegConsoleCmd("sm_areyoucheat", ToggleSpecCheatCmd, "Toggle Speatator watching cheat");
+	RegConsoleCmd("sm_fuckyoucheat", ToggleSpecCheatCmd, "Toggle Speatator watching cheat");
 	
 	for (int i = 1; i <= MaxClients; i++) 
+	{
+		iZombieClass[i] = -1;
 		bSpecCheatActive[i] = false;  
+	}
+	hClientGlowEnts = CreateArray();
+}
+
+public OnPluginEnd() //unload插件的時候移除發光物件
+{
+	for (int i = 1; i <= MaxClients; i++) 
+	{
+		iZombieClass[i] = -1;
+		bSpecCheatActive[i] = false;  
+	}
+	UnhookEvent("player_spawn", Event_PlayerSpawn);
+	UnhookEvent("player_death", Event_PlayerDeath);
+	UnhookEvent("player_disconnect", Event_PlayerDisconnect);
+	
+	new entity;
+	for ( int i = 0; i < GetArraySize(hClientGlowEnts); i++ ) {
+		entity = i_Ent[GetArrayCell(hClientGlowEnts, i)];
+		if(IsValidEntRef(entity))
+			RemoveEdict(entity);
+	}
+	ClearArray(hClientGlowEnts);
+	CloseHandle(hClientGlowEnts);
 }
 
 public Action ToggleSpecCheatCmd(int client, int args) 
@@ -70,36 +104,46 @@ public Action ToggleSpecCheatCmd(int client, int args)
 	PrintToChat(client, "\x01[\x04WatchMode\x01]\x03 Watch Cheater Mode \x01 is now \x05%s\x01.", (bSpecCheatActive[client] ? "On" : "Off"));
 }
 
-public Action Event_RoundStart(Handle event, const char[] name, bool dontBroadcast)
+public void OnMapEnd()
 {
-	for(int i = 1; i <= MaxClients; i++)
+	for (int i = 1; i <= MaxClients; i++) 
+	{
 		iZombieClass[i] = -1;
+	}
 }
 
-public Action Event_PlayerDeath(Handle event, const char[] name, bool dontBroadcast)
-{ 
-	int client = GetClientOfUserId(GetEventInt(event, "userid"));
-	iZombieClass[client] = -1;
-}
-
-public OnClientPutInServer(client)
+public OnMapStart()
 {
-	iZombieClass[client] = -1;
-	bSpecCheatActive[client] = false;  
+	ClearArray(hClientGlowEnts);
+}
+
+public Action Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
+{ 
+	iZombieClass[GetClientOfUserId(event.GetInt("userid"))] = -1;
+}
+
+public Action Event_PlayerDisconnect(Event event, const char[] name, bool dontBroadcast)
+{
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	if( client && !dontBroadcast )
+	{
+		iZombieClass[client] = -1;
+		bSpecCheatActive[client] = false;  
+	}
 }
 
 public L4D_OnEnterGhostState(int client)
 {
 	iZombieClass[client] = -1;
-	CreateTimer(0.1,CreateInfectedModelGlow,client,TIMER_FLAG_NO_MAPCHANGE);
+	CreateTimer(0.5,CreateInfectedModelGlow,client,TIMER_FLAG_NO_MAPCHANGE);
 }
 
-public Action Event_PlayerSpawn(Handle event, const char[] name, bool dontBroadcast)
+public Action Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 { 
-	int client = GetClientOfUserId(GetEventInt(event, "userid"));
+	int client = GetClientOfUserId(event.GetInt("userid"));
 	
 	iZombieClass[client] = -1;
-	CreateTimer(0.1,CreateInfectedModelGlow,client,TIMER_FLAG_NO_MAPCHANGE);
+	CreateTimer(0.5,CreateInfectedModelGlow,client,TIMER_FLAG_NO_MAPCHANGE);
 }
 
 public Action CreateInfectedModelGlow(Handle timer, int client)
@@ -128,7 +172,7 @@ public Action CreateInfectedModelGlow(Handle timer, int client)
 	// Set outline glow color
 	SetEntProp(i_Ent[client], Prop_Send, "m_CollisionGroup", 0);
 	SetEntProp(i_Ent[client], Prop_Send, "m_nSolidType", 0);
-	SetEntProp(i_Ent[client], Prop_Send, "m_nGlowRange", 4500);
+	SetEntProp(i_Ent[client], Prop_Send, "m_nGlowRange", 9000);
 	SetEntProp(i_Ent[client], Prop_Send, "m_iGlowType", 3);
 	if(IsPlayerGhost(client))
 		SetEntProp(i_Ent[client], Prop_Send, "m_glowColorOverride", g_iCvarColor);
@@ -149,6 +193,10 @@ public Action CreateInfectedModelGlow(Handle timer, int client)
 	//設定特感種類
 	iZombieClass[client] = GetEntProp(client, Prop_Send, "m_zombieClass");
 	
+	//Push to Ent Array
+	if ( FindValueInArray(hClientGlowEnts, client) == -1 )
+		PushArrayCell(hClientGlowEnts, client);
+		
 	// Trace client and model
 	SDKHook(client, SDKHook_PreThinkPost, TracknfectedThink);
 	SDKHook(i_Ent[client], SDKHook_SetTransmit, Hook_SetTransmit);
@@ -159,17 +207,21 @@ public void TracknfectedThink(int client)
 	!IsClientInGame(client) || //離開
 	GetClientTeam(client) != L4D_TEAM_INFECTED || //不在特感隊伍
 	!IsPlayerAlive(client) || //沒活著
-	iZombieClass[client] == -1 || //回合開始 剛死掉 剛復活 剛進來
+	iZombieClass[client] == -1 || //地圖開始 剛死掉 剛復活 剛離開
 	iZombieClass[client] != GetEntProp(client, Prop_Send, "m_zombieClass") || //特感種類變了 (轉當坦克)
-	!IsValidEntity(i_Ent[client])) //發光物件不存在
+	!IsValidEntity(i_Ent[client]) || i_Ent[client] == -1) //發光物件不存在
 	{
 		if (IsValidEdict(i_Ent[client]))
 		{
 			RemoveEdict(i_Ent[client]);
 		}
+		i_Ent[client] = -1;
 		iZombieClass[client] = -1;
 		SDKUnhook(client, SDKHook_PreThinkPost, TracknfectedThink);
 		SDKUnhook(i_Ent[client], SDKHook_SetTransmit, Hook_SetTransmit);
+		new index;
+		if ( (index = FindValueInArray(hClientGlowEnts, client)) != -1 )
+			RemoveFromArray(hClientGlowEnts, index);
 	}
 }
 
@@ -181,16 +233,13 @@ public Action Hook_SetTransmit(int entity, int client)
 	return Plugin_Handled;
 }
 
-GetColor(Handle hCvar)
+int GetColor(char[] sTemp)
 {
-	decl String:sTemp[12];
-	GetConVarString(hCvar, sTemp, sizeof(sTemp));
-	
 	if( StrEqual(sTemp, "") )
 		return 0;
 
-	decl String:sColors[3][4];
-	new color = ExplodeString(sTemp, " ", sColors, 3, 4);
+	char sColors[3][4];
+	int color = ExplodeString(sTemp, " ", sColors, 3, 4);
 
 	if( color != 3 )
 		return 0;
@@ -202,15 +251,48 @@ GetColor(Handle hCvar)
 	return color;
 }
 
-public ConVarChanged_Glow( Handle:cvar, const String:oldValue[], const String:newValue[] ) {
-	g_iCvarColor = GetColor(g_hCvarColor);
+public ConVarChanged_Glow(Handle convar, const char[] oldValue, const char[] newValue) {
+	char sColor[16];
+	g_hCvarColor.GetString(sColor, sizeof(sColor));
+	g_iCvarColor = GetColor(sColor);
+	
+	int client;
+	for ( int i = 0; i < GetArraySize(hClientGlowEnts); i++ ) {
+		client = GetArrayCell(hClientGlowEnts, i);
+		if(IsValidEntRef(i_Ent[client]))
+		{
+			SetEntProp(i_Ent[client], Prop_Send, "m_iGlowType", 3);
+			if(IsClientInGame(client)&&IsPlayerGhost(client))
+				SetEntProp(i_Ent[client], Prop_Send, "m_glowColorOverride", g_iCvarColor);
+		}
+	}
 }
 
-public ConVarChanged_Glow_2( Handle:cvar, const String:oldValue[], const String:newValue[] ) {
-	g_iCvarColor2 = GetColor(g_hCvarColor2);
+public ConVarChanged_Glow_2(Handle convar, const char[] oldValue, const char[] newValue) {
+	char sColor2[16];
+	g_hCvarColor2.GetString(sColor2, sizeof(sColor2));
+	g_iCvarColor2 = GetColor(sColor2);
+	
+	int client;
+	for ( int i = 0; i < GetArraySize(hClientGlowEnts); i++ ) {
+		client = GetArrayCell(hClientGlowEnts, i);
+		if(IsValidEntRef(i_Ent[client]))
+		{
+			SetEntProp(i_Ent[client], Prop_Send, "m_iGlowType", 3);
+			if(IsClientInGame(client)&&!IsPlayerGhost(client))
+				SetEntProp(i_Ent[client], Prop_Send, "m_glowColorOverride", g_iCvarColor2);
+		}
+	}
 }
 
-stock IsPlayerGhost(client)
+bool IsPlayerGhost(int client)
 {
-	return GetEntProp(client, Prop_Send, "m_isGhost");
+	return bool:GetEntProp(client, Prop_Send, "m_isGhost");
+}
+
+bool IsValidEntRef(int entity)
+{
+	if( entity && EntRefToEntIndex(entity) != INVALID_ENT_REFERENCE && entity!= -1 )
+		return true;
+	return false;
 }
