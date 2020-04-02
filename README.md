@@ -9,9 +9,3 @@ Spechud:Show HB/DB/PB in eq(or Acemod) and Zonemod, show Perm\Temp\PB\Total scor
 Readyup:Used in my server,can /cast by everyone ,and can forcestart by players but need vote(Star pls)
 
 Spectator prefix:Change spectators name to (S)xxx , Caster named as (C)xxx
-
-Spectator tool:Can press "use" button to force cameraman watch the player's firstperson camera when you are thirdperson cam moving.The press 1-8 to switch every players camara feature was not completed :(
-
-Spectating cheat:If a spectator watching survivor at first person view, would see the infected model glows though the wall.
-
-Tips:if you saw the source so strange, please paste in your source write tools,because I'm always have some comments in the source that wouldn't removed:(
