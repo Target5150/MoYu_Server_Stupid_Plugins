@@ -6,6 +6,6 @@ DynamicHostname:Put a server_hostname.txt in your addons\sourcemod\configs\hostn
 
 Spechud:Show HB/DB/PB in eq(or Acemod) and Zonemod, show Perm\Temp\PB\Total score in your Nextmod spechud
 
-Readyup:Used in my server,can /cast by everyone ,and can forcestart by players but need vote(Star pls)
+Readyup:Used in my server,can /cast by everyone ,and can forcestart by players but need vote
 
 Spectator prefix:Change spectators name to (S)xxx , Caster named as (C)xxx

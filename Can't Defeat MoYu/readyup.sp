@@ -1028,8 +1028,6 @@ void UpdatePanel()
 		menuPanel.DrawText(infectedBuffer);
 	}
 
-	if (specCount && textCount) menuPanel.DrawText(" ");
-	
 	bufLen = strlen(casterBuffer);
 	if (bufLen != 0)
 	{
@@ -1055,8 +1053,6 @@ void UpdatePanel()
 	bufLen = strlen(readyFooter[0]);
 	if (bufLen != 0)
 	{
-		menuPanel.DrawText(" ");
-	
 		for (int i = 0; i < MAX_FOOTERS; i++)
 		{
 			menuPanel.DrawText(readyFooter[i]);
@@ -1078,7 +1074,6 @@ void InitiateReadyUp()
 	{
 		isPlayerReady[i] = false;
 	}
-	
 
 	UpdatePanel();
 	CreateTimer(1.0, MenuRefresh_Timer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
@@ -1174,23 +1169,12 @@ void InitiateLive(bool real = true)
 	{
 		readyFooter[i] = "";
 	}
+	footerCounter = 0;
 
 	if (real)
 	{
 		Call_StartForward(liveForward);
 		Call_Finish();
-	}
-}
-
-public void OnBossVote()
-{
-	for (int i = 0; i < MAX_FOOTERS; i++)
-	{
-		if (StrContains(readyFooter[i], "Tank: ", true) != -1)
-		{
-			footerCounter = i;
-			break;
-		}
 	}
 }
 
