@@ -13,6 +13,8 @@
 
 #define DEBUG 0
 
+#pragma newdecls required
+
 public Plugin myinfo =
 {
 	name = "L4D2 Ready-Up with convenience fixes",
@@ -77,6 +79,8 @@ char sCmd[MAX_NAME_LENGTH];
 //ConVar allowedCastersTrie;
 float g_fTime;
 
+bool bIsQueuingConfirm[MAXPLAYERS + 1];
+
 char chuckleSound[MAX_SOUNDS][] =
 {
 	"/npc/moustachio/strengthattract01.wav",
@@ -85,6 +89,12 @@ char chuckleSound[MAX_SOUNDS][] =
 	"/npc/moustachio/strengthattract06.wav",
 	"/npc/moustachio/strengthattract09.wav"
 };
+
+enum disruptType
+{
+	readyStatus,
+	teamShuffle
+}
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
@@ -109,8 +119,8 @@ public void OnPluginStart()
 	l4d_ready_max_players = CreateConVar("l4d_ready_max_players", "12", "Maximum number of players to show on the ready-up panel.", FCVAR_NOTIFY, true, 0.0, true, MAXPLAYERS+1.0);
 	l4d_ready_delay = CreateConVar("l4d_ready_delay", "5", "Number of seconds to count down before the round goes live.", FCVAR_NOTIFY, true, 0.0);
 	l4d_ready_enable_sound = CreateConVar("l4d_ready_enable_sound", "1", "Enable sound during countdown & on live");
-	l4d_ready_countdown_sound = CreateConVar("l4d_ready_countdown_sound", "buttons/blip1.wav", "The sound that plays when a round goes on countdown");	
-	l4d_ready_live_sound = CreateConVar("l4d_ready_live_sound", "buttons/blip2.wav", "The sound that plays when a round goes live");
+	l4d_ready_countdown_sound = CreateConVar("l4d_ready_countdown_sound", "weapons/hegrenade/beep.wav", "The sound that plays when a round goes on countdown");	
+	l4d_ready_live_sound = CreateConVar("l4d_ready_live_sound", "ui/survival_medal.wav", "The sound that plays when a round goes live");
 	l4d_ready_chuckle = CreateConVar("l4d_ready_chuckle", "0", "Enable random moustachio chuckle during countdown");
 	//l4d_ready_warp_team = CreateConVar("l4d_ready_warp_team", "1", "Should we warp the entire team when a player attempts to leave saferoom?");
 	l4d_ready_survivor_freeze.AddChangeHook(SurvFreezeChange);
@@ -314,7 +324,7 @@ public int Native_FindIndexOfFooterString(Handle plugin, int numParams)
 	char stringToSearchFor[MAX_FOOTER_LEN];
 	GetNativeString(1, stringToSearchFor, sizeof(stringToSearchFor));
 	
-	for (new i = 0; i < footerCounter; i++){
+	for (int i = 0; i < footerCounter; i++){
 		if (StrEqual(readyFooter[i], "\0", true)) continue;
 		
 		if (StrContains(readyFooter[i], stringToSearchFor, false) > -1){
@@ -449,7 +459,7 @@ public Action Show_Cmd(int client, int args)
 	return Plugin_Handled;
 }
 
-public Action NotCasting_Cmd(client, args)
+public Action NotCasting_Cmd(int client, int args)
 {
 	char buffer[64];
 	
@@ -521,6 +531,15 @@ public Action ForceStart_Cmd(int client, int args)
 		}
 		if (hasFlag)
 		{
+			if (GetTeamHumanCount(L4D2Team_Infected) < z_max_player_zombies.IntValue
+				&& !bIsQueuingConfirm[client])
+			{
+				CPrintToChat(client, "[{olive}Readyup{default}] Force a start when {green}Team Infected {default}is {olive}not full {default}may lead to {red}critical issue{default}. Say again to {green}confirm{default}!");
+				
+				bIsQueuingConfirm[client] = true;
+				CreateTimer(10.0, DelayReset, client, TIMER_FLAG_NO_MAPCHANGE);
+				return Plugin_Handled;
+			}
 			InitiateLiveCountdown();
 			CPrintToChatAll("[{green}!{default}] {blue}Game {default}is enforced to {green}Live {default}by {blue}Admin {olive}%N{default}", client);
 			return Plugin_Handled;
@@ -533,7 +552,7 @@ public Action ForceStart_Cmd(int client, int args)
 				playercount++;
 		}
 		
-		if (playercount == GetConVarInt(survivor_limit) + GetConVarInt(z_max_player_zombies))
+		if (playercount == survivor_limit.IntValue + z_max_player_zombies.IntValue)
 		{
 			CPrintToChat(client, "[{olive}Readyup{default}] No command abuse.");
 			return Plugin_Handled;
@@ -545,10 +564,18 @@ public Action ForceStart_Cmd(int client, int args)
 			return Plugin_Handled;
 		}
 		
+		if (GetTeamHumanCount(L4D2Team_Infected) < z_max_player_zombies.IntValue)
+		{
+			CPrintToChat(client, "[{olive}Readyup{default}] {blue}Not available when {green}Team Infected {default}is {olive}not full{default}.");
+			return Plugin_Handled;
+		}
+		
 		StartForceStartVote(client);
 	}
 	return Plugin_Handled;
 }
+
+public Action DelayReset(Handle timer, any client) { bIsQueuingConfirm[client] = false; }
 
 public Action KickSpecs_Cmd(int client, int args)
 {
@@ -658,7 +685,7 @@ public Action Timer_ForceStart(Handle timer)
 	InitiateLiveCountdown();
 }
 
-public KickSpecsVoteResultHandler(Handle vote, int num_votes, int num_clients, const client_info[][2], int num_items, const item_info[][2])
+public int KickSpecsVoteResultHandler(Handle vote, int num_votes, int num_clients, const client_info[][2], int num_items, const item_info[][2])
 {
 	for (int i = 0; i < num_items; i++)
 	{
@@ -709,7 +736,7 @@ public Action Unready_Cmd(int client, int args)
 	{
 		SetEngineTime(client);
 		isPlayerReady[client] = false;
-		CancelFullReady();
+		CancelFullReady(client, readyStatus);
 	}
 
 	return Plugin_Handled;
@@ -727,7 +754,7 @@ public Action ToggleReady_Cmd(int client, int args)
 		else
 		{
 			SetEngineTime(client);
-			CancelFullReady();
+			CancelFullReady(client, readyStatus);
 		}
 	}
 
@@ -780,7 +807,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 	}
 }
 
-public SurvFreezeChange(ConVar convar, const char[] oldValue, const char[] newValue)
+public void SurvFreezeChange(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	ReturnTeamToSaferoom(L4D2Team_Survivor);
 	if (bSkipWarp)
@@ -820,7 +847,7 @@ public Action Return_Cmd(int client, int args)
 	return Plugin_Handled;
 }
 
-public RoundStart_Event(Handle event, const char[] name, bool dontBroadcast)
+public void RoundStart_Event(Handle event, const char[] name, bool dontBroadcast)
 {
 	g_fTime = GetEngineTime();
 	InitiateReadyUp();
@@ -831,7 +858,7 @@ public RoundStart_Event(Handle event, const char[] name, bool dontBroadcast)
 	}
 }
 
-public PlayerTeam_Event(Handle event, const char[] name, bool dontBroadcast)
+public void PlayerTeam_Event(Handle event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(GetEventInt(event, "userid"));
 	
@@ -846,7 +873,7 @@ public Action Timer_PlayerTeam(Handle timer, int client)
 		&& !IsFakeClient(client)
 		&& view_as<L4D2_Team>(GetClientTeam(client)) > L4D2Team_Spectator)
 	{
-		CancelFullReady();
+		CancelFullReady(client, teamShuffle);
 	}
 	return Plugin_Handled;
 }
@@ -902,6 +929,7 @@ void UpdatePanel()
 	char casterBuffer[500] = "";
 	char specBuffer[800] = "";
 	int playerCount = 0;
+	int casterCount = 0;
 	int specCount = 0;
 
 	menuPanel = new Panel();
@@ -990,6 +1018,7 @@ void UpdatePanel()
 				++specCount;
 				if (caster)
 				{
+					++casterCount;
 					Format(nameBuf, sizeof(nameBuf), "%s\n", nameBuf);
 					StrCat(casterBuffer, sizeof(casterBuffer), nameBuf);
 				}
@@ -1027,6 +1056,8 @@ void UpdatePanel()
 		menuPanel.DrawText(nameBuf);
 		menuPanel.DrawText(infectedBuffer);
 	}
+	
+	if (specCount && textCount) menuPanel.DrawText(" ");
 
 	bufLen = strlen(casterBuffer);
 	if (bufLen != 0)
@@ -1045,7 +1076,7 @@ void UpdatePanel()
 		Format(nameBuf, sizeof(nameBuf), "->%d. Spectators", ++textCount);
 		menuPanel.DrawText(nameBuf);
 		ReplaceString(specBuffer, sizeof(specBuffer), "#", "_");
-		if (playerCount > GetConVarInt(l4d_ready_max_players))
+		if (playerCount > GetConVarInt(l4d_ready_max_players) && specCount - casterCount > 1)
 			FormatEx(specBuffer, sizeof(specBuffer), "**Many** (%d)", specCount);
 		menuPanel.DrawText(specBuffer);
 	}
@@ -1081,7 +1112,7 @@ void InitiateReadyUp()
 
 	inReadyUp = true;
 	inLiveCountdown = false;
-	readyCountdownTimer = INVALID_HANDLE;
+	readyCountdownTimer = null;
 
 	if (l4d_ready_disable_spawns.BoolValue)
 	{
@@ -1223,8 +1254,6 @@ void ReturnTeamToSaferoom(L4D2_Team team)
 	SetCommandFlags("give", give_flags);
 }
 
-
-
 void SetTeamFrozen(L4D2_Team team, bool freezeStatus)
 {
 	for (int client = 1; client <= MaxClients; client++)
@@ -1295,9 +1324,9 @@ public Action ReadyCountdownDelay_Timer(Handle timer)
 	return Plugin_Continue;
 }
 
-void CancelFullReady()
+void CancelFullReady(int client, disruptType type)
 {
-	if (readyCountdownTimer != INVALID_HANDLE)
+	if (readyCountdownTimer != null)
 	{
 		if (bSkipWarp)
 		{
@@ -1306,11 +1335,19 @@ void CancelFullReady()
 		else
 		{
 			SetTeamFrozen(L4D2Team_Survivor, GetConVarBool(l4d_ready_survivor_freeze));
+			
+			if (type == teamShuffle) SetClientFrozen(client, false);
 		}
 		inLiveCountdown = false;
 		KillTimer(readyCountdownTimer);
 		readyCountdownTimer = null;
 		PrintHintTextToAll("Countdown Cancelled!");
+		
+		switch (type)
+		{
+			case readyStatus: CPrintToChatAll("[{olive}Readyup{default}] {blue}%N {default}is {green}not ready {default}and cancels the Countdown!", client);
+			case teamShuffle: CPrintToChatAll("[{olive}Readyup{default}] {blue}%N {green}switches to Spectator {default}and cancels the Countdown!", client);
+		}
 	}
 }
 
@@ -1373,7 +1410,7 @@ void EnableEntities()
 }
 
 
-ActivateEntities(char[] className, char[] inputName)
+void ActivateEntities(char[] className, char[] inputName)
 { 
 	int iEntity;
 
@@ -1387,7 +1424,7 @@ ActivateEntities(char[] className, char[] inputName)
 	}
 }
 
-MakePropsUnbreakable()
+void MakePropsUnbreakable()
 {
 	int iEntity;
 	
@@ -1400,7 +1437,7 @@ MakePropsUnbreakable()
 	}
 }
 
-MakePropsBreakable()
+void MakePropsBreakable()
 {
 	int iEntity;
     
