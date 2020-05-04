@@ -34,19 +34,25 @@ ConVar g_hMenuLeaveTime;
 ConVar g_hVotePercent;
 ConVar g_hPassPercent;
 
+/**
+ * Pre-check
+ */
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+	if (GetEngineVersion() != Engine_Left4Dead2)
+	{
+		strcopy(error, err_max, "Plugin Support Only Left 4 Dead 2!");
+		return APLRes_SilentFailure;
+	}
+	return APLRes_Success;
+}
 
 /**
  * Plugin Forwards
  */
 public void OnPluginStart()
 {
-	char game_name[64];
-	GetGameFolderName(game_name, sizeof(game_name));
-	if (!StrEqual(game_name, "left4dead2"))
-	{
-		SetFailState("<VCC> Enable only for left4dead2.");
-	}
-	
+	RegConsoleCmd("sm_mapvote", Command_VoteCampaign, "Show custom campaigns menu");
 	RegConsoleCmd("sm_vcc", Command_VoteCampaign, "Show custom campaigns menu");
 
 	g_hMenuLeaveTime = CreateConVar("vcc_menu_leavetime", "20", "After this time(second) the menu should leave.", FCVAR_NOTIFY);
