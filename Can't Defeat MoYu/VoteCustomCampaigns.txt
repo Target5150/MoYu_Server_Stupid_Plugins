@@ -1,0 +1,53 @@
+"VoteCustomCampaigns"
+{
+	"1"
+	{
+		"mapinfo"		"l4d2_diescraper1_apartment_361"
+		"mapname"		"Diescraper Redux"
+	}
+	"2"
+	{
+		"mapinfo"		"cwm1_intro"
+		"mapname"		"Carried off"
+	}
+	"3"
+	{
+		"mapinfo"		"jsarena201_town"
+		"mapname"		"Arena of the Dead 2"
+	}
+	"4"
+	{
+		"mapinfo"		"l4d2_stadium1_apartment"
+		"mapname"		"Suicide Blitz 2"
+	}
+	"5"
+	{
+		"mapinfo"		"dkr_m1_motel"
+		"mapname"		"Dark Carnival Remix"
+	}
+	"6"
+	{
+		"mapinfo"		"dprm1_milltown_a"
+		"mapname"		"Hard Rain:Downpour"
+	}
+	"7"
+	{
+		"mapinfo"		"l4d_dbd2dc_anna_is_gone"
+		"mapname"		"Dead Before Dawn 2 DC"
+	}
+	"8"
+	{
+		"mapinfo"		"x1m1_cliffs"
+		"mapname"		"Open Road"
+	}
+	"9"
+	{
+		"mapinfo"		"cdta_01detour"
+		"mapname"		"Detour Ahead"
+	}
+	"10"
+	{
+		"mapinfo"		"c5m1_darkwaterfront"
+		"mapname"		"Dark Parish"
+	}
+}
