@@ -56,6 +56,7 @@ ConVar z_max_player_zombies;
 ConVar sv_infinite_primary_ammo;
 ConVar ServerNamer;
 
+// Plugin Stuff
 StringMap casterTrie;
 Handle liveForward;
 Panel menuPanel;
@@ -74,7 +75,7 @@ bool bSkipWarp;
 bool blockSecretSpam[MAXPLAYERS + 1];
 
 int iCmd;
-char sCmd[MAX_NAME_LENGTH];
+char sCmd[32];
 
 //ConVar allowedCastersTrie;
 float g_fTime;
@@ -98,13 +99,13 @@ enum disruptType
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
-	CreateNative("AddStringToReadyFooter", Native_AddStringToReadyFooter);
+	CreateNative("AddStringToReadyFooter",	Native_AddStringToReadyFooter);
 	CreateNative("EditFooterStringAtIndex", Native_EditFooterStringAtIndex);
 	CreateNative("FindIndexOfFooterString", Native_FindIndexOfFooterString);
-	CreateNative("GetFooterStringAtIndex", Native_GetFooterStringAtIndex);
-	CreateNative("IsInReady", Native_IsInReady);
-	CreateNative("IsClientCaster", Native_IsClientCaster);
-	CreateNative("IsIDCaster", Native_IsIDCaster);
+	CreateNative("GetFooterStringAtIndex",	Native_GetFooterStringAtIndex);
+	CreateNative("IsInReady",				Native_IsInReady);
+	CreateNative("IsClientCaster", 			Native_IsClientCaster);
+	CreateNative("IsIDCaster", 				Native_IsIDCaster);
 	liveForward = CreateGlobalForward("OnRoundIsLive", ET_Event);
 	RegPluginLibrary("readyup");
 	return APLRes_Success;
@@ -112,16 +113,16 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-	l4d_ready_enabled = CreateConVar("l4d_ready_enabled", "1", "This cvar doesn't do anything, but if it is 0 the logger wont log this game.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-	l4d_ready_cfg_name = CreateConVar("l4d_ready_cfg_name", "", "Configname to display on the ready-up panel", FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
-	l4d_ready_disable_spawns = CreateConVar("l4d_ready_disable_spawns", "0", "Prevent SI from having spawns during ready-up", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	l4d_ready_enabled =			CreateConVar("l4d_ready_enabled", "1", "This cvar doesn't do anything, but if it is 0 the logger wont log this game.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	l4d_ready_cfg_name =		CreateConVar("l4d_ready_cfg_name", "", "Configname to display on the ready-up panel", FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
+	l4d_ready_disable_spawns =	CreateConVar("l4d_ready_disable_spawns", "0", "Prevent SI from having spawns during ready-up", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	l4d_ready_survivor_freeze = CreateConVar("l4d_ready_survivor_freeze", "1", "Freeze the survivors during ready-up.  When unfrozen they are unable to leave the saferoom but can move freely inside", FCVAR_NOTIFY, true, 0.0, true, 1.0);
-	l4d_ready_max_players = CreateConVar("l4d_ready_max_players", "12", "Maximum number of players to show on the ready-up panel.", FCVAR_NOTIFY, true, 0.0, true, MAXPLAYERS+1.0);
-	l4d_ready_delay = CreateConVar("l4d_ready_delay", "5", "Number of seconds to count down before the round goes live.", FCVAR_NOTIFY, true, 0.0);
-	l4d_ready_enable_sound = CreateConVar("l4d_ready_enable_sound", "1", "Enable sound during countdown & on live");
+	l4d_ready_max_players =		CreateConVar("l4d_ready_max_players", "12", "Maximum number of players to show on the ready-up panel.", FCVAR_NOTIFY, true, 0.0, true, MAXPLAYERS+1.0);
+	l4d_ready_delay =			CreateConVar("l4d_ready_delay", "5", "Number of seconds to count down before the round goes live.", FCVAR_NOTIFY, true, 0.0);
+	l4d_ready_enable_sound =	CreateConVar("l4d_ready_enable_sound", "1", "Enable sound during countdown & on live");
 	l4d_ready_countdown_sound = CreateConVar("l4d_ready_countdown_sound", "weapons/hegrenade/beep.wav", "The sound that plays when a round goes on countdown");	
-	l4d_ready_live_sound = CreateConVar("l4d_ready_live_sound", "ui/survival_medal.wav", "The sound that plays when a round goes live");
-	l4d_ready_chuckle = CreateConVar("l4d_ready_chuckle", "0", "Enable random moustachio chuckle during countdown");
+	l4d_ready_live_sound =		CreateConVar("l4d_ready_live_sound", "ui/survival_medal.wav", "The sound that plays when a round goes live");
+	l4d_ready_chuckle =			CreateConVar("l4d_ready_chuckle", "0", "Enable random moustachio chuckle during countdown");
 	//l4d_ready_warp_team = CreateConVar("l4d_ready_warp_team", "1", "Should we warp the entire team when a player attempts to leave saferoom?");
 	l4d_ready_survivor_freeze.AddChangeHook(SurvFreezeChange);
 
@@ -137,34 +138,32 @@ public void OnPluginStart()
 	survivor_limit = FindConVar("survivor_limit");
 	z_max_player_zombies = FindConVar("z_max_player_zombies");
 	sv_infinite_primary_ammo = FindConVar("sv_infinite_primary_ammo");
-	ServerNamer = FindConVar("sn_main_name");
 
-	if (FindConVar("sn_main_name") != null) {
-		ServerNamer = FindConVar("sn_main_name");
-	} else {
+	if ((ServerNamer = FindConVar("sn_main_name")) == null)
+	{
 		ServerNamer = FindConVar("hostname");
 	}
 
 	/* Ready Commands */
-	RegConsoleCmd("sm_ready", Ready_Cmd, "Mark yourself as ready for the round to go live");
-	RegConsoleCmd("sm_r", Ready_Cmd, "Mark yourself as ready for the round to go live");
-	RegConsoleCmd("sm_toggleready", ToggleReady_Cmd, "Toggle your ready status");
-	RegConsoleCmd("sm_unready", Unready_Cmd, "Mark yourself as not ready if you have set yourself as ready");
-	RegConsoleCmd("sm_nr", Unready_Cmd, "Mark yourself as not ready if you have set yourself as ready");
+	RegConsoleCmd("sm_ready",		Ready_Cmd, "Mark yourself as ready for the round to go live");
+	RegConsoleCmd("sm_r",			Ready_Cmd, "Mark yourself as ready for the round to go live");
+	RegConsoleCmd("sm_toggleready",	ToggleReady_Cmd, "Toggle your ready status");
+	RegConsoleCmd("sm_unready",		Unready_Cmd, "Mark yourself as not ready if you have set yourself as ready");
+	RegConsoleCmd("sm_nr",			Unready_Cmd, "Mark yourself as not ready if you have set yourself as ready");
 	
 	/* Cast Commands */
-	RegAdminCmd("sm_caster", Caster_Cmd, ADMFLAG_BAN, "Registers a player as a caster so the round will not go live unless they are ready");
-	RegConsoleCmd("sm_cast", Cast_Cmd, "Registers the calling player as a caster so the round will not go live unless they are ready");
-	RegConsoleCmd("sm_notcasting", NotCasting_Cmd, "Deregister yourself as a caster or allow admins to deregister other players");
-	RegConsoleCmd("sm_uncast", NotCasting_Cmd, "Deregister yourself as a caster or allow admins to deregister other players");
+	RegAdminCmd("sm_caster",		Caster_Cmd, ADMFLAG_BAN, "Registers a player as a caster so the round will not go live unless they are ready");
+	RegConsoleCmd("sm_cast",		Cast_Cmd, "Registers the calling player as a caster so the round will not go live unless they are ready");
+	RegConsoleCmd("sm_notcasting",	NotCasting_Cmd, "Deregister yourself as a caster or allow admins to deregister other players");
+	RegConsoleCmd("sm_uncast",		NotCasting_Cmd, "Deregister yourself as a caster or allow admins to deregister other players");
 	
 	/* Player Commands */
-	RegConsoleCmd("sm_forcestart", ForceStart_Cmd, "Forces the round to start regardless of player ready status.  Players can unready to stop a force");
-	RegConsoleCmd("sm_fs", ForceStart_Cmd, "Forces the round to start regardless of player ready status.  Players can unready to stop a force");
-	RegConsoleCmd("sm_hide", Hide_Cmd, "Hides the ready-up panel so other menus can be seen");
-	RegConsoleCmd("sm_show", Show_Cmd, "Shows a hidden ready-up panel");
-	RegConsoleCmd("sm_return", Return_Cmd, "Return to a valid saferoom spawn if you get stuck during an unfrozen ready-up period");
-	RegConsoleCmd("sm_kickspecs", KickSpecs_Cmd, "Let's vote to kick those Spectators!");
+	RegConsoleCmd("sm_forcestart",	ForceStart_Cmd, "Forces the round to start regardless of player ready status.  Players can unready to stop a force");
+	RegConsoleCmd("sm_fs",			ForceStart_Cmd, "Forces the round to start regardless of player ready status.  Players can unready to stop a force");
+	RegConsoleCmd("sm_hide",		Hide_Cmd, "Hides the ready-up panel so other menus can be seen");
+	RegConsoleCmd("sm_show",		Show_Cmd, "Shows a hidden ready-up panel");
+	RegConsoleCmd("sm_return",		Return_Cmd, "Return to a valid saferoom spawn if you get stuck during an unfrozen ready-up period");
+	RegConsoleCmd("sm_kickspecs",	KickSpecs_Cmd, "Let's vote to kick those Spectators!");
 	
 	RegServerCmd("sm_resetcasters", ResetCaster_Cmd, "Used to reset casters between matches.  This should be in confogl_off.cfg or equivalent for your system");
 	//RegServerCmd("sm_add_caster_id", AddCasterSteamID_Cmd, "Used for adding casters to the whitelist -- i.e. who's allowed to self-register as a caster");
@@ -447,15 +446,21 @@ public Action:AddCasterSteamID_Cmd(args)
 
 public Action Hide_Cmd(int client, int args)
 {
-	hiddenPanel[client] = true;
-	CPrintToChat(client, "[{olive}Readyup{default}] Ready-up Panel is now {red}hidden{default}.");
+	if (inReadyUp)
+	{
+		hiddenPanel[client] = true;
+		CPrintToChat(client, "[{olive}Readyup{default}] Ready-up Panel is now {red}hidden{default}.");
+	}
 	return Plugin_Handled;
 }
 
 public Action Show_Cmd(int client, int args)
 {
-	hiddenPanel[client] = false;
-	CPrintToChat(client, "[{olive}Readyup{default}] Ready-up Panel is now {blue}shown{default}.");
+	if (inReadyUp)
+	{
+		hiddenPanel[client] = false;
+		CPrintToChat(client, "[{olive}Readyup{default}] Ready-up Panel is now {blue}shown{default}.");
+	}
 	return Plugin_Handled;
 }
 
@@ -566,7 +571,7 @@ public Action ForceStart_Cmd(int client, int args)
 		
 		if (GetTeamHumanCount(L4D2Team_Infected) < z_max_player_zombies.IntValue)
 		{
-			CPrintToChat(client, "[{olive}Readyup{default}] {blue}Not available when {green}Team Infected {default}is {olive}not full{default}.");
+			CPrintToChat(client, "[{olive}Readyup{default}] Not available when {green}Team Infected {default}is {olive}not full{default}.");
 			return Plugin_Handled;
 		}
 		
@@ -901,6 +906,12 @@ public Action MenuRefresh_Timer(Handle timer)
 		UpdatePanel();
 		return Plugin_Continue;
 	}
+	
+	if (menuPanel != null)
+	{
+		delete menuPanel;
+		menuPanel = null;
+	}
 	return Plugin_Handled;
 }
 
@@ -926,8 +937,8 @@ void UpdatePanel()
 
 	char survivorBuffer[800] = "";
 	char infectedBuffer[800] = "";
-	char casterBuffer[500] = "";
-	char specBuffer[800] = "";
+	char casterBuffer[600] = "";
+	char specBuffer[400] = "";
 	int playerCount = 0;
 	int casterCount = 0;
 	int specCount = 0;
@@ -942,14 +953,8 @@ void UpdatePanel()
 	float fTime = GetEngineTime();
 	int iPassTime = RoundToFloor(fTime - g_fTime);
 
-	if (ServerNamer)
-	{
-		ServerNamer.GetString(ServerName, sizeof(ServerName));
-	}
-	else
-	{
-		FindConVar("hostname").GetString(ServerName, sizeof(ServerName));
-	}
+	if (ServerNamer) ServerNamer.GetString(ServerName, sizeof(ServerName));
+	
 	l4d_ready_cfg_name.GetString(cfgName, sizeof(cfgName));
 	Format(ServerBuffer, sizeof(ServerBuffer), "▸ Server: %s \n▸ Slots: %d/%d\n▸ Config: %s", ServerName, GetSeriousClientCount(), FindConVar("sv_maxplayers").IntValue, cfgName);
 	menuPanel.DrawText(ServerBuffer);
@@ -1076,7 +1081,7 @@ void UpdatePanel()
 		Format(nameBuf, sizeof(nameBuf), "->%d. Spectators", ++textCount);
 		menuPanel.DrawText(nameBuf);
 		ReplaceString(specBuffer, sizeof(specBuffer), "#", "_");
-		if (playerCount > GetConVarInt(l4d_ready_max_players) && specCount - casterCount > 1)
+		if (playerCount > l4d_ready_max_players.IntValue && specCount - casterCount > 1)
 			FormatEx(specBuffer, sizeof(specBuffer), "**Many** (%d)", specCount);
 		menuPanel.DrawText(specBuffer);
 	}
@@ -1120,12 +1125,12 @@ void InitiateReadyUp()
 	}
 
 	DisableEntities();
-	SetConVarFlags(sv_infinite_primary_ammo, god.Flags & ~FCVAR_NOTIFY);
+	sv_infinite_primary_ammo.Flags = god.Flags & ~FCVAR_NOTIFY;
 	sv_infinite_primary_ammo.SetBool(true);
-	SetConVarFlags(sv_infinite_primary_ammo, god.Flags | FCVAR_NOTIFY);
-	SetConVarFlags(god, god.Flags & ~FCVAR_NOTIFY);
+	sv_infinite_primary_ammo.Flags = god.Flags | FCVAR_NOTIFY;
+	god.Flags &= ~FCVAR_NOTIFY;
 	god.SetBool(true);
-	SetConVarFlags(god, god.Flags | FCVAR_NOTIFY);
+	god.Flags |= FCVAR_NOTIFY;
 	sb_stop.SetBool(true);
 
 	L4D2_CTimerStart(L4D2CT_VersusStartTimer, 99999.9);
@@ -1179,13 +1184,13 @@ void InitiateLive(bool real = true)
 	SetTeamFrozen(L4D2Team_Survivor, false);
 
 	EnableEntities();
-	SetConVarFlags(sv_infinite_primary_ammo, god.Flags & ~FCVAR_NOTIFY);
+	sv_infinite_primary_ammo.Flags = god.Flags & ~FCVAR_NOTIFY;
 	sv_infinite_primary_ammo.SetBool(false);
-	SetConVarFlags(sv_infinite_primary_ammo, god.Flags | FCVAR_NOTIFY);
+	sv_infinite_primary_ammo.Flags = god.Flags | FCVAR_NOTIFY;
 	director_no_specials.SetBool(false);
-	SetConVarFlags(god, god.Flags & ~FCVAR_NOTIFY);
+	god.Flags &= ~FCVAR_NOTIFY;
 	god.SetBool(false);
-	SetConVarFlags(god, god.Flags | FCVAR_NOTIFY);
+	god.Flags |= FCVAR_NOTIFY;
 	sb_stop.SetBool(false);
 	
 	L4D2_CTimerStart(L4D2CT_VersusStartTimer, 60.0);
@@ -1345,8 +1350,8 @@ void CancelFullReady(int client, disruptType type)
 		
 		switch (type)
 		{
-			case readyStatus: CPrintToChatAll("[{olive}Readyup{default}] {blue}%N {default}is {green}not ready {default}and cancels the Countdown!", client);
-			case teamShuffle: CPrintToChatAll("[{olive}Readyup{default}] {blue}%N {green}switches to Spectator {default}and cancels the Countdown!", client);
+			case readyStatus: CPrintToChatAll("[{olive}Readyup{default}] {blue}%N {green}marked not ready {default}and cancelled the Countdown!", client);
+			case teamShuffle: CPrintToChatAll("[{olive}Readyup{default}] {blue}%N {green}switched to Spectator {default}and cancelled the Countdown!", client);
 		}
 	}
 }
