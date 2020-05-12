@@ -105,9 +105,7 @@ public OnPluginStart()
 	cvarMpGameMode = FindConVar("mp_gamemode");
 	cvarHostname = FindConVar("hostname");
 	cvarZDifficulty = FindConVar("z_difficulty");
-	
-	GetMainNameFromFile();
-	
+		
 	//Hooks
 	HookConVarChange(cvarMpGameMode, OnCvarChanged);
 	HookConVarChange(cvarZDifficulty, OnCvarChanged);
@@ -117,6 +115,7 @@ public OnPluginStart()
 	HookConVarChange(cvarServerNameFormatCase2, OnCvarChanged);
 	HookConVarChange(cvarServerNameFormatCase3, OnCvarChanged);
 	IsConfoglAvailable = LibraryExists("confogl");
+	StoreMainNameFromFile();
 	SetName();
 }
 
@@ -163,7 +162,7 @@ SetName()
 	{
 		return;
 	}
-	GetMainNameFromFile();
+	StoreMainNameFromFile();
 	isempty = ServerIsEmpty();
 	if (IsConfoglAvailable)
 	{
@@ -261,22 +260,22 @@ ParseNameAndSendToMainConVar(String:sBuffer[])
 	SetConVarString(cvarHostname, sBuffer, false, false);
 }
 
-GetMainNameFromFile()
+StoreMainNameFromFile()
 {
 	new String:sPath[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sPath, sizeof(sPath), "configs/hostname/server_hostname.txt");//檔案路徑設定
+	BuildPath(Path_SM, sPath, sizeof(sPath), "configs/hostname/sn_main_name.txt");
         
-	new Handle:file = OpenFile(sPath, "r");//讀取檔案
-	if (file == INVALID_HANDLE)
+	new Handle:file = OpenFile(sPath, "r");
+	if (file != INVALID_HANDLE)
 	{
-		SetFailState("configs/hostname/server_hostname.txt not found!");
+		new String:readData[256];
+		if(!IsEndOfFile(file) && ReadFileLine(file, readData, sizeof(readData)))
+		{
+			SetConVarString(cvarMainName, readData);
+		}
+		return;
 	}
-
-	new String:readData[256];
-	if(!IsEndOfFile(file) && ReadFileLine(file, readData, sizeof(readData)))//讀一行
-	{
-		SetConVarString(cvarMainName, readData);
-	}
+	LogMessage("File configs/hostname/sn_main_name.txt doesn't exist!");
 }
 
 bool:ServerIsEmpty()
