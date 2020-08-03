@@ -85,6 +85,8 @@ new bool:bIsLive;
 new iTankCount;
 new Handle:hDoubleTankMapTrie;
 
+new ammoOffset;
+
 // readyup
 native IsInReady();
 
@@ -119,9 +121,9 @@ native GetStoredWitchPercent();
 public Plugin:myinfo = 
 {
 	name = "Hyper-V HUD Manager [Public Version]",
-	author = "Visor",
+	author = "Visor, Forgetest",
 	description = "Provides different HUDs for spectators",
-	version = "2.9",
+	version = "3.0.0",
 	url = "https://github.com/Attano/smplugins"
 };
 
@@ -135,8 +137,6 @@ public OnPluginStart()
 	
 	RegConsoleCmd("sm_spechud", ToggleSpecHudCmd);
 	RegConsoleCmd("sm_tankhud", ToggleTankHudCmd);
-	
-	//ServerNamer = FindConVar("sn_main_name");
 
 	for (new i = 1; i < MaxClients; ++i)
 	{
@@ -145,6 +145,8 @@ public OnPluginStart()
 		bTankHudActive[i] = true;
 		bTankHudHintShown[i] = false;
 	}
+	
+	ammoOffset = FindSendPropInfo("CCSPlayer", "m_iAmmo");
 	
 	hSurvivorArray = CreateArray();
 	
@@ -317,11 +319,16 @@ public DummyTankHudHandler(Handle:hMenu, MenuAction:action, param1, param2) {}
 
 FillHeaderInfo(Handle:hSpecHud)
 {
-	DrawPanelText(hSpecHud, "♟ Spectator HUD ♟");
-
+	new Handle:ServerNamer = FindConVar("sn_main_name");
+	
 	decl String:buffer[64];
-	FormatEx(buffer, sizeof(buffer), "Slots %i/%i | Tickrate %i", GetRealClientCount(), GetConVarInt(FindConVar("sv_maxplayers")), RoundToNearest(1.0 / GetTickInterval()));
+	if (ServerNamer != INVALID_HANDLE) GetConVarString(ServerNamer, buffer, sizeof(buffer));
+	else GetConVarString(FindConVar("hostname"), buffer, sizeof(buffer));
+	
+	Format(buffer, sizeof(buffer), "☂ %s [Slots %i/%i | %iT]", buffer, GetRealClientCount(), GetConVarInt(FindConVar("sv_maxplayers")), RoundToNearest(1.0 / GetTickInterval()));
 	DrawPanelText(hSpecHud, buffer);
+	
+	//FormatEx(buffer, sizeof(buffer), "Slots %i/%i | Tickrate %i", GetRealClientCount(), GetConVarInt(FindConVar("sv_maxplayers")), RoundToNearest(1.0 / GetTickInterval()));
 }
 
 GetMeleePrefix(client, String:prefix[], length)
@@ -378,27 +385,72 @@ FillSurvivorInfo(Handle:hSpecHud)
 		}
 		else
 		{
-			new WeaponId:primaryWep = IdentifyWeapon(GetPlayerWeaponSlot(client, _:L4D2WeaponSlot_Primary));
-			GetLongWeaponName(primaryWep, info, sizeof(info));
-			GetMeleePrefix(client, buffer, sizeof(buffer)); 
-			Format(info, sizeof(info), "[%s/%s]", info, buffer);
+			new primaryWep = GetPlayerWeaponSlot(client, _:L4D2WeaponSlot_Primary);
 			
-			if (IsSurvivorHanging(client))
+			new activeWep = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+			new WeaponId:activeWepId = IdentifyWeapon(activeWep);
+
+			switch (activeWepId)
 			{
-				Format(info, sizeof(info), "%s: %iHP <Hanging> %s", name, GetSurvivorHealth(client), info);
+				case WEPID_PISTOL, WEPID_PISTOL_MAGNUM:
+				{
+					if (activeWepId == WEPID_PISTOL && bool:GetEntProp(activeWep, Prop_Send, "m_isDualWielding"))
+					{
+						Format(buffer, sizeof(buffer), "DP");
+					}
+					else GetLongWeaponName(activeWepId, buffer, sizeof(buffer));
+					
+					FormatEx(info, sizeof(info), "%s %i", buffer, GetWeaponClip(activeWep));
+				}
+				default:
+				{
+					GetLongWeaponName(IdentifyWeapon(primaryWep), buffer, sizeof(buffer));
+					FormatEx(info, sizeof(info), "%s %i/%i", buffer, GetWeaponClip(primaryWep), GetWeaponAmmo(client, primaryWep));
+				}
 			}
-			else if (IsIncapacitated(client))
+			
+			// In case with no primary
+			if (primaryWep == -1)
 			{
-				Format(info, sizeof(info), "%s: %iHP <Incapped(#%i)> %s", name, GetSurvivorHealth(client), (GetSurvivorIncapCount(client) + 1), info);
+				// Shows melee fullname (having melee active with no primary)
+				if (activeWepId == WEPID_MELEE || activeWepId == WeaponId:WEPID_CHAINSAW)
+				{
+					new MeleeWeaponId:meleeWepId = IdentifyMeleeWeapon(activeWep);
+					GetLongWeaponName(meleeWepId, info, sizeof(info));
+				}
+				Format(info, sizeof(info), "[%s]", info);
 			}
 			else
 			{
-				new bool:IsAmmoLow = false;
-				if (GetPlayerTotalAmmo(client, IsAmmoLow) == 0)
-					Format(info, sizeof(info), "%s <Ammo Out>", info);
-				else if (IsAmmoLow)
-					Format(info, sizeof(info), "%s <Ammo Low>", info);
+				// Default display -> [Primary details | Secondary prefix]
+				// Having melee active is also included in this way
+				// i.e. [Chrome 8/56 | M]
+				if (GetSlotFromWeaponId(activeWepId) != 1 || activeWepId == WEPID_MELEE || activeWepId == WeaponId:WEPID_CHAINSAW)
+				{
+					GetMeleePrefix(client, buffer, sizeof(buffer));
+					Format(info, sizeof(info), "[%s | %s]", info, buffer);
+				}
 
+				// Having secondary active -> [Secondary details | Primary weapon name]
+				// i.e. [Deagle 8 | Mac]
+				else
+				{
+					GetLongWeaponName(IdentifyWeapon(primaryWep), buffer, sizeof(buffer));
+					Format(info, sizeof(info), "[%s | %s]", info, buffer);
+				}
+			}
+			
+			if (IsSurvivorHanging(client))
+			{
+				FormatEx(info, sizeof(info), "%s: %iHP <Hanging>", name, GetSurvivorHealth(client));
+			}
+			else if (IsIncapacitated(client))
+			{
+				GetLongWeaponName(activeWepId, buffer, sizeof(buffer));
+				FormatEx(info, sizeof(info), "%s: %iHP <Incapped#%i> [%s %i]", name, GetSurvivorHealth(client), (GetSurvivorIncapCount(client) + 1), buffer, GetWeaponClip(activeWep));
+			}
+			else
+			{
 				new health = GetSurvivorHealth(client) + GetSurvivorTemporaryHealth(client);
 				new tempHealth = GetSurvivorTemporaryHealth(client);
 				new incapCount = GetSurvivorIncapCount(client);
@@ -409,8 +461,8 @@ FillSurvivorInfo(Handle:hSpecHud)
 				}
 				else
 				{
-					FormatEx(buffer, sizeof(buffer), "%i incap%s", incapCount, (incapCount > 1 ? "s" : ""));
-					Format(info, sizeof(info), "%s: %iHP (%s) %s", name, health, buffer, info);
+					//FormatEx(buffer, sizeof(buffer), "%i incap%s", incapCount, (incapCount > 1 ? "s" : ""));
+					Format(info, sizeof(info), "%s: %iHP (#%i) %s", name, health, incapCount, info);
 				}
 			}
 		}
@@ -693,7 +745,7 @@ FillGameInfo(Handle:hSpecHud)
 		new textBehind = false;
 		if (l4d_tank_percent == INVALID_HANDLE || GetConVarBool(l4d_tank_percent))
 		{
-			if (RoundHasFlowTank() || IsStaticTankMap())
+			if ((tankPercent || IsStaticTankMap()) && iTankCount)
 			{
 				textBehind = true;
 				FormatEx(buffer, sizeof(buffer), "%i%%", tankPercent);
@@ -719,12 +771,15 @@ FillGameInfo(Handle:hSpecHud)
 		
 		DrawPanelText(hSpecHud, info);
 		
-		new tankClient = GetTankSelection();
-		if (tankClient != -1 && iTankCount > 0 && (RoundHasFlowTank() || IsStaticTankMap()))
+		if (GetConVarBool(l4d_tank_percent))
 		{
-			GetClientFixedName(tankClient, buffer, sizeof(buffer));
-			FormatEx(info, sizeof(info), "Tank -> %N", tankClient);
-			DrawPanelText(hSpecHud, info);
+			new tankClient = GetTankSelection();
+			if (tankClient != -1 && iTankCount > 0 && (tankPercent || IsStaticTankMap()))
+			{
+				GetClientFixedName(tankClient, buffer, sizeof(buffer));
+				FormatEx(info, sizeof(info), "Tank -> %N", tankClient);
+				DrawPanelText(hSpecHud, info);
+			}
 		}
 	}
 }
@@ -733,48 +788,27 @@ FillGameInfo(Handle:hSpecHud)
  *	Stocks
 **/
 
-#define AMMO_LOW_BOUND_SMG		80
-#define AMMO_LOW_BOUND_SHOTGUN	24
-#define AMMO_LOW_BOUND_SNIPER	20
+#define OFFSET_IAMMO_PISTOLS	0
 #define OFFSET_IAMMO_SMG		20
 #define OFFSET_IAMMO_SHOTGUN	28
 #define OFFSET_IAMMO_CSS_SNIPER	40
-stock GetPlayerTotalAmmo(client, &bool:IsAmmoLow)
+stock GetWeaponAmmo(client, weapon)
 {
-	new primaryWep = GetPlayerWeaponSlot(client, _:L4D2WeaponSlot_Primary);
-	if (primaryWep == -1)
-		return -1;
-	
-	new totalammo = -1, offset = FindDataMapOffs(client, "m_iAmmo");
-	switch (IdentifyWeapon(primaryWep))
+	new offset;
+	switch (IdentifyWeapon(weapon))
 	{
-		case WEPID_SMG, WEPID_SMG_SILENCED:
-		{
-			totalammo = GetWeaponAmmo(client, offset + OFFSET_IAMMO_SMG) + GetWeaponClip(primaryWep);
-			IsAmmoLow = totalammo <= AMMO_LOW_BOUND_SMG;
-		}
-		case WEPID_PUMPSHOTGUN, WEPID_SHOTGUN_CHROME:
-		{
-			totalammo = GetWeaponAmmo(client, offset + OFFSET_IAMMO_SHOTGUN) + GetWeaponClip(primaryWep);
-			IsAmmoLow = totalammo <= AMMO_LOW_BOUND_SHOTGUN;
-		}
-		case WEPID_SNIPER_AWP, WEPID_SNIPER_SCOUT:
-		{
-			totalammo = GetWeaponAmmo(client, offset + OFFSET_IAMMO_CSS_SNIPER) + GetWeaponClip(primaryWep);
-			IsAmmoLow = totalammo <= AMMO_LOW_BOUND_SNIPER;
-		}
+		case WEPID_PISTOL, WEPID_PISTOL_MAGNUM: offset = OFFSET_IAMMO_PISTOLS;
+		case WEPID_SMG, WEPID_SMG_SILENCED: offset = OFFSET_IAMMO_SMG;
+		case WEPID_PUMPSHOTGUN, WEPID_SHOTGUN_CHROME: offset = OFFSET_IAMMO_SHOTGUN;
+		case WEPID_SNIPER_AWP, WEPID_SNIPER_SCOUT: offset = OFFSET_IAMMO_CSS_SNIPER;
+		default: return -1;
 	}
-	return totalammo;
-}
-
-stock GetWeaponAmmo(client, offset)
-{
-	return GetEntData(client, offset);
+	return GetEntData(client, ammoOffset + offset);
 } 
 
 stock GetWeaponClip(weapon)
 {
-	return GetEntProp(weapon, Prop_Send, "m_iClip1");
+	return weapon == -1 ? -1 : GetEntProp(weapon, Prop_Send, "m_iClip1");
 } 
 
 PushSerialSurvivors(&Handle:hArray)
@@ -874,7 +908,7 @@ Float:GetLerpTime(client)
 	return MAX(flLerpAmount, flLerpRatio / updateRate);
 }
 
-Float:ToPercent(score, maxbonus)
+stock Float:ToPercent(score, maxbonus)
 {
 	return (score < 1 ? 0.0 : (100.0 * score / maxbonus));
 }
