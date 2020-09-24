@@ -1390,8 +1390,8 @@ void CancelFullReady(int client, disruptType type)
 		
 		switch (type)
 		{
-			case readyStatus: CPrintToChatAllEx(client, "{default}[{green}!{default}] {green}Countdown Cancelled! {default}({teamcolor}%N {olive}marked unready{default})", client);
-			case teamShuffle: CPrintToChatAllEx(client, "{default}[{green}!{default}] {green}Countdown Cancelled! {default}({teamcolor}%N {olive}switched team{default})", client);
+			case readyStatus: CPrintToChatAllEx(client, "{green}[{default}!{green}] {default}Countdown Cancelled! {green}({teamcolor}%N {olive}marked unready{green})", client);
+			case teamShuffle: CPrintToChatAllEx(client, "{green}[{default}!{green}] {default}Countdown Cancelled! {green}({teamcolor}%N {olive}switched team{green})", client);
 		}
 	}
 }
