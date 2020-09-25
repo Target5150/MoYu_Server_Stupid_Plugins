@@ -746,6 +746,8 @@ public Action:Menu_CreateMeleeWeaponMenu(client, args) {
 	AddMenuItem(menu, "mh", "Spawn a katana");
 	AddMenuItem(menu, "mi", "Spawn a machete");
 	AddMenuItem(menu, "mj", "Spawn a police baton");
+	AddMenuItem(menu, "mk", "Spawn a shovel");
+	AddMenuItem(menu, "ml", "Spawn a pitchfork");
 	DisplayMenu(menu, client, MENU_DISPLAY_TIME);
 	return Plugin_Handled;
 }
@@ -773,6 +775,10 @@ public Menu_SpawnMeleeWeaponHandler(Handle:menu, MenuAction:action, cindex, item
 				Do_SpawnItem(cindex, "machete");
 			} case 9: {
 				Do_SpawnItem(cindex, "tonfa");
+			} case 10: {
+				Do_SpawnItem(cindex, "shovel");
+			} case 11: {
+				Do_SpawnItem(cindex, "pitchfork");
 			} 
 		}
 		Menu_CreateMeleeWeaponMenu(cindex, false);
