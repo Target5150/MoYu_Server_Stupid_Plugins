@@ -14,3 +14,5 @@
 	- Tells the types of upcoming tank _(Flow, Static or Event)_
 	
 - **Shorten certain texts to prevent overflow (Well still happens sometime, I've tried..)**
+
+Preview image:![image](https://github.com/Target5150/MoYu_Server_Stupid_Plugins/blob/master/The%20Last%20Stand/spechud/Spechud%20Preview.png?raw=true)
