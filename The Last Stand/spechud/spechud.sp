@@ -1,5 +1,3 @@
-#pragma semicolon 1
-
 #include <sourcemod>
 #include <sdktools>
 #include <l4d2_weapon_stocks>
@@ -9,6 +7,7 @@
 //#include <l4d2_direct>
 //#include <left4downtown>
 
+#pragma semicolon 1
 #pragma newdecls required
 
 #define SPECHUD_DRAW_INTERVAL   0.5
@@ -262,7 +261,10 @@ public void OnRoundIsLive()
 	}
 }
 
-public void L4D2_OnEndVersusModeRound_Post() { if (!InSecondHalfOfRound()) iFirstHalfScore = GetChapterScore(0) - iFirstHalfScore; }
+public void L4D2_OnEndVersusModeRound_Post()
+{
+	if (!InSecondHalfOfRound()) iFirstHalfScore = GetChapterScore(0) - iFirstHalfScore;
+}
 
 public void OnPlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
@@ -929,30 +931,15 @@ void PushSerialSurvivors(ArrayList &array)
 	int survivorCount;
 	for (int client = 1; client <= MaxClients && survivorCount < GetConVarInt(survivor_limit); ++client) 
 	{
-		if (!IsSurvivor(client)) continue;
-		
-		int index = array.Push(client);
-		SurvivorCharacter sc = GetFixedSurvivorCharacter(client);
-		
-		for (int i = array.Length-2; i >= 0; --i)
-		{
-			if (sc < GetFixedSurvivorCharacter(array.Get(i)))
-			{
-				array.SwapAt(index, i);
-				
-				// stores new index
-				index = i;
-			}
-		}
-		survivorCount++;
+		if (IsSurvivor(client)) array.Push(client);
 	}
-	//array.SortCustom(ArraySort);
+	array.SortCustom(ArraySort);
 }
 
-/*public int ArraySort(int index1, int index2, Handle array, Handle hndl)
+public int ArraySort(int index1, int index2, Handle array, Handle hndl)
 {
-	SurvivorCharacter sc1 = GetFixedSurvivorCharacter(index1);
-	SurvivorCharacter sc2 = GetFixedSurvivorCharacter(index2);
+	SurvivorCharacter sc1 = GetFixedSurvivorCharacter(GetArrayCell(array, index1));
+	SurvivorCharacter sc2 = GetFixedSurvivorCharacter(GetArrayCell(array, index2));
 	
 	if (sc1 > sc2) {
 		// goes after the second
@@ -964,7 +951,7 @@ void PushSerialSurvivors(ArrayList &array)
 		// equal
 		return 0;
 	}
-}*/
+}
 
 SurvivorCharacter GetFixedSurvivorCharacter(int client)
 {
@@ -1028,17 +1015,17 @@ void GetClientFixedName(int client, char[] name, int length)
 		name[0] = ' ';
 	}
 
-	if (strlen(name) > 20)
+	if (strlen(name) > 18)
 	{
-		name[17] = name[18] = name[19] = '.';
-		name[20] = 0;
+		name[15] = name[16] = name[17] = '.';
+		name[18] = 0;
 	}
 }
 
 int GetRealClientCount() 
 {
 	int clients = 0;
-	for (int i = 1; i <= MaxClients; i++) 
+	for (int i = 1; i <= MaxClients; ++i) 
 	{
 		if (IsClientConnected(i) && IsClientInGame(i) && !IsFakeClient(i)) clients++;
 	}
@@ -1066,22 +1053,43 @@ float GetClientFlow(int client)
 	return (L4D2Direct_GetFlowDistance(client) / L4D2Direct_GetMapMaxFlowDistance());
 }
 
+/*float GetFlowDistance(int client)
+{
+	static Handle GetFlowDistanceSDKCall = INVALID_HANDLE;
+
+	if (GetFlowDistanceSDKCall == INVALID_HANDLE)
+	{
+		StartPrepSDKCall(SDKCall_Player);
+		
+		if (!PrepSDKCall_SetFromConf(LoadGameConfigFile("l4d2_direct"), SDKConf_Signature, "CTerrorPlayer::GetFlowDistance"))
+		{
+			return 0.0;
+		}
+		
+		PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
+		PrepSDKCall_SetReturnInfo(SDKType_Float, SDKPass_Plain);
+		GetFlowDistanceSDKCall = EndPrepSDKCall();
+		
+		if (GetFlowDistanceSDKCall == INVALID_HANDLE)
+		{
+			return 0.0;
+		}
+	}
+
+	return view_as<float>(SDKCall(GetFlowDistanceSDKCall, client, 0));
+}*/
+
 float GetHighestSurvivorFlow()
 {
 	float flow;
-	float maxflow = 0.0;
-	for (int i = 1; i <= MaxClients; i++) 
+	for (int i = 1; i <= MaxClients; ++i) 
 	{
 		if (IsSurvivor(i))
 		{
-			flow = GetClientFlow(i);
-			if (flow > maxflow)
-			{
-				maxflow = flow;
-			}
+			flow = MAX(flow, GetClientFlow(i));
 		}
 	}
-	return maxflow;
+	return flow;
 }
 
 bool RoundHasFlowTank()
