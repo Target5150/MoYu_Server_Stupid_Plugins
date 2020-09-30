@@ -2,8 +2,6 @@
 
 #include <sourcemod>
 #include <sdktools>
-#include <l4d2util>
-//#include <l4d2_direct>
 #include <left4dhooks>
 #include <colors>
 #include <readyup>
@@ -28,6 +26,13 @@ public Plugin:myinfo =
     url = "https://github.com/alexberriman/l4d2-plugins/tree/master/l4d_tank_control"
 }
 
+enum L4D2Team
+{
+    L4D2Team_None = 0,
+    L4D2Team_Spectator,
+    L4D2Team_Survivor,
+    L4D2Team_Infected
+}
 
 enum ZClass
 {
@@ -140,11 +145,11 @@ public PlayerLeftStartArea_Event(Handle:event, const String:name[], bool:dontBro
  
 public PlayerTeam_Event(Handle:event, const String:name[], bool:dontBroadcast)
 {
-    new L4D2_Team:oldTeam = L4D2_Team:GetEventInt(event, "oldteam");
+    new L4D2Team:oldTeam = L4D2Team:GetEventInt(event, "oldteam");
     new client = GetClientOfUserId(GetEventInt(event, "userid"));
     decl String:tmpSteamId[64];
     
-    if (client && oldTeam == L4D2_Team:L4D2Team_Infected)
+    if (client && oldTeam == L4D2Team:L4D2Team_Infected)
     {
         GetClientAuthId(client, AuthId_Steam2, tmpSteamId, sizeof(tmpSteamId));
         if (strcmp(queuedTankSteamId, tmpSteamId) == 0)
@@ -210,7 +215,7 @@ public Action:Tank_Cmd(client, args)
         GetClientName(tankClientId, tankClientName, sizeof(tankClientName));
         
         // If on infected, print to entire team
-        if (L4D2_Team:GetClientTeam(client) == L4D2_Team:L4D2Team_Infected || IsClientCaster(client))
+        if (L4D2Team:GetClientTeam(client) == L4D2Team:L4D2Team_Infected || IsClientCaster(client))
         {
             if (client == tankClientId) CPrintToChat(client, "{red}<{default}Tank Selection{red}> {green}You {default}will become the {red}Tank{default}!");
             else CPrintToChat(client, "{red}<{default}Tank Selection{red}> {olive}%s {default}will become the {red}Tank!", tankClientName);
@@ -258,7 +263,7 @@ public Action:GiveTank_Cmd(client, args)
     if (IsClientConnected(target) && IsClientInGame(target) && ! IsFakeClient(target))
     {
         // Checking if on our desired team
-        if (L4D2_Team:GetClientTeam(target) != L4D2_Team:L4D2Team_Infected)
+        if (L4D2Team:GetClientTeam(target) != L4D2Team:L4D2Team_Infected)
         {
             CPrintToChatAll("{olive}[SM] {default}%s not on infected. Unable to give tank", name);
             return Plugin_Handled;
@@ -292,7 +297,7 @@ public chooseTank()
     infectedPool = removeTanksFromPool(infectedPool, h_whosHadTank);
     
     // If the infected pool is empty, remove infected players from pool
-    if (GetArraySize(infectedPool) == 0) // (when nobody on infected, error)
+    if (GetArraySize(infectedPool) == 0) // (when nobody on infected ,error)
     {
         new Handle:infectedTeam = teamSteamIds(L4D2Team_Infected);
         if (GetArraySize(infectedTeam) > 1)
@@ -311,6 +316,7 @@ public chooseTank()
     // Select a random person to become tank
     new rndIndex = GetRandomInt(0, GetArraySize(infectedPool) - 1);
     GetArrayString(infectedPool, rndIndex, queuedTankSteamId, sizeof(queuedTankSteamId));
+    CloseHandle(infectedPool);
 }
 
 /**
@@ -325,7 +331,7 @@ public Action:L4D_OnTryOfferingTankBot(tank_index, &bool:enterStatis)
         PrintHintText(tank_index, "Rage Meter Refilled");
         for (new i = 1; i <= MaxClients; i++) 
         {
-            if (! IsClientInGame(i) || ! IsInfected(i))
+            if (! IsClientInGame(i) || GetClientTeam(i) != 3)
                 continue;
 
             if (tank_index == i) CPrintToChat(i, "{red}<{default}Tank Rage{red}> {olive}Rage Meter {red}Refilled");
@@ -362,7 +368,7 @@ public setTankTickets(const String:steamId[], const tickets)
     
     for (new i = 1; i <= MaxClients; i++)
     {
-        if (IsClientConnected(i) && IsClientInGame(i) && ! IsFakeClient(i) && IsInfected(i))
+        if (IsClientConnected(i) && IsClientInGame(i) && ! IsFakeClient(i) && GetClientTeam(i) == 3)
         {
             L4D2Direct_SetTankTickets(i, (i == tankClientId) ? tickets : 0);
         }
@@ -417,14 +423,14 @@ stock PrintToInfected(const String:Message[], any:... )
 /**
  * Returns an array of steam ids for a particular team.
  * 
- * @param L4D2_Team:team
+ * @param L4D2Team:team
  *     The team which to return steam ids for.
  * 
  * @return
  *     An array of steam ids.
  */
  
-public Handle:teamSteamIds(L4D2_Team:team)
+public Handle:teamSteamIds(L4D2Team:team)
 {
     new Handle:steamIds = CreateArray(64);
     decl String:steamId[64];
@@ -435,7 +441,7 @@ public Handle:teamSteamIds(L4D2_Team:team)
         if (IsClientConnected(i) && IsClientInGame(i) && ! IsFakeClient(i))
         {
             // Checking if on our desired team
-            if (L4D2_Team:GetClientTeam(i) != team)
+            if (L4D2Team:GetClientTeam(i) != team)
                 continue;
         
             GetClientAuthId(i, AuthId_Steam2, steamId, sizeof(steamId));
@@ -493,7 +499,7 @@ public getInfectedPlayerBySteamId(const String:steamId[])
    
     for (new i = 1; i <= MaxClients; i++) 
     {
-        if (!IsClientConnected(i) || !IsInfected(i))
+        if (!IsClientConnected(i) || GetClientTeam(i) != 3)
             continue;
         
         GetClientAuthId(i, AuthId_Steam2, tmpSteamId, sizeof(tmpSteamId));     
@@ -505,16 +511,10 @@ public getInfectedPlayerBySteamId(const String:steamId[])
     return -1;
 }
 
-/*stock PrintToConsoleAll(const String:format[], any:...)
-{
-	new String:text[192];
-	for (new x = 1; x <= MaxClients; x++)
-	{
-		if (IsClientInGame(x))
-		{
-			SetGlobalTransTarget(x);
-			VFormat(text, sizeof(text), format, 2);
-			PrintToConsole(x, text);
-		}
-	}
-}*/
+SetTankFrustration(int iTankClient, int iFrustration) {
+    if (iFrustration < 0 || iFrustration > 100) {
+        return;
+    }
+    
+    SetEntProp(iTankClient, Prop_Send, "m_frustration", 100-iFrustration);
+}

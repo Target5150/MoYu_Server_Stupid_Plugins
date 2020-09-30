@@ -263,6 +263,11 @@ public void PrintTankSkill()
 	DataPack dp = new DataPack();
 	CreateDataTimer(3.0, Timer_PrintToChat, dp);
 	
+	// [!] Facts of the Tank (AI)
+	// > Punch: 4 / Rock: 2 / Hittable: 0
+	// > Incap: 1 / Death: 0 from Survivors
+	// > Duration: 1min 7s / Total Damage: 144
+	
 	FormatEx(info, sizeof(info), "[{green}!{default}] {blue}Facts {default}of the {blue}Tank {default}({olive}%s{default})", name);
 	dp.WriteString(info);
 	FormatEx(info, sizeof(info), "{green}> {default}Punch: {red}%i {green}/ {default}Rock: {red}%i {green}/ {default}Hittable: {red}%i", g_TankAttack.Punch, g_TankAttack.Rock, g_TankAttack.Hittable);

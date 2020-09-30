@@ -2,19 +2,18 @@
 #include <sdktools>
 #include <builtinvotes>
 #include <colors>
+#undef REQUIRE_PLUGIN
 #include <l4d2_changelevel>
 
 #pragma newdecls required
 #pragma semicolon 1
-
-#define MAX_CAMPAIGN_LIMIT 64
 
 public Plugin myinfo =
 {
 	name = "Vote Custom Campaign",
 	author = "Forgetest",
 	description = "ez",
-	version = "1.0",
+	version = "1.1",
 	url = ""
 };
 
@@ -22,26 +21,32 @@ public Plugin myinfo =
  * Globals
  */
 int g_iCount;
-char g_sMapinfo[MAX_CAMPAIGN_LIMIT][256];
-char g_sMapname[MAX_CAMPAIGN_LIMIT][256];
-char votemapinfo[256];
-char votemapname[256];
+
+enum struct Campaign
+{
+	char code[128];
+	char name[256];
+} 
+
+Campaign g_Campaign;
+ArrayList g_CampaignList;
 
 Handle g_hVoteMenu;
-KeyValues g_kvCampaigns;
 
 ConVar g_hMenuLeaveTime;
 ConVar g_hVotePercent;
 ConVar g_hPassPercent;
+
+bool l4d2_changelevel;
 
 /**
  * Pre-check
  */
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
-	if (GetEngineVersion() != Engine_Left4Dead2)
+	if (GetEngineVersion() != Engine_Left4Dead && GetEngineVersion() != Engine_Left4Dead2)
 	{
-		strcopy(error, err_max, "Plugin Support Only Left 4 Dead 2!");
+		strcopy(error, err_max, "Plugin Support Only Left 4 Dead & 2!");
 		return APLRes_SilentFailure;
 	}
 	return APLRes_Success;
@@ -52,12 +57,14 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
  */
 public void OnPluginStart()
 {
-	RegConsoleCmd("sm_mapvote", Command_VoteCampaign, "Show custom campaigns menu");
-	RegConsoleCmd("sm_vcc", Command_VoteCampaign, "Show custom campaigns menu");
-
-	g_hMenuLeaveTime = CreateConVar("vcc_menu_leavetime", "20", "After this time(second) the menu should leave.", FCVAR_NOTIFY);
-	g_hVotePercent = CreateConVar("vcc_vote_percent", "0.60", "Votes reaching this percent of clients(no-spec) can a vote result.", FCVAR_NOTIFY);
-	g_hPassPercent = CreateConVar("vcc_pass_percent", "0.60", "Approvals reaching this percent of votes can a vote pass.", FCVAR_NOTIFY);
+	g_hMenuLeaveTime = CreateConVar("vcc_menu_leavetime",	"20",	"After this time(second) vote menu should leave.", FCVAR_NOTIFY);
+	g_hVotePercent = CreateConVar(	"vcc_votes_percent",	"0.60",	"Votes reaching this percent of clients(no-spec) can a vote result.", FCVAR_NOTIFY);
+	g_hPassPercent = CreateConVar(	"vcc_pass_percent",		"0.60",	"Approvals reaching this percent of votes can a vote pass.", FCVAR_NOTIFY);
+	
+	RegConsoleCmd("sm_mapvote",	Command_VoteCampaign, "Show custom campaigns menu");
+	RegConsoleCmd("sm_vcc",		Command_VoteCampaign, "Show custom campaigns menu");
+	
+	RegAdminCmd("sm_rcc", Command_ReloadCampaigns, ADMFLAG_CHANGEMAP, "Reload lists of custom campaigns");
 	
 	ParseCampaigns();
 }
@@ -67,20 +74,35 @@ public void OnMapStart()
 	ParseCampaigns();
 }
 
+public void OnAllPluginsLoaded() { l4d2_changelevel = LibraryExists("l4d2_changelevel"); }
+public void OnLibraryAdded(const char[] name) { if (StrEqual(name, "l4d2_changelevel")) l4d2_changelevel = true; }
+public void OnLibraryRemoved(const char[] name) { if (StrEqual(name, "l4d2_changelevel")) l4d2_changelevel = false; }
+
 
 /**
  * Commands
  */
+public Action Command_ReloadCampaigns(int client, int args)
+{
+	if (ParseCampaigns()) {
+		ReplyToCommand(client, "[SM] Successfully reloaded custom campaigns.");
+	} else {
+		ReplyToCommand(client, "[SM] Failed to reload custom campaigns. See error logs.");
+	}
+}
+
 public Action Command_VoteCampaign(int client, int args) 
 { 
-	if (!IsClientValid(client)) { return Plugin_Handled; }
+	if (!client) { return Plugin_Handled; }
 	
 	Menu menu = new Menu(MapMenuHandler);
 	menu.SetTitle( "▲ Vote Custom Campaigns <%d map%s>", g_iCount, ((g_iCount > 1) ? "s": "") );
 	
-	for (int i = 0; i < g_iCount; i++)
+	Campaign campaign;
+	for (int i = 0; i < g_CampaignList.Length; i++)
 	{
-		menu.AddItem(g_sMapinfo[i], g_sMapname[i]);
+		g_CampaignList.GetArray(i, campaign, sizeof(campaign));
+		menu.AddItem(campaign.code, campaign.name);
 	}
 	
 	menu.ExitBackButton = true;
@@ -100,9 +122,9 @@ public int MapMenuHandler(Menu menu, MenuAction action, int client, int itemNum)
 	{
 		GetMenuItem(menu,
 				itemNum,
-				votemapinfo, sizeof(votemapinfo),
+				g_Campaign.code, sizeof(g_Campaign.code),
 				_,
-				votemapname, sizeof(votemapname));
+				g_Campaign.name, sizeof(g_Campaign.name));
 				
 		DisplayVoteMapsMenu(client);
 	}
@@ -126,19 +148,26 @@ void DisplayVoteMapsMenu(int client)
 	}
 	if (CheckBuiltinVoteDelay() > 0)
 	{
-		CPrintToChat(client, "<{olive}VCC{default}> Wait for another {olive}%ds {default}to call a vote.", CheckBuiltinVoteDelay());
+		CPrintToChat(client, "<{olive}VCC{default}> Wait for another {blue}%ds {default}to call a vote.", CheckBuiltinVoteDelay());
 		return;
 	}
 	
 	g_hVoteMenu = CreateBuiltinVote(CallBack_VoteProgress, BuiltinVoteType_ChgCampaign, BuiltinVoteAction_Select|BuiltinVoteAction_Cancel|BuiltinVoteAction_End);
 	
-	//CPrintToChatAll("<{olive}VCC{default}> {default}Player {lightgreen}%N {default}called a vote for {olive}custom campaign", client, votemapname);
-	SetBuiltinVoteArgument(g_hVoteMenu, votemapname);
-	SetBuiltinVoteInitiator(g_hVoteMenu, client);
+	int total = 0;
+	int[] players = new int[MaxClients];
 	
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) != 1)
+			players[total++] = i;
+	}
+	
+	SetBuiltinVoteArgument(g_hVoteMenu, g_Campaign.name);
+	SetBuiltinVoteInitiator(g_hVoteMenu, client);
 	SetBuiltinVoteResultCallback(g_hVoteMenu, CallBack_VoteResult);
-	DisplayBuiltinVoteToAllNonSpectators(g_hVoteMenu, g_hMenuLeaveTime.IntValue);
-	//FakeClientCommand(client, "Vote Yes");
+	
+	DisplayBuiltinVote(g_hVoteMenu, players, total, g_hMenuLeaveTime.IntValue);
 }
 
 
@@ -151,8 +180,8 @@ public int CallBack_VoteProgress(Handle vote, BuiltinVoteAction action, int para
 	{
 		switch (param2)
 		{
-			case 0: { PrintToConsoleAll_YA("<VCC> Player %N vote for the campaign change.", param1); }
-			case 1: { PrintToConsoleAll_YA("<VCC> Player %N vote against the campaign change.", param1); }
+			case 0: PrintToConsoleAll("<VCC> Player %N vote for the campaign change.", param1);
+			case 1: PrintToConsoleAll("<VCC> Player %N vote against the campaign change.", param1);
 		}
 	}
 	else if (action == BuiltinVoteAction_Cancel)
@@ -161,8 +190,7 @@ public int CallBack_VoteProgress(Handle vote, BuiltinVoteAction action, int para
 	}
 	else if (action == BuiltinVoteAction_End)
 	{
-		CloseHandle(g_hVoteMenu);
-		g_hVoteMenu = null;
+		delete g_hVoteMenu;
 	}
 }
 
@@ -183,10 +211,10 @@ public int CallBack_VoteResult(Handle vote, int num_votes, int num_clients, cons
 	
 	if ( float(votey) / float(num_votes) >= g_hPassPercent.FloatValue )
 	{
-		CreateTimer(0.1, Timer_PrintCampaignChanging);
-		CreateTimer(3.0, Timer_Changelevel);
+		DisplayBuiltinVotePass2(vote, TRANSLATION_L4D_VOTE_CHANGECAMPAIGN_PASSED, g_Campaign.name);
 		
-		DisplayBuiltinVotePass2(vote, TRANSLATION_L4D_VOTE_CHANGECAMPAIGN_PASSED, votemapname);
+		CreateTimer(0.1, Timer_PrintChanging);
+		CreateTimer(3.0, Timer_Changelevel);
 	}
 	else
 	{
@@ -198,82 +226,77 @@ public int CallBack_VoteResult(Handle vote, int num_votes, int num_clients, cons
 /**
  * Timers
  */
-public Action Timer_PrintCampaignChanging(Handle timer)
+public Action Timer_PrintChanging(Handle timer)
 {
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (IsClientValid(i))
+		if (IsClientInGame(i) && !IsFakeClient(i))
 		{
-			CPrintToChat(i, "<{olive}VCC{default}> Map changing... -> {green}%s", votemapname);
+			CPrintToChat(i, "<{olive}VCC{default}> Map changing... -> {green}%s", g_Campaign.name);
 		}
 	}
 }
 
 public Action Timer_Changelevel(Handle timer)
 {
-	if (!L4D2_ChangeLevel(votemapinfo))
+	if (l4d2_changelevel)
 	{
-		CPrintToChatAll("<{olive}VCC{default}> {red}Failed {default}to change map {green}%s(default)", votemapname);
+		if (!L4D2_ChangeLevel(g_Campaign.code))
+		{
+			CPrintToChatAll("<{olive}VCC{default}> {red}Failed {default}to change map {green}%s(default)", g_Campaign.name);
+		}
+	}
+	else
+	{
+		ServerCommand("changelevel %s", g_Campaign.code);
 	}
 	
-	votemapinfo = "";
-	votemapname = "";
+	strcopy(g_Campaign.code, sizeof(g_Campaign.code), "");
+	strcopy(g_Campaign.name, sizeof(g_Campaign.name), "");
 }
 
-
-/**
- * Stocks
- */
-bool IsClientValid(int client)
-{
-	if (client > 0 && client <= MaxClients && IsClientConnected(client) && IsClientInGame(client) && !IsFakeClient(client))
-	{return true;} else {return false;}
-}
-
-void PrintToConsoleAll_YA(const char[] format, any ...)
-{
-	char buffer[512];
-	VFormat(buffer, sizeof(buffer), format, 2);
-	
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientValid(i)) { PrintToConsole(i, buffer); }
-	}
-}
 
 
 /**
  * Misc
  */
-void ParseCampaigns()
+bool ParseCampaigns()
 {
-	delete g_kvCampaigns;
-	g_kvCampaigns = CreateKeyValues("VoteCustomCampaigns");
+	g_iCount = 0;
+	strcopy(g_Campaign.code, sizeof(g_Campaign.code), "");
+	strcopy(g_Campaign.name, sizeof(g_Campaign.name), "");
+	
+	delete g_CampaignList;
+	g_CampaignList = new ArrayList(sizeof(Campaign));
+	
+	KeyValues kv = new KeyValues("VoteCustomCampaigns");
 
 	char sPath[PLATFORM_MAX_PATH];
 	BuildPath(Path_SM, sPath, sizeof(sPath), "configs/VoteCustomCampaigns.txt");
 
-	if ( !FileToKeyValues(g_kvCampaigns, sPath) ) 
+	if ( !kv.ImportFromFile(sPath) ) 
 	{
-		SetFailState("<VCC> File doesn't exist! (%s)", sPath);
-		return;
+		LogError("<VCC> File doesn't exist! (%s)", sPath);
+		return false;
+	}
+	if ( !kv.GotoFirstSubKey() )
+	{
+		LogError("<VCC> Failed to locate first key.");
+		return false;
 	}
 	
-	if (g_kvCampaigns.GotoFirstSubKey())
+	Campaign campaign;
+	do
 	{
-		for (int i = 0; i < MAX_CAMPAIGN_LIMIT; i++)
-		{
-			g_kvCampaigns.GetString("mapinfo", g_sMapinfo[i], sizeof(g_sMapinfo));
-			g_kvCampaigns.GetString("mapname", g_sMapname[i], sizeof(g_sMapname));
-			
-			if ( !g_kvCampaigns.GotoNextKey() )
-			{
-				g_iCount = ++i;
-				break;
-			}
-		}
+		kv.GetString("mapinfo", campaign.code, sizeof(campaign.code));
+		kv.GetString("mapname", campaign.name, sizeof(campaign.name));
+		
+		g_CampaignList.PushArray(campaign, sizeof(campaign)) >= 0 ? ++g_iCount : 0;
 	}
+	while (kv.GotoNextKey());
 	
-	LogMessage("<VCC> %d custom campaign%s loaded.", g_iCount, g_iCount > 1 ? "s" : "");
+	delete kv;
+	
+	return true;
 }
 

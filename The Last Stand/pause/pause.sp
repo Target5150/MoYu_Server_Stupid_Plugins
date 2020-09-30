@@ -22,7 +22,6 @@
 
 #include <sourcemod>
 #include <colors>
-#include <sdktools>
 #undef REQUIRE_PLUGIN
 #include <readyup>
 
@@ -31,9 +30,9 @@
 public Plugin myinfo =
 {
 	name = "Pause plugin",
-	author = "CanadaRox",
-	description = "Adds pause functionality without breaking pauses",
-	version = "9",
+    author = "CanadaRox, Sir, Forgetest",
+    description = "Adds pause functionality without breaking pauses, also prevents SI from spawning because of the Pause.",
+    version = "6.2",
 	url = ""
 };
 
@@ -45,7 +44,7 @@ enum L4D2_Team
 	L4D2Team_Infected
 }
 
-char teamString[L4D2_Team][] =
+static const char teamString[L4D2_Team][] =
 {
 	"None",
 	"Spectator",
@@ -53,22 +52,20 @@ char teamString[L4D2_Team][] =
 	"Infected"
 };
 
-Panel menuPanel;
-
-Handle readyCountdownTimer;
-ConVar sv_pausable;
-ConVar sv_noclipduringpause;
+Panel	menuPanel;
+Handle	readyCountdownTimer;
+ConVar	sv_pausable;
+ConVar	sv_noclipduringpause;
 bool adminPause;
 bool isPaused;
 bool teamReady[L4D2_Team];
-int readyDelay;
-ConVar pauseDelayCvar;
+int	readyDelay;
 int pauseDelay;
-bool readyUpIsAvailable;
-Handle pauseForward;
-Handle unpauseForward;
-Handle deferredPauseTimer;
-ConVar l4d_ready_delay;
+GlobalForward	pauseForward;
+GlobalForward	unpauseForward;
+Handle	deferredPauseTimer;
+ConVar	pauseDelayCvar;
+ConVar	l4d_ready_delay;
 Handle SpecTimer[MAXPLAYERS+1];
 int IgnorePlayer[MAXPLAYERS+1];
 bool RoundEnd;
@@ -78,6 +75,8 @@ float g_fPauseTime;
 
 char g_pauseClientName[MAX_NAME_LENGTH];
 L4D2_Team g_pauseTeam;
+
+bool readyUpIsAvailable;
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
@@ -140,7 +139,7 @@ public void OnLibraryAdded(const char[] name)
 
 public int Native_IsInPause(Handle plugin, int numParams)
 {
-	return _:isPaused;
+	return isPaused;
 }
 
 public void OnClientPutInServer(int client)
@@ -188,25 +187,20 @@ public void RoundStart_Event(Event event, const char[] name, bool dontBroadcast)
 public Action Spectate_Cmd(int client, int args)
 {
 	if (IgnorePlayer[client] <= 10) IgnorePlayer[client] += 2;
-	if (SpecTimer[client] == null)
-	{
-		SpecTimer[client] = CreateTimer(1.0, SecureSpec, client, TIMER_REPEAT);
-	}
+	if (SpecTimer[client] == null) SpecTimer[client] = CreateTimer(1.0, SecureSpec, client, TIMER_REPEAT);
 }
 
 public Action SecureSpec(Handle timer, int client)
 {
-	if (--IgnorePlayer[client] > 0)
-	{
-		return Plugin_Continue;
-	}
+	if (--IgnorePlayer[client] > 0) return Plugin_Continue;
+	
 	SpecTimer[client] = null;
 	return Plugin_Stop;
 }
 
 public Action Pause_Cmd(int client, int args)
 {
-	if ((!readyUpIsAvailable || !IsInReady()) && !isPaused && IsPlayer(client) && !RoundEnd)
+	if ((!readyUpIsAvailable || !IsInReady()) && pauseDelay == 0 && !isPaused && IsPlayer(client) && !RoundEnd)
 	{
 		CPrintToChatAll("{default}[{green}!{default}] {olive}%N {blue}Paused{default}.", client);
 		GetClientName(client, g_pauseClientName, sizeof(g_pauseClientName));
@@ -217,7 +211,6 @@ public Action Pause_Cmd(int client, int args)
 		else
 			CreateTimer(1.0, PauseDelay_Timer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 	}
-	return Plugin_Handled;
 }
 
 public Action PauseDelay_Timer(Handle timer)
@@ -252,12 +245,20 @@ public Action Unpause_Cmd(int client, int args)
 			}
 		}
 		teamReady[clientTeam] = true;
-		if (!adminPause && CheckFullReady())
+		if (CheckFullReady())
 		{
-			InitiateLiveCountdown();
+			if (!adminPause) InitiateLiveCountdown();
+			else
+			{
+				AdminId id = GetUserAdmin(client);
+				if (id != INVALID_ADMIN_ID && GetAdminFlag(id, Admin_Slay)) {
+					InitiateLiveCountdown();
+				} else {
+					CPrintToChatAll("{default}[{green}!{default}] {olive}All teams {default}are {green}ready{default}. Wait for {blue}an admin {default}to {green}commit unpause{default}.");
+				}
+			}
 		}
 	}
-	return Plugin_Handled;
 }
 
 public Action Unready_Cmd(int client, int args)
@@ -279,7 +280,6 @@ public Action Unready_Cmd(int client, int args)
 		
 		if (!adminPause) CancelFullReady(client);
 	}
-	return Plugin_Handled;
 }
 
 public Action ToggleReady_Cmd(int client, int args)
@@ -296,9 +296,18 @@ public Action ToggleReady_Cmd(int client, int args)
 				case L4D2Team_Infected:
 					CPrintToChatAll("{default}[{green}!{default}] {olive}%N {default}marked {red}%s {default}ready.", client, teamString[clientTeam]);					
 			}
-			if (!adminPause && CheckFullReady())
+			if (CheckFullReady())
 			{
-				InitiateLiveCountdown();
+				if (!adminPause) InitiateLiveCountdown();
+				else
+				{
+					AdminId id = GetUserAdmin(client);
+					if (id != INVALID_ADMIN_ID && GetAdminFlag(id, Admin_Slay)) {
+						InitiateLiveCountdown();
+					} else {
+						CPrintToChatAll("{default}[{green}!{default}] {olive}All teams {default}are {green}ready{default}. Wait for {blue}an admin {default}to {green}commit unpause{default}.");
+					}
+				}
 			}
 		}
 		else
@@ -321,7 +330,7 @@ public Action Show_Cmd(int client, int args)
 	if (isPaused)
 	{
 		hiddenPanel[client] = false;
-		CPrintToChat(client, "[{olive}Pause{default}] Pause Panel is now {blue}on{default}.");
+		CPrintToChat(client, "[{olive}Pause{default}] Pause panel is now {blue}on{default}.");
 	}
 }
 
@@ -330,7 +339,7 @@ public Action Hide_Cmd(int client, int args)
 	if (isPaused)
 	{
 		hiddenPanel[client] = true;
-		CPrintToChat(client, "[{olive}Pause{default}] Pause Panel is now {red}off{default}.");
+		CPrintToChat(client, "[{olive}Pause{default}] Pause panel is now {red}off{default}.");
 	}
 }
 
@@ -479,7 +488,6 @@ UpdatePanel()
 	if (menuPanel != null)
 	{
 		delete menuPanel;
-		menuPanel = null;
 	}
 
 	char info[512];
@@ -574,6 +582,8 @@ public Action Callvote_Callback(int client, char[] command, int argc)
 		CPrintToChat(client, "{blue}[{green}!{blue}] {default}You've just switched Teams, you are unable to vote for a few seconds.");
 		return Plugin_Handled;
 	}
+	
+    // kick vote from client, "callvote %s \"%d %s\"\n;"
 	if (argc < 2)
 	{
 		return Plugin_Continue;
@@ -611,14 +621,13 @@ public Action Callvote_Callback(int client, char[] command, int argc)
 	AdminId clientAdmin = GetUserAdmin(client);
 	AdminId targetAdmin = GetUserAdmin(target);
 	if (clientAdmin == INVALID_ADMIN_ID && targetAdmin == INVALID_ADMIN_ID)
-	{
 		return Plugin_Continue;
-	}
+		
 	if (CanAdminTarget(clientAdmin, targetAdmin))
-	{
 		return Plugin_Continue;
-	}
+		
 	CPrintToChat(client, "{blue}[{green}!{blue}] {default}You may not kick Admins.", target);
+	
 	return Plugin_Handled;
 }
 
@@ -629,7 +638,7 @@ public Action Say_Callback(int client, char[] command, int argc)
 		char buffer[256];
 		GetCmdArgString(buffer, sizeof(buffer));
 		StripQuotes(buffer);
-		if (IsChatTrigger() || buffer[0] == '!' || buffer[0] == '/' || buffer[0] == '@')  // Hidden command or chat trigger
+		if (IsChatTrigger() || buffer[0] == '!' || buffer[0] == '/')  // Hidden command or chat trigger
 		{
 			return Plugin_Handled;
 		}
@@ -653,7 +662,7 @@ public Action TeamSay_Callback(int client, char[] command, int argc)
 		char buffer[256];
 		GetCmdArgString(buffer, sizeof(buffer));
 		StripQuotes(buffer);
-		if (IsChatTrigger() || buffer[0] == '!' || buffer[0] == '/' || buffer[0] == '@')  // Hidden command or chat trigger
+		if (IsChatTrigger() || buffer[0] == '!' || buffer[0] == '/')  // Hidden command or chat trigger
 		{
 			return Plugin_Handled;
 		}

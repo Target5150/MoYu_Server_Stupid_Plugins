@@ -1,11 +1,12 @@
 #include <sourcemod>
 #include <sdktools>
+#undef REQUIRE_PLUGIN
 #include <readyup>
 
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.2.2"
+#define PLUGIN_VERSION "1.2.3"
 
 enum L4D2_Team
 {

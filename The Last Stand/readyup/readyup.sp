@@ -183,7 +183,6 @@ public void OnPluginStart()
 
 public void OnPluginEnd()
 {
-	delete menuPanel; delete casterTrie;
 	if (inReadyUp) InitiateLive(false);
 }
 
@@ -676,7 +675,12 @@ public Action AddCasterSteamID_Cmd(int args)
 void StartForceStartVote(int client)
 {
 	if (!IsPlayer(client)) { return; }
-	if (!IsNewBuiltinVoteAllowed())
+	if (IsBuiltinVoteInProgress())
+	{
+		CPrintToChat(client, "[{olive}Readyup{default}] There has been {olive}a vote {green}in progress{default}.");
+		return;
+	}
+	if (CheckBuiltinVoteDelay() > 0)
 	{
 		CPrintToChat(client, "[{olive}Readyup{default}] Wait for another {blue}%is {default}to call a vote.", CheckBuiltinVoteDelay());
 		return;
@@ -712,7 +716,12 @@ void StartForceStartVote(int client)
 void StartKickSpecsVote(int client)
 {
 	if (!IsPlayer(client)) { return; }
-	if (!IsNewBuiltinVoteAllowed())
+	if (IsBuiltinVoteInProgress())
+	{
+		CPrintToChat(client, "[{olive}Readyup{default}] There has been {olive}a vote {green}in progress{default}.");
+		return;
+	}
+	if (CheckBuiltinVoteDelay() > 0)
 	{
 		CPrintToChat(client, "[{olive}Readyup{default}] Wait for another {blue}%is {default}to call a vote.", CheckBuiltinVoteDelay());
 		return;
