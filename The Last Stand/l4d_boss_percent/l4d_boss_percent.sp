@@ -46,6 +46,7 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 }
 
 // ConVars
+new Handle:g_hCvarGlobalPercent 											// Determines if Percents will be displayed to entire team when boss percentage command is used
 new Handle:g_hCvarTankPercent; 												// Determines if Tank Percents will be displayed on ready-up and when boss percentage command is used
 new Handle:g_hCvarWitchPercent; 											// Determines if Witch Percents will be displayed on ready-up and when boss percentage command is used
 new Handle:g_hCvarBossVoting; 												// Determines if boss voting will be enabled
@@ -93,6 +94,7 @@ public OnPluginStart()
 	g_forwardUpdateBosses = CreateGlobalForward("OnUpdateBosses", ET_Event);
 
 	// ConVars
+	g_hCvarGlobalPercent = CreateConVar("l4d_global_percent", "0", "Display boss percentages to entire team when using commands"); // Sets if Percents will be displayed to entire team when boss percentage command is used
 	g_hCvarTankPercent = CreateConVar("l4d_tank_percent", "1", "Display Tank flow percentage in chat"); // Sets if Tank Percents will be displayed on ready-up and when boss percentage command is used
 	g_hCvarWitchPercent = CreateConVar("l4d_witch_percent", "1", "Display Witch flow percentage in chat"); // Sets if Witch Percents will be displayed on ready-up and when boss percentage command is used
 	g_hCvarBossVoting = CreateConVar("l4d_boss_vote", "1", "Enable boss voting"); // Sets if boss voting is enabled or disabled
@@ -778,8 +780,12 @@ public Action:UpdateReadyUpFooter(Handle:timer)
 public Action:BossCmd(client, args)
 {
 	// Show our boss percents
-	FakeClientCommand(client, "say /current");
 	CreateTimer(0.1, PrintBossPercents, client);
+	CreateTimer(0.2, PrintCurrent, client);
+}
+
+public Action PrintCurrent(Handle timer, int client) {
+	FakeClientCommand(client, "say /current");
 }
 
 public void PrintBossMiddleMan(client) {
@@ -843,9 +849,37 @@ public Action:PrintBossPercents(Handle:timer, any:client)
 	// Print Messages to client
 	
 	if (GetConVarBool(g_hCvarTankPercent))
-		CPrintToChat(client, p_sTankString);
+	{
+		if (GetConVarBool(g_hCvarGlobalPercent))
+		{
+			int team = GetClientTeam(client);
+			for (int i = 1; i <= MaxClients; i++)
+			{
+				if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) == team)
+					CPrintToChat(i, p_sTankString);
+			}
+		}
+		else
+		{
+			CPrintToChat(client, p_sTankString);
+		}
+	}
 	if (GetConVarBool(g_hCvarWitchPercent))
-		CPrintToChat(client, p_sWitchString);
+	{
+		if (GetConVarBool(g_hCvarGlobalPercent))
+		{
+			int team = GetClientTeam(client);
+			for (int i = 1; i <= MaxClients; i++)
+			{
+				if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) == team)
+					CPrintToChat(i, p_sWitchString);
+			}
+		}
+		else
+		{
+			CPrintToChat(client, p_sWitchString);
+		}
+	}
 }
 
 /* ========================================================
