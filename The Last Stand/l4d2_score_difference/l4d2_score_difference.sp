@@ -7,7 +7,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.1"
+#define PLUGIN_VERSION "1.1.1"
 
 #define ABS(%0) (((%0) < 0) ? -(%0) : (%0))
 
@@ -28,14 +28,24 @@ public void L4D2_OnEndVersusModeRound_Post()
 
 public Action Timer_PrintDifference(Handle timer)
 {
-	int iRoundDifference = ABS(L4D_GetTeamScore(1) - L4D_GetTeamScore(2));
-	int iTotalDifference = ABS(L4D_GetTeamScore(0, true) - L4D_GetTeamScore(1, true));
+	int iRoundDifference = ABS(GetChapterScore(0) - GetChapterScore(1));
+	int iTotalDifference = ABS(GetCampaignScore(0) - GetCampaignScore(1));
 	
 	if (iRoundDifference != iTotalDifference) {
 		CPrintToChatAll("{red}[{default}!{red}] {default}Difference: {olive}%d {green}({olive}%d {default}in total{green})", iRoundDifference, iTotalDifference);
 	} else {
 		CPrintToChatAll("{red}[{default}!{red}] {default}Difference: {olive}%d", iRoundDifference);
 	}
+}
+
+int GetChapterScore(int team)
+{
+	return GameRules_GetProp("m_iChapterScore", _, team);
+}
+
+int GetCampaignScore(int team)
+{
+	return GameRules_GetProp("m_iCampaignScore", _, team);
 }
 
 int InSecondHalfOfRound()

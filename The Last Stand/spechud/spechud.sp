@@ -2,13 +2,12 @@
 #include <sdktools>
 #include <l4d2_weapon_stocks>
 #include <colors>
-
 #include <left4dhooks>
-//#include <l4d2_direct>
-//#include <left4downtown>
 
 #pragma semicolon 1
 #pragma newdecls required
+
+#define PLUGIN_VERSION	"3.3.1"
 
 #define SPECHUD_DRAW_INTERVAL   0.5
 
@@ -17,6 +16,15 @@
 #define CLAMP(%0,%1,%2) (((%0) > (%2)) ? (%2) : (((%0) < (%1)) ? (%1) : (%0)))
 #define MAX(%0,%1) (((%0) > (%1)) ? (%0) : (%1))
 #define MIN(%0,%1) (((%0) < (%1)) ? (%0) : (%1))
+
+public Plugin myinfo = 
+{
+	name = "Hyper-V HUD Manager",
+	author = "Visor, Forgetest",
+	description = "Provides different HUDs for spectators",
+	version = PLUGIN_VERSION,
+	url = "https://github.com/Attano/smplugins"
+};
 
 enum L4D2Gamemode
 {
@@ -86,8 +94,6 @@ StringMap hSecondTankSpawningScheme;
 StringMap hFinaleExceptionMaps;
 
 bool bFlowTankActive;
-bool bRoundHasFlowTank;
-bool bRoundHasFlowWitch;
 
 int iFirstHalfScore;
 
@@ -229,13 +235,6 @@ public void OnRoundIsLive()
 {
 	bIsLive = true;
 	
-	if (!InSecondHalfOfRound())
-	{
-		iFirstHalfScore = GetChapterScore(0); // stores campaign score, await for minus to be the true round score
-		bRoundHasFlowTank = RoundHasFlowTank();
-		bRoundHasFlowWitch = RoundHasFlowWitch();
-	}
-	
 	//for (int i = 1; i <= MaxClients; ++i) storedClass[i] = ZC_None;
 	
 	iTankCount = 0;
@@ -244,7 +243,7 @@ public void OnRoundIsLive()
 	if (GetConVarBool(l4d_tank_percent))
 	{
 		iTankCount = 1;
-		bFlowTankActive = bRoundHasFlowTank;
+		bFlowTankActive = RoundHasFlowTank();
 		
 		static char mapname[64], dummy;
 		GetCurrentMap(mapname, sizeof(mapname));
@@ -261,10 +260,7 @@ public void OnRoundIsLive()
 	}
 }
 
-public void L4D2_OnEndVersusModeRound_Post()
-{
-	if (!InSecondHalfOfRound()) iFirstHalfScore = GetChapterScore(0) - iFirstHalfScore;
-}
+public void L4D2_OnEndVersusModeRound_Post() { if (!InSecondHalfOfRound()) iFirstHalfScore = L4D_GetTeamScore(GetRealTeam(0) + 1); }
 
 public void OnPlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
@@ -412,7 +408,7 @@ void FillSurvivorInfo(Panel hSpecHud)
 	static char buffer[64];
 	static char name[MAX_NAME_LENGTH];
 
-	int SurvivorTeamIndex = GameRules_GetProp("m_bAreTeamsFlipped") ? 1 : 0;
+	int SurvivorTeamIndex = L4D2_AreTeamsFlipped() ? 1 : 0;
 	
 	int distance = 0;
 	for (int i = 0; i < 4; ++i)
@@ -424,7 +420,7 @@ void FillSurvivorInfo(Panel hSpecHud)
 	DrawPanelText(hSpecHud, " ");
 	DrawPanelText(hSpecHud, info);
 	
-	if (bRefresh || hSurvivorArray.Length < survivor_limit.IntValue)
+	if (bRefresh)
 	{
 		bRefresh = false;
 		PushSerialSurvivors(hSurvivorArray);
@@ -580,7 +576,7 @@ void FillInfectedInfo(Panel hSpecHud)
 	static char buffer[32];
 	static char name[MAX_NAME_LENGTH];
 
-	int InfectedTeamIndex = GameRules_GetProp("m_bAreTeamsFlipped") ? 0 : 1;
+	int InfectedTeamIndex = L4D2_AreTeamsFlipped() ? 0 : 1;
 	
 	FormatEx(info, sizeof(info), "->2. Infected [%d]", L4D2Direct_GetVSCampaignScore(InfectedTeamIndex));
 	DrawPanelText(hSpecHud, " ");
@@ -819,7 +815,7 @@ void FillGameInfo(Panel hSpecHud)
 			{
 				textBehind = true;
 				FormatEx(buffer, sizeof(buffer), "%i%%", tankPercent);
-				FormatEx(info, sizeof(info), "Tank: %s", (((bFlowTankActive && bRoundHasFlowTank) || IsDarkCarniRemix()) ? buffer : (IsStaticTankMap() ? "Static" : "Event")));
+				FormatEx(info, sizeof(info), "Tank: %s", (((bFlowTankActive && RoundHasFlowTank()) || IsDarkCarniRemix()) ? buffer : (IsStaticTankMap() ? "Static" : "Event")));
 			}
 		}
 		
@@ -829,7 +825,7 @@ void FillGameInfo(Panel hSpecHud)
 			if (iWitchCount > 0)
 			{
 				FormatEx(buffer, sizeof(buffer), "%i%%", witchPercent);
-				Format(buffer, sizeof(buffer), "Witch: %s", (bRoundHasFlowWitch ? buffer : (IsStaticWitchMap() ? "Static" : "Event")));
+				Format(buffer, sizeof(buffer), "Witch: %s", (RoundHasFlowWitch() ? buffer : (IsStaticWitchMap() ? "Static" : "Event")));
 				
 				if (textBehind) {
 					Format(info, sizeof(info), "%s | %s", info, buffer);
@@ -887,6 +883,11 @@ public Action SetFinaleExceptionMap(int args)
 /**
  *	Stocks
 **/
+int GetRealTeam(int team)
+{
+	return view_as<int>(view_as<bool>(team) ^ (InSecondHalfOfRound() != view_as<int>(L4D2_AreTeamsFlipped())));
+}
+
 bool HasAbilityVictim(int client)
 {
 	return GetEntPropEnt(client, Prop_Send, "m_pummelVictim") > 0
@@ -894,11 +895,6 @@ bool HasAbilityVictim(int client)
 			|| GetEntPropEnt(client, Prop_Send, "m_pounceVictim") > 0
 			|| GetEntPropEnt(client, Prop_Send, "m_jockeyVictim") > 0
 			|| GetEntPropEnt(client, Prop_Send, "m_tongueVictim") > 0;
-}
-
-stock int GetChapterScore(int team)
-{
-	return GameRules_GetProp("m_iChapterScore", _, team);
 }
 
 #define OFFSET_IAMMO_PISTOLS	0
@@ -1052,32 +1048,6 @@ float GetClientFlow(int client)
 {
 	return (L4D2Direct_GetFlowDistance(client) / L4D2Direct_GetMapMaxFlowDistance());
 }
-
-/*float GetFlowDistance(int client)
-{
-	static Handle GetFlowDistanceSDKCall = INVALID_HANDLE;
-
-	if (GetFlowDistanceSDKCall == INVALID_HANDLE)
-	{
-		StartPrepSDKCall(SDKCall_Player);
-		
-		if (!PrepSDKCall_SetFromConf(LoadGameConfigFile("l4d2_direct"), SDKConf_Signature, "CTerrorPlayer::GetFlowDistance"))
-		{
-			return 0.0;
-		}
-		
-		PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
-		PrepSDKCall_SetReturnInfo(SDKType_Float, SDKPass_Plain);
-		GetFlowDistanceSDKCall = EndPrepSDKCall();
-		
-		if (GetFlowDistanceSDKCall == INVALID_HANDLE)
-		{
-			return 0.0;
-		}
-	}
-
-	return view_as<float>(SDKCall(GetFlowDistanceSDKCall, client, 0));
-}*/
 
 float GetHighestSurvivorFlow()
 {
