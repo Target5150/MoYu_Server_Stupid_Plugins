@@ -2,13 +2,14 @@
 #include <sdktools>
 #include <left4dhooks>
 #include <builtinvotes>
-#include <colors>
+#include <multicolors>
 
 #pragma semicolon 1
 #pragma newdecls required
 
 #define PLUGIN_VERSION "9.0.1"
 
+#define NULL_VELOCITY view_as<float>({0.0, 0.0, 0.0})
 #define MAX_FOOTERS 10
 #define MAX_FOOTER_LEN 65
 #define MAX_SOUNDS 5
@@ -528,7 +529,7 @@ public Action NotCasting_Cmd(int client, int args)
 
 public Action Reconnect(Handle timer, int client)
 {
-	if (IsClientConnected(client) && IsClientInGame(client)) ReconnectClient(client);
+	if (IsClientInGame(client)) ReconnectClient(client);
 }
 
 
@@ -887,12 +888,12 @@ void UpdatePanel()
 {
 	if (IsBuiltinVoteInProgress()) {
 		for (int i = 1; i <= MaxClients; i++) {
-			if (IsClientConnected(i) && IsClientInGame(i) && IsClientInBuiltinVotePool(i)) hiddenPanel[i] = true;
+			if (IsClientInGame(i) && IsClientInBuiltinVotePool(i)) hiddenPanel[i] = true;
 		}
 	} else {
 		for (int i = 1; i <= MaxClients; i++) {
-			if (IsClientConnected(i) && IsClientInGame(i)) {
-				if (IsClientConnected(i) && IsClientInGame(i) && !hiddenManually[i]) hiddenPanel[i] = false;
+			if (IsClientInGame(i)) {
+				if (IsClientInGame(i) && !hiddenManually[i]) hiddenPanel[i] = false;
 			}
 		}
 	}
@@ -1047,7 +1048,7 @@ void UpdatePanel()
 
 	for (int client = 1; client <= MaxClients; client++)
 	{
-		if (IsClientInGame(client) && !IsFakeClient(client) && !hiddenPanel[client])
+		if (IsClientInGame(client) && !IsFakeClient(client) && !hiddenPanel[client] && (GetClientMenu(client) == MenuSource_RawPanel || GetClientMenu(client) == MenuSource_None))
 		{
 			menuPanel.Send(client, DummyHandler, 1);
 		}
@@ -1252,6 +1253,8 @@ void ReturnPlayerToSaferoom(int client, bool flagsSet = true)
 		SetCommandFlags("warp_to_start_area", warp_flags);
 		SetCommandFlags("give", give_flags);
 	}
+
+	TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, NULL_VELOCITY);
 }
 
 void ReturnTeamToSaferoom(L4D2_Team team)
