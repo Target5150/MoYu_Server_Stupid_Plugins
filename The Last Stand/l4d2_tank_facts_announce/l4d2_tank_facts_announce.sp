@@ -5,7 +5,16 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.5"
+#define PLUGIN_VERSION "1.6"
+
+public Plugin myinfo = 
+{
+	name = "L4D2 Tank Facts Announce",
+	author = "Forgetest (credit to Griffin and Blade)",
+	description = "Announce damage dealt to survivors by tank",
+	version = PLUGIN_VERSION,
+	url = "?"
+};
 
 enum L4D2_Team
 {
@@ -53,7 +62,7 @@ static AtkResult	g_TankResult;
 
 static int			g_iTankClient						= 0;
 static int			g_iPlayerLastHealth[MAXPLAYERS+1]	= 0;
-static bool			g_bAnnounceTankSkill				= false;
+static bool			g_bAnnounceTankFacts				= false;
 static bool			g_bTankInPlay						= false;
 static float		g_fTankSpawnTime					= 0.0;
 static char			g_sLastHumanTankName[MAX_NAME_LENGTH];
@@ -61,25 +70,16 @@ static char			g_sLastHumanTankName[MAX_NAME_LENGTH];
 static bool			bLateLoad;
 
 
-public APLRes AskPluginLoad2(Handle plugin, bool late, char[] error, int err_Max)
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_Max)
 {
 	bLateLoad = late;
 	return APLRes_Success;
 }
 
-public Plugin myinfo = 
-{
-	name = "L4D2 Tank Facts Announce",
-	author = "Forgetest (credit to Griffin and Blade)",
-	description = "Announce damage dealt to survivors by tank",
-	version = PLUGIN_VERSION,
-	url = "?"
-};
-
 public void OnPluginStart()
 {
-	HookEvent("round_start", view_as<EventHook>(OnRoundStart), EventHookMode_PostNoCopy);
-	HookEvent("round_end", view_as<EventHook>(OnRoundEnd), EventHookMode_PostNoCopy);
+	HookEvent("round_start", view_as<EventHook>(Event_OnRoundStart), EventHookMode_PostNoCopy);
+	HookEvent("round_end", view_as<EventHook>(Event_OnRoundEnd), EventHookMode_PostNoCopy);
 	
 	HookEvent("tank_spawn", Event_OnTankSpawn);
 	HookEvent("player_hurt", Event_OnPlayerHurt);
@@ -93,11 +93,11 @@ public void OnPluginStart()
 	}
 }
 
-public void OnRoundStart() { ClearStuff(); }
+public void Event_OnRoundStart() { ClearStuff(); }
 
-public void OnRoundEnd()
+public void Event_OnRoundEnd()
 {
-	if (g_bAnnounceTankSkill) PrintTankSkill();
+	if (g_bAnnounceTankFacts) PrintTankSkill();
 	ClearStuff();
 }
 
@@ -122,10 +122,10 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 	
 	if (!g_bTankInPlay) return Plugin_Continue;
 	
-	char classname[64];
-	GetEdictClassname(inflictor, classname, sizeof(classname));
+	//char classname[64];
+	//GetEdictClassname(inflictor, classname, sizeof(classname));
 	
-	if (attacker == g_iTankClient || IsTankHittable(classname))
+	if (attacker == g_iTankClient /*|| IsTankHittable(classname)*/)
 	{
 		int playerHealth = GetSurvivorPermanentHealth(victim) + GetSurvivorTemporaryHealth(victim);
 		if (RoundToFloor(damage) >= playerHealth)
@@ -147,7 +147,7 @@ public void Event_OnTankSpawn(Event event, const char[] name, bool dontBroadcast
 	if (g_bTankInPlay) return;
 	
 	g_bTankInPlay = true;
-	g_bAnnounceTankSkill = true;
+	g_bAnnounceTankFacts = true;
 	g_fTankSpawnTime = GetGameTime() + FindConVar("director_tank_lottery_selection_time").FloatValue;
 }
 
@@ -172,7 +172,8 @@ public void Event_OnPlayerHurt(Event event, const char[] name, bool dontBroadcas
 			g_TankAttack.Punch++;
 		} else if (StrEqual(weapon, "tank_rock")) {
 			g_TankAttack.Rock++;
-		} else if (IsTankHittable(weapon)) {
+		//} else if (IsTankHittable(weapon)) {
+		} else { // alternation due to l4d2_hittable_control setting 'inflictor' as hittable to 0
 			g_TankAttack.Hittable++;
 		}
 		
@@ -196,7 +197,8 @@ public void Event_PlayerIncapStart(Event event, const char[] name, bool dontBroa
 		g_TankAttack.Punch++;
 	} else if (StrEqual(weapon, "tank_rock")) {
 		g_TankAttack.Rock++;
-	} else if (IsTankHittable(weapon)) {
+	//} else if (IsTankHittable(weapon)) {
+	} else if (attacker == g_iTankClient) { // alternation due to l4d2_hittable_control setting 'inflictor' as hittable to 0
 		g_TankAttack.Hittable++;
 	}
 	
@@ -220,7 +222,7 @@ public void Event_PlayerKilled(Event event, const char[] name, bool dontBroadcas
 	}
 }
 
-public Action Timer_CheckTank(Handle timer, any oldtankclient)
+public Action Timer_CheckTank(Handle timer, int oldtankclient)
 {
 	if (g_iTankClient != oldtankclient) return; // Tank passed
 
@@ -231,7 +233,7 @@ public Action Timer_CheckTank(Handle timer, any oldtankclient)
 		return;
 	}
 
-	if (g_bAnnounceTankSkill) PrintTankSkill();
+	if (g_bAnnounceTankFacts) PrintTankSkill();
 	
 	ClearStuff();
 }
@@ -241,7 +243,7 @@ public void PrintTankSkill()
 	int tankclient = GetTankClient();
 	if (!tankclient) return;
 	
-	char name[MAX_NAME_LENGTH], buffer[32], info[512];
+	char name[MAX_NAME_LENGTH], buffer[16], info[128];
 	if (IsFakeClient(tankclient))
 	{
 		if (g_sLastHumanTankName[0] != '\0')
@@ -282,10 +284,10 @@ public Action Timer_PrintToChat(Handle timer, DataPack dp)
 {
 	dp.Reset();
 	
-	// Processing teamcolor tags requires a few more time than non-teamcolor ones
-	// For printing in proper order, extra tags are added to slow later message processing down
+	// Processing teamcolor tags requires a few more time than doing non-teamcolor ones
+	// To print messages in a proper order, extra tags are added to slow processing of certain messages down
 	
-	char info[512];
+	char info[128];
 	dp.ReadString(info, sizeof(info));
 	CPrintToChatAll(info);
 	dp.ReadString(info, sizeof(info));
@@ -293,14 +295,17 @@ public Action Timer_PrintToChat(Handle timer, DataPack dp)
 	dp.ReadString(info, sizeof(info));
 	CPrintToChatAll("{blue}{blue}%s", info);
 	dp.ReadString(info, sizeof(info));
-	CPrintToChatAll("{lightgreen}{lightgreen}{lightgreen}%s", info); 
+	CPrintToChatAll("{lightgreen}{lightgreen}{lightgreen}%s", info);
+	
+	// Since the DataTimer would auto-close handles passed,
+	// here we've just done.
 }
 
 public void ClearStuff()
 {
 	g_iTankClient = 0;
 	g_bTankInPlay = false;
-	g_bAnnounceTankSkill = false;
+	g_bAnnounceTankFacts = false;
 	g_fTankSpawnTime = 0.0;
 	strcopy(g_sLastHumanTankName, sizeof(g_sLastHumanTankName), "");
 	
@@ -358,10 +363,10 @@ stock int GetSurvivorTemporaryHealth(int client)
 	return iTempHp > 0 ? iTempHp : 0;
 }
 
-stock bool IsTankHittable(char[] sClassname)
-{
-    return StrEqual(sClassname, "prop_physics") || StrEqual(sClassname, "prop_car_alarm");
-}
+//stock bool IsTankHittable(const char[] sClassname)
+//{
+//    return StrEqual(sClassname, "prop_physics") || StrEqual(sClassname, "prop_car_alarm");
+//}
 
 stock bool IsIncapacitated(int client)
 {
