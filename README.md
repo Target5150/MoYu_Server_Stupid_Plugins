@@ -10,4 +10,4 @@ All credit to original authors.
 
 # Requirement
 - **Sourcemod 1.10 (6495)**
-- **[Left4DHooks 1.24](https://forums.alliedmods.net/showthread.php?p=2684862)**
+- **[Left4DHooks](https://forums.alliedmods.net/showthread.php?p=2684862)**
