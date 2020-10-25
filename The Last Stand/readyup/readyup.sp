@@ -2,7 +2,7 @@
 #include <sdktools>
 #include <left4dhooks>
 #include <builtinvotes>
-#include <multicolors>
+#include <colors>
 
 #pragma semicolon 1
 #pragma newdecls required
@@ -10,6 +10,7 @@
 #define PLUGIN_VERSION "9.0.1"
 
 #define NULL_VELOCITY view_as<float>({0.0, 0.0, 0.0})
+
 #define MAX_FOOTERS 10
 #define MAX_FOOTER_LEN 65
 #define MAX_SOUNDS 5
@@ -24,7 +25,7 @@ public Plugin myinfo =
 	author = "CanadaRox, Harry Potter, Target",
 	description = "New and improved ready-up plugin with convenience fixes.",
 	version = PLUGIN_VERSION,
-	url = "https://github.com/fbef0102;https://github.com/melt5150"
+	url = "https://github.com/fbef0102;https://github.com/target5150"
 };
 
 enum L4D2_Team
@@ -91,6 +92,8 @@ char	sCmd[32];
 
 //StringMap allowedCastersTrie;
 float g_fTime;
+
+Handle g_hMenuStyle;
 
 static const char chuckleSound[MAX_SOUNDS][] =
 {
@@ -249,6 +252,8 @@ public void OnMapStart()
 		blockSecretSpam[client] = false;
 	}
 	readyCountdownTimer = null;
+	
+	g_hMenuStyle = GetMenuStyleHandle(MenuStyle_Radio);
 }
 
 /* This ensures all cvars are reset if the map is changed during ready-up */
@@ -276,6 +281,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 		{
 			if (buttons || impulse) SetEngineTime(client);
 			
+			/* Mouse Movement Check */
 			if (mouse[0] != g_vecLastMouse[client][0]
 				|| mouse[1] != g_vecLastMouse[client][1])
 			{
@@ -286,7 +292,6 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 			}
 		}
 		
-		/* Mouse Movement Check */
 		if (IsClientInGame(client) && view_as<L4D2_Team>(GetClientTeam(client)) == L4D2Team_Survivor)
 		{
 			if (l4d_ready_survivor_freeze.BoolValue)
@@ -529,7 +534,7 @@ public Action NotCasting_Cmd(int client, int args)
 
 public Action Reconnect(Handle timer, int client)
 {
-	if (IsClientInGame(client)) ReconnectClient(client);
+	if (IsClientConnected(client) && IsClientInGame(client)) ReconnectClient(client);
 }
 
 
@@ -544,7 +549,7 @@ public Action Hide_Cmd(int client, int args)
 	{
 		hiddenPanel[client] = true;
 		hiddenManually[client] = true;
-		CPrintToChat(client, "[{olive}Readyup{default}] Panel is now {red}off{default}.");
+		CPrintToChat(client, "[{olive}Readyup{default}] Panel is now {red}off{default}");
 	}
 }
 
@@ -554,7 +559,7 @@ public Action Show_Cmd(int client, int args)
 	{
 		hiddenPanel[client] = false;
 		hiddenManually[client] = false;
-		CPrintToChat(client, "[{olive}Readyup{default}] Panel is now {blue}on{default}.");
+		CPrintToChat(client, "[{olive}Readyup{default}] Panel is now {blue}on{default}");
 	}
 }
 
@@ -708,7 +713,7 @@ void StartForceStartVote(int client)
 		
 		players[total++] = i;
 	}
-	DisplayBuiltinVote(g_hVote, players, total, 20);
+	DisplayBuiltinVote(g_hVote, players, total, FindConVar("sv_vote_timer_duration").IntValue);
 
 	/* Client is voting for */
 	FakeClientCommand(client, "Vote Yes");
@@ -745,7 +750,7 @@ void StartKickSpecsVote(int client)
 			continue;
 		players[total++] = i;
 	}
-	DisplayBuiltinVote(g_hVote, players, total, 20);
+	DisplayBuiltinVote(g_hVote, players, total, FindConVar("sv_vote_timer_duration").IntValue);
 
 	/* Client is voting for */
 	FakeClientCommand(client, "Vote Yes");
@@ -886,23 +891,36 @@ public Action MenuCmd_Timer(Handle timer)
 
 void UpdatePanel()
 {
-	if (IsBuiltinVoteInProgress()) {
-		for (int i = 1; i <= MaxClients; i++) {
+	if (IsBuiltinVoteInProgress())
+	{
+		for (int i = 1; i <= MaxClients; i++)
+		{
 			if (IsClientInGame(i) && IsClientInBuiltinVotePool(i)) hiddenPanel[i] = true;
 		}
-	} else {
-		for (int i = 1; i <= MaxClients; i++) {
-			if (IsClientInGame(i)) {
-				if (IsClientInGame(i) && !hiddenManually[i]) hiddenPanel[i] = false;
+	}
+	else
+	{
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			if (IsClientInGame(i) && !hiddenManually[i])
+			{
+				if (GetClientMenu(i) != MenuSource_None && GetClientMenu(i) != MenuSource_RawPanel)
+				{
+					CPrintToChat(i, "[{olive}Readyup{default}] Panel is automatically {green}hidden {default}due to {olive}other panel currently showing{default}.");
+					CPrintToChat(i, "[{olive}Readyup{default}] Say {green}!show {default}to redraw the panel.");
+					
+					hiddenManually[i] = true;
+					hiddenPanel[i] = true;
+				}
+				else
+				{
+					hiddenPanel[i] = false;
+				}
 			}
 		}
 	}
 	
-	if (menuPanel != null)
-	{
-		delete menuPanel;
-		menuPanel = null;
-	}
+	if (menuPanel != null) delete menuPanel;
 
 	char survivorBuffer[800] = "";
 	char infectedBuffer[800] = "";
@@ -912,7 +930,7 @@ void UpdatePanel()
 	int casterCount = 0;
 	int specCount = 0;
 
-	menuPanel = new Panel();
+	menuPanel = new Panel(g_hMenuStyle);
 
 	char ServerBuffer[128];
 	char ServerName[32];
@@ -1048,7 +1066,7 @@ void UpdatePanel()
 
 	for (int client = 1; client <= MaxClients; client++)
 	{
-		if (IsClientInGame(client) && !IsFakeClient(client) && !hiddenPanel[client] && (GetClientMenu(client) == MenuSource_RawPanel || GetClientMenu(client) == MenuSource_None))
+		if (IsClientInGame(client) && !IsFakeClient(client) && !hiddenPanel[client])
 		{
 			menuPanel.Send(client, DummyHandler, 1);
 		}
@@ -1140,6 +1158,12 @@ void InitiateLive(bool real = true)
 	{
 		Call_StartForward(liveForward);
 		Call_Finish();
+	}
+	else if (readyCountdownTimer != null)
+	{
+		// Due to flag TIMER_FLAG_NO_MAPCHANGE, timer handle doesn't get freed OnMapEnd.
+		// So we must manually close it here to prevent issues and handle leaking.
+		delete readyCountdownTimer;
 	}
 }
 
@@ -1253,7 +1277,7 @@ void ReturnPlayerToSaferoom(int client, bool flagsSet = true)
 		SetCommandFlags("warp_to_start_area", warp_flags);
 		SetCommandFlags("give", give_flags);
 	}
-
+	
 	TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, NULL_VELOCITY);
 }
 
@@ -1299,7 +1323,7 @@ void EnableEntities()
 	MakePropsBreakable();
 }
 
-void ActivateEntities(char[] className, char[] inputName)
+void ActivateEntities(const char[] className, const char[] inputName)
 { 
 	int iEntity;
 
