@@ -25,7 +25,7 @@ public Plugin myinfo =
 	author = "CanadaRox, Harry Potter, Target",
 	description = "New and improved ready-up plugin with convenience fixes.",
 	version = PLUGIN_VERSION,
-	url = "https://github.com/fbef0102;https://github.com/melt5150"
+	url = "https://github.com/fbef0102;https://github.com/Target5150"
 };
 
 enum L4D2_Team
