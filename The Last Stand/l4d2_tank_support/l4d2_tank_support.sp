@@ -1,19 +1,23 @@
 #include <sourcemod>
-#include <left4dhooks>
 #include <sdktools>
 #include <sdkhooks>
 #include <colors>
 #include <l4d2lib>
+#include <dhooks>
 
-new OUR_COLOR[3];
-new bool:bVision[MAXPLAYERS + 1];
-new bool:bTankAlive;
+#pragma semicolon 1
+#pragma newdecls required
 
-new Handle:g_ArrayHittableClones;
-new Handle:g_ArrayHittables;
+int OUR_COLOR[3];
 
-new Handle:g_CvarGlowInfected;
-new Handle:g_CvarGlowSpectator;
+bool bVision[MAXPLAYERS+1];
+bool bTankAlive;
+
+ArrayList g_ArrayHittableClones;
+ArrayList g_ArrayHittables;
+
+ConVar g_CvarGlowInfected;
+ConVar g_CvarGlowSpectator;
 
 enum L4D2GlowType 
 { 
@@ -42,20 +46,20 @@ enum L4D2_Infected
     L4D2Infected_Tank
 };
 
-public OnPluginStart()
+public void OnPluginStart()
 {
 	OUR_COLOR[0] = 255;
 	OUR_COLOR[1] = 255;
 	OUR_COLOR[2] = 255;
 	// Setup Clone Array
-	g_ArrayHittableClones = CreateArray(32);
-	g_ArrayHittables = CreateArray(32);
+	g_ArrayHittableClones = new ArrayList();
+	g_ArrayHittables = new ArrayList();
 
 	g_CvarGlowInfected = CreateConVar("ts_glow_infected", "0", "Show hittable glows to infected team");
 	g_CvarGlowSpectator = CreateConVar("ts_glow_spectator", "1", "Show hittable glows to spectators");
 	
-	HookConVarChange(g_CvarGlowInfected, OnConVarChanged);
-	HookConVarChange(g_CvarGlowSpectator, OnConVarChanged);
+	g_CvarGlowInfected.AddChangeHook(view_as<ConVarChanged>(OnConVarChanged));
+	g_CvarGlowSpectator.AddChangeHook(view_as<ConVarChanged>(OnConVarChanged));
 	
 	// Hook First Tank
 	HookEvent("tank_spawn", TankSpawnEvent);
@@ -64,40 +68,62 @@ public OnPluginStart()
 	HookEvent("player_team", ClearVisionEvent);
 
 	// Clean Arrays.
-	HookEvent("tank_killed", ClearArrayEvent);
-	HookEvent("round_start", ClearArrayEvent);
-	HookEvent("round_end", ClearArrayEvent);
+	HookEvent("tank_killed", view_as<EventHook>(ClearArrayEvent), EventHookMode_PostNoCopy);
+	HookEvent("round_start", view_as<EventHook>(ClearArrayEvent), EventHookMode_PostNoCopy);
+	HookEvent("round_end", view_as<EventHook>(ClearArrayEvent), EventHookMode_PostNoCopy);
 }
 
-public OnPluginEnd() KillClones(true);
+public void OnPluginEnd() { KillClones(true); }
 
-public ClearArrayEvent(Handle:event, const String:name[], bool:dontBroadcast) KillClones(true);
 
-public ClearVisionEvent(Handle:event, const String:name[], bool:dontBroadcast)
-{
-	new client = GetClientOfUserId(GetEventInt(event, "userid"));
-	if (client && IsClientInGame(client))
-	{
-		if (bTankAlive) { RequestFrame(KillClones, false); RequestFrame(RecreateHittableClones); }
-	}
-}
-
-public OnConVarChanged(Handle:convar, const String:oldValue[], const String:newValue[])
+/**
+ *  ConVar Change
+ */
+public void OnConVarChanged()
 {
 	if (bTankAlive) { KillClones(false); RecreateHittableClones(); }
 }
 
-public bool CheckTeamVisionAccess(L4D2_Team team)
+
+/**
+ *  Events
+ */
+public void ClearArrayEvent() { KillClones(true); }
+
+public void ClearVisionEvent(Event event, const char[] name, bool dontBroadcast)
 {
-	if (GetConVarBool(g_CvarGlowInfected) && team == L4D2Team_Infected) {
-		return true;
-	} else if (GetConVarBool(g_CvarGlowSpectator) && team == L4D2Team_Spectator) {
-		return true;
+	int client = GetClientOfUserId(GetEventInt(event, "userid"));
+	if (!client || !IsClientInGame(client) || IsFakeClient(client))
+	{
+		return;
 	}
-	return false;
+	
+	if (bTankAlive)
+	{
+		// Reproduce glows to clear vision of transferred players
+		RequestFrame(KillClones, false);
+		RequestFrame(RecreateHittableClones);
+	}
 }
 
-public L4D2_OnTankPassControl(oldTank, newTank, passCount)
+public void TankSpawnEvent(Event event, const char[] name, bool dontBroadcast)
+{
+	int tank = GetClientOfUserId(GetEventInt(event, "userid"));
+	if (IsFakeClient(tank)) 
+	{
+		KillClones(true);
+		return;
+	}
+
+	if (!bTankAlive)
+	{
+		HookProps();
+		bTankAlive = true;
+		bVision[tank] = true;
+	}
+}
+
+public int L4D2_OnTankPassControl(int oldTank, int newTank, int passCount)
 {
 	KillClones(false);
 	bVision[newTank] = true;
@@ -107,33 +133,21 @@ public L4D2_OnTankPassControl(oldTank, newTank, passCount)
 	if (bTankAlive) RecreateHittableClones();
 }
 
-public TankSpawnEvent(Handle:event, const String:name[], bool:dontBroadcast)
-{
-	new tank = GetClientOfUserId(GetEventInt(event, "userid"));
-	if (IsFakeClient(tank)) 
-	{
-		KillClones(true);
-		return;
-	}
 
-	if (!bTankAlive)
-	{
-		RequestFrame(HookProps);
-		bTankAlive = true;
-	}
-}
-
-public CreateClone(any:entity)
+/**
+ *  Hittable Clone
+ */
+int CreateClone(int entity)
 {
-	decl Float:vOrigin[3];
-	decl Float:vAngles[3];
+	float vOrigin[3];
+	float vAngles[3];
 	GetEntPropVector(entity, Prop_Send, "m_vecOrigin", vOrigin);
 	GetEntPropVector(entity, Prop_Data, "m_angRotation", vAngles); 
-	decl String:entityModel[64]; 
+	char entityModel[64]; 
 	GetEntPropString(entity, Prop_Data, "m_ModelName", entityModel, sizeof(entityModel)); 
-	new clone=0;
+	int clone=0;
 	clone = CreateEntityByName("prop_dynamic_override"); //prop_dynamic
-	SetEntityModel(clone, entityModel);  
+	SetEntityModel(clone, entityModel);
 	DispatchSpawn(clone);
 
 	TeleportEntity(clone, vOrigin, vAngles, NULL_VECTOR); 
@@ -146,31 +160,17 @@ public CreateClone(any:entity)
 	return clone;
 }
 
-public TankHittablePunched(const String:output[], caller, activator, Float:delay)
+void RecreateHittableClones()
 {
-	new iEntity = EntIndexToEntRef(caller);
-	new clone = CreateClone(iEntity);
-	if (clone > 0)
-	{
-		PushArrayCell(g_ArrayHittableClones, clone);
-		PushArrayCell(g_ArrayHittables, iEntity);
-		MakeEntityVisible(clone, false);
-		SDKHook(clone, SDKHook_SetTransmit, CloneTransmit);
-		L4D2_SetEntGlow(clone, L4D2Glow_Constant, 3250, 250, OUR_COLOR, false);
-	}
-}
-
-RecreateHittableClones(any dummy=0)
-{
-	new ArraySize = GetArraySize(g_ArrayHittables);
+	int ArraySize = GetArraySize(g_ArrayHittables);
 	if (ArraySize > 0)
 	{
-		for (new i = 0; i < ArraySize; i++)
+		for (int i = 0; i < ArraySize; i++)
 		{
-			new storedEntity = GetArrayCell(g_ArrayHittables, i);
+			int storedEntity = GetArrayCell(g_ArrayHittables, i);
 			if (IsValidEntity(storedEntity))
 			{
-				new clone = CreateClone(storedEntity);
+				int clone = CreateClone(storedEntity);
 				if (clone > 0)
 				{
 					PushArrayCell(g_ArrayHittableClones, clone);
@@ -183,7 +183,42 @@ RecreateHittableClones(any dummy=0)
 	}
 }
 
-public Action:CloneTransmit(entity, client)
+void KillClones(bool both)
+{
+	// 1. Loop through Array.
+	// 2. Unhook Clones safely and then Kill them.
+	// 3. Empty Array.
+	int ArraySize = GetArraySize(g_ArrayHittableClones);
+	for (int i = 0; i < ArraySize; i++)
+	{
+		int storedEntity = GetArrayCell(g_ArrayHittableClones, i);
+		if (IsValidEntity(storedEntity))
+		{
+			SDKUnhook(storedEntity, SDKHook_SetTransmit, CloneTransmit);
+			AcceptEntityInput(storedEntity, "Kill");
+		}
+	}
+	ClearArray(g_ArrayHittableClones);
+	if (both)
+	{
+		ClearArray(g_ArrayHittables);
+		bTankAlive = false;
+		
+		// Don't forget to remove the Hook.
+		DHookRemoveEntityListener(ListenType_Created, PossibleTankPropCreated);
+	}
+
+	// 4. Reset bVision
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && (!IsTank(i) || !bTankAlive))
+		{
+			bVision[i] = IsClientInGame(i) && CheckTeamVisionAccess(view_as<L4D2_Team>(GetClientTeam(i)));
+		}
+	}
+}
+
+public Action CloneTransmit(int entity, int client)
 {
 	if (bVision[client])
 	{
@@ -193,35 +228,84 @@ public Action:CloneTransmit(entity, client)
 	return Plugin_Handled;
 }
 
-stock KillClones(bool:both)
+bool CheckTeamVisionAccess(L4D2_Team team)
 {
-	// 1. Loop through Array.
-	// 2. Unhook Clones safely and then Kill them.
-	// 3. Empty Array.
-	new ArraySize = GetArraySize(g_ArrayHittableClones);
-	for (new i = 0; i < ArraySize; i++)
+	if (g_CvarGlowInfected.BoolValue && team == L4D2Team_Infected)
+		return true;
+	
+	if (g_CvarGlowSpectator.BoolValue && team == L4D2Team_Spectator)
+		return true;
+
+	return false;
+}
+
+
+/**
+ *  Hittable Management
+ */
+void HookProps()
+{
+	int iEntity = MaxClients+1;
+	
+	while ((iEntity = FindEntityByClassname(iEntity, "prop_physics")) != -1) 
 	{
-		new storedEntity = GetArrayCell(g_ArrayHittableClones, i);
-		if (IsValidEntity(storedEntity))
+		if (IsValidEntity(iEntity) && GetEntProp(iEntity, Prop_Send, "m_hasTankGlow", 1))
 		{
-			SDKUnhook(storedEntity, SDKHook_SetTransmit, CloneTransmit);
-			AcceptEntityInput(storedEntity, "Kill");
+        	SDKHook(iEntity, SDKHook_OnTakeDamagePost, PropDamagedPost);
 		}
 	}
-	ClearArray(g_ArrayHittableClones);
-	if (both) { ClearArray(g_ArrayHittables); bTankAlive = false; }
-
-	// 4. Reset bVision
-	for (new i = 1; i <= MaxClients; i++)
+	
+	iEntity = MaxClients+1;
+	
+	while ((iEntity = FindEntityByClassname(iEntity, "prop_car_alarm")) != -1) 
 	{
-		if (IsClientInGame(i) && (!IsTank(i) || !bTankAlive))
+        SDKHook(iEntity, SDKHook_OnTakeDamagePost, PropDamagedPost);
+	}
+	
+	// Hittables that spawn while the Tank is live, rather on having OnEntityCreated running all the time, we'll only use this hook while the Tank is alive.
+	DHookAddEntityListener(ListenType_Created, PossibleTankPropCreated);
+}
+
+public void PossibleTankPropCreated(int entity, const char[] classname)
+{
+    if (StrEqual(classname, "prop_physics")) // Hooks onto c2m2_fairgrounds Forklift, c11m4_terminal World Sphere and Custom Campaign hittables.
+    {
+        // Use SpawnPost to just push it into the Array right away.
+        // These entities get spawned after the Tank has punched them, so doing anything here will not work smoothly.
+        SDKHook(entity, SDKHook_OnTakeDamagePost, PropDamagedPost);
+    }
+}
+
+public void PropDamagedPost(int entity, int attacker, int inflictor, float damage, int damagetype)
+{
+	if (!bTankAlive) return;
+	if (!IsValidEntity(entity)) return;
+	if (!attacker
+			|| attacker > MaxClients
+			|| !IsClientInGame(attacker)
+			|| !IsTank(attacker))
+		return;
+	
+	if (GetEntProp(entity, Prop_Send, "m_hasTankGlow", 1)) // Just to be safe.
+	{
+		int entRef = EntIndexToEntRef(entity);
+		if (FindValueInArray(g_ArrayHittables, entRef) == -1)
 		{
-			bVision[i] = CheckTeamVisionAccess(L4D2_Team:GetClientTeam(i));
+			// Since the Tank has punch them to spawn, it should be paired with glow right away.
+			PushArrayCell(g_ArrayHittables, entRef);
+			
+			// Reproduce glows to filter glows paired with entities out of existence.
+			KillClones(false);
+			RecreateHittableClones();
 		}
 	}
 }
 
-stock MakeEntityVisible(ent, bool:visible=true)
+
+/**
+ *  Stocks
+ */
+stock void MakeEntityVisible(int ent, bool visible=true)
 {
 	if(visible)
 	{
@@ -232,26 +316,6 @@ stock MakeEntityVisible(ent, bool:visible=true)
 	{
 		SetEntityRenderMode(ent, RENDER_TRANSCOLOR);
 		SetEntityRenderColor(ent, 0, 0, 0, 0);
-	} 
-}
-
-stock HookProps(any dummy)
-{
-	new iEntity = -1;
-	 
-	while ((iEntity = FindEntityByClassname(iEntity, "prop_physics")) != -1) 
-	{
-		if (IsTankHittable(iEntity)) 
-		{
-			HookSingleEntityOutput(iEntity, "OnHitByTank", TankHittablePunched, true);
-		}
-	}
-	 
-	iEntity = -1;
-	 
-	while ((iEntity = FindEntityByClassname(iEntity, "prop_car_alarm")) != -1) 
-	{
-		HookSingleEntityOutput(iEntity, "OnHitByTank", TankHittablePunched, true);
 	}
 }
 
@@ -283,12 +347,12 @@ stock L4D2_Infected GetInfectedClass(int client) {
  * @param iEntity entity ID
  * @return bool
  */
-stock bool:IsTankHittable(iEntity) {
+stock bool IsTankHittable(int iEntity) {
 	if (!IsValidEntity(iEntity)) {
 		return false;
 	}
 	
-	decl String:className[64];
+	char className[64];
 	
 	GetEdictClassname(iEntity, className, sizeof(className));
 	if ( StrEqual(className, "prop_physics") ) {
@@ -311,9 +375,9 @@ stock bool:IsTankHittable(iEntity) {
  * @noreturn
  * @error                Invalid entity index or entity does not support glow.
  */
-stock L4D2_SetEntGlow_Type(entity, L4D2GlowType:type)
+stock void L4D2_SetEntGlow_Type(int entity, L4D2GlowType type)
 {
-	SetEntProp(entity, Prop_Send, "m_iGlowType", _:type);
+	SetEntProp(entity, Prop_Send, "m_iGlowType", view_as<int>(type));
 }
 
 /**
@@ -324,7 +388,7 @@ stock L4D2_SetEntGlow_Type(entity, L4D2GlowType:type)
  * @noreturn
  * @error                Invalid entity index or entity does not support glow.
  */
-stock L4D2_SetEntGlow_Range(entity, range)
+stock void L4D2_SetEntGlow_Range(int entity, int range)
 {
 	SetEntProp(entity, Prop_Send, "m_nGlowRange", range);
 }
@@ -337,7 +401,7 @@ stock L4D2_SetEntGlow_Range(entity, range)
  * @noreturn
  * @error                Invalid entity index or entity does not support glow.
  */
-stock L4D2_SetEntGlow_MinRange(entity, minRange)
+stock void L4D2_SetEntGlow_MinRange(int entity, int minRange)
 {
 	SetEntProp(entity, Prop_Send, "m_nGlowRangeMin", minRange);
 }
@@ -350,7 +414,7 @@ stock L4D2_SetEntGlow_MinRange(entity, minRange)
  * @noreturn
  * @error                Invalid entity index or entity does not support glow.
  */
-stock L4D2_SetEntGlow_ColorOverride(entity, colorOverride[3])
+stock void L4D2_SetEntGlow_ColorOverride(int entity, int colorOverride[3])
 {
 	SetEntProp(entity, Prop_Send, "m_glowColorOverride", colorOverride[0] + (colorOverride[1] * 256) + (colorOverride[2] * 65536));
 }
@@ -363,9 +427,9 @@ stock L4D2_SetEntGlow_ColorOverride(entity, colorOverride[3])
  * @noreturn
  * @error                Invalid entity index or entity does not support glow.
  */
-stock L4D2_SetEntGlow_Flashing(entity, bool:flashing)
+stock void L4D2_SetEntGlow_Flashing(int entity, bool flashing)
 {
-	SetEntProp(entity, Prop_Send, "m_bFlashing", _:flashing);
+	SetEntProp(entity, Prop_Send, "m_bFlashing", view_as<int>(flashing));
 }
 
 /**
@@ -381,15 +445,15 @@ stock L4D2_SetEntGlow_Flashing(entity, bool:flashing)
  * @return                True if glow was set, false if entity does not support
  *                        glow.
  */
-stock bool:L4D2_SetEntGlow(entity, L4D2GlowType:type, range, minRange, colorOverride[3], bool:flashing)
+stock bool L4D2_SetEntGlow(int entity, L4D2GlowType type, int range, int minRange, int colorOverride[3], bool flashing)
 {
-	decl String:netclass[128];
+	char netclass[128];
 	GetEntityNetClass(entity, netclass, 128);
 
-	new offset = FindSendPropInfo(netclass, "m_iGlowType");
+	int offset = FindSendPropInfo(netclass, "m_iGlowType");
 	if (offset < 1)
 	{
-		return false;    
+		return false;
 	}
 
 	L4D2_SetEntGlow_Type(entity, type);
@@ -400,15 +464,15 @@ stock bool:L4D2_SetEntGlow(entity, L4D2GlowType:type, range, minRange, colorOver
 	return true;
 }
 
-stock bool:L4D2_SetEntGlowOverride(entity, colorOverride[3])
+stock bool L4D2_SetEntGlowOverride(int entity, int colorOverride[3])
 {
-	decl String:netclass[128];
+	char netclass[128];
 	GetEntityNetClass(entity, netclass, 128);
 
-	new offset = FindSendPropInfo(netclass, "m_iGlowType");
+	int offset = FindSendPropInfo(netclass, "m_iGlowType");
 	if (offset < 1)
 	{
-		return false;    
+		return false;
 	}
 
 	L4D2_SetEntGlow_ColorOverride(entity, colorOverride);

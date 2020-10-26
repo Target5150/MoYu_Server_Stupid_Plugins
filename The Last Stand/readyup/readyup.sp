@@ -25,7 +25,7 @@ public Plugin myinfo =
 	author = "CanadaRox, Harry Potter, Target",
 	description = "New and improved ready-up plugin with convenience fixes.",
 	version = PLUGIN_VERSION,
-	url = "https://github.com/fbef0102;https://github.com/target5150"
+	url = "https://github.com/fbef0102;https://github.com/melt5150"
 };
 
 enum L4D2_Team
@@ -373,7 +373,7 @@ public void ReadyEnabledChange(ConVar convar, const char[] oldValue, const char[
 
 public Action Timer_InitiateLive(Handle timer)
 {
-	if (inReadyUp)
+	if (inReadyUp && !GetConVarBool(l4d_ready_enabled))
 	{
 		if (!inLiveCountdown)
 		{
@@ -871,11 +871,8 @@ public Action MenuRefresh_Timer(Handle timer)
 		return Plugin_Continue;
 	}
 	
-	if (menuPanel != null)
-	{
-		delete menuPanel;
-		menuPanel = null;
-	}
+	if (menuPanel != null) delete menuPanel;
+	
 	return Plugin_Stop;
 }
 
@@ -1163,7 +1160,8 @@ void InitiateLive(bool real = true)
 	{
 		// Due to flag TIMER_FLAG_NO_MAPCHANGE, timer handle doesn't get freed OnMapEnd.
 		// So we must manually close it here to prevent issues and handle leaking.
-		delete readyCountdownTimer;
+		KillTimer(readyCountdownTimer);
+		readyCountdownTimer = null;
 	}
 }
 
@@ -1325,7 +1323,7 @@ void EnableEntities()
 
 void ActivateEntities(const char[] className, const char[] inputName)
 { 
-	int iEntity;
+	int iEntity = MaxClients+1;
 
 	while ((iEntity = FindEntityByClassname(iEntity, className)) != -1)
 	{
@@ -1339,7 +1337,7 @@ void ActivateEntities(const char[] className, const char[] inputName)
 
 void MakePropsUnbreakable()
 {
-	int iEntity;
+	int iEntity = MaxClients+1;
 	
 	while ((iEntity = FindEntityByClassname(iEntity, "prop_physics")) != -1)
 	{
@@ -1352,7 +1350,7 @@ void MakePropsUnbreakable()
 
 void MakePropsBreakable()
 {
-	int iEntity;
+	int iEntity = MaxClients+1;
     
 	while ((iEntity = FindEntityByClassname(iEntity, "prop_physics")) != -1)
 	{
