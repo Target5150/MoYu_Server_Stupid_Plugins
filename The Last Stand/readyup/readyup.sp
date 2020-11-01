@@ -22,10 +22,10 @@
 public Plugin myinfo =
 {
 	name = "L4D2 Ready-Up with convenience fixes",
-	author = "CanadaRox, Harry Potter, Target",
+	author = "CanadaRox,Target",
 	description = "New and improved ready-up plugin with convenience fixes.",
 	version = PLUGIN_VERSION,
-	url = "https://github.com/fbef0102;https://github.com/Target5150"
+	url = "https://github.com/target5150"
 };
 
 enum L4D2_Team
@@ -187,7 +187,7 @@ public void OnPluginStart()
 
 public void OnPluginEnd()
 {
-	if (inReadyUp) InitiateLive(false);
+	InitiateLive(false);
 }
 
 public void OnAllPluginsLoaded()
