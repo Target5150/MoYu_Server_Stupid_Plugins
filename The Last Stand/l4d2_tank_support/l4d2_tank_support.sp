@@ -1,14 +1,15 @@
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
-#include <colors>
 #include <l4d2lib>
 #include <dhooks>
 
 #pragma semicolon 1
 #pragma newdecls required
 
-int OUR_COLOR[3];
+#define PLUGIN_VERSION	"1.1.2"
+
+#define OUR_COLOR {255, 255, 255}
 
 bool bVision[MAXPLAYERS+1];
 bool bTankAlive;
@@ -46,11 +47,17 @@ enum L4D2_Infected
     L4D2Infected_Tank
 };
 
+public Plugin myinfo = 
+{
+	name = "L4D2 Tank Hittable Glow",
+	author = "Sir (Modified by Forgetest)",
+	description = "This is such a big QoL Fix and is implemented so smoothly that people often think it's part of the game, why not load it in every config? :D",
+	version = PLUGIN_VERSION,
+	url = "https://github.com/SirPlease/L4D2-Competitive-Rework"
+};
+
 public void OnPluginStart()
 {
-	OUR_COLOR[0] = 255;
-	OUR_COLOR[1] = 255;
-	OUR_COLOR[2] = 255;
 	// Setup Clone Array
 	g_ArrayHittableClones = new ArrayList();
 	g_ArrayHittables = new ArrayList();
@@ -143,7 +150,7 @@ int CreateClone(int entity)
 	float vAngles[3];
 	GetEntPropVector(entity, Prop_Send, "m_vecOrigin", vOrigin);
 	GetEntPropVector(entity, Prop_Data, "m_angRotation", vAngles); 
-	char entityModel[64]; 
+	static char entityModel[64]; 
 	GetEntPropString(entity, Prop_Data, "m_ModelName", entityModel, sizeof(entityModel)); 
 	int clone=0;
 	clone = CreateEntityByName("prop_dynamic_override"); //prop_dynamic
@@ -167,7 +174,7 @@ void RecreateHittableClones()
 	{
 		for (int i = 0; i < ArraySize; i++)
 		{
-			int storedEntity = GetArrayCell(g_ArrayHittables, i);
+			int storedEntity = EntRefToEntIndex(GetArrayCell(g_ArrayHittables, i));
 			if (IsValidEntity(storedEntity))
 			{
 				int clone = CreateClone(storedEntity);
@@ -195,12 +202,22 @@ void KillClones(bool both)
 		if (IsValidEntity(storedEntity))
 		{
 			SDKUnhook(storedEntity, SDKHook_SetTransmit, CloneTransmit);
-			AcceptEntityInput(storedEntity, "Kill");
+			RemoveEntity(storedEntity);
 		}
 	}
 	ClearArray(g_ArrayHittableClones);
 	if (both)
 	{
+		ArraySize = GetArraySize(g_ArrayHittables);
+		for (int i = 0; i < ArraySize; i++)
+		{
+			int storedEntity = EntRefToEntIndex(GetArrayCell(g_ArrayHittables, i));
+			if (IsValidEntity(storedEntity))
+			{
+				SDKUnhook(storedEntity, SDKHook_OnTakeDamagePost, PropDamagedPost);
+			}
+		}
+		
 		ClearArray(g_ArrayHittables);
 		bTankAlive = false;
 		
@@ -211,9 +228,13 @@ void KillClones(bool both)
 	// 4. Reset bVision
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (IsClientInGame(i) && (!IsTank(i) || !bTankAlive))
+		if (!bTankAlive || !IsClientInGame(i))
 		{
-			bVision[i] = IsClientInGame(i) && CheckTeamVisionAccess(view_as<L4D2_Team>(GetClientTeam(i)));
+			bVision[i] = false;
+		}
+		else if (!IsTank(i))
+		{
+			bVision[i] = CheckTeamVisionAccess(view_as<L4D2_Team>(GetClientTeam(i)));
 		}
 	}
 }
@@ -310,7 +331,7 @@ stock void MakeEntityVisible(int ent, bool visible=true)
 	if(visible)
 	{
 		SetEntityRenderMode(ent, RENDER_NORMAL);
-		SetEntityRenderColor(ent, 255, 255, 255, 255);         
+		SetEntityRenderColor(ent, 255, 255, 255, 255);
 	}
 	else
 	{
