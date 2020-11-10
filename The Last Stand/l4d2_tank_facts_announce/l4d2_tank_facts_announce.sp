@@ -262,7 +262,7 @@ public void PrintTankSkill()
 		Format(buffer, sizeof(buffer), "%ds", duration);
 	}
 	
-	DataPack dp = new DataPack();
+	DataPack dp;
 	CreateDataTimer(3.0, Timer_PrintToChat, dp);
 	
 	// [!] Facts of the Tank (AI)
