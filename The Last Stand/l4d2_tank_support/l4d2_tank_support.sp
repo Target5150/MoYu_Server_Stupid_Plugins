@@ -1,5 +1,4 @@
 #include <sourcemod>
-#include <sdktools>
 #include <sdkhooks>
 #include <l4d2lib>
 #include <dhooks>
@@ -7,12 +6,13 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION	"1.1.2"
+#define PLUGIN_VERSION	"1.1.3"
 
 #define OUR_COLOR {255, 255, 255}
 
 bool bVision[MAXPLAYERS+1];
 bool bTankAlive;
+bool bRecreate;
 
 ArrayList g_ArrayHittableClones;
 ArrayList g_ArrayHittables;
@@ -62,8 +62,8 @@ public void OnPluginStart()
 	g_ArrayHittableClones = new ArrayList();
 	g_ArrayHittables = new ArrayList();
 
-	g_CvarGlowInfected = CreateConVar("ts_glow_infected", "0", "Show hittable glows to infected team");
-	g_CvarGlowSpectator = CreateConVar("ts_glow_spectator", "1", "Show hittable glows to spectators");
+	g_CvarGlowInfected = CreateConVar("hittable_glow_infected", "0", "Show hittable glows to infected team");
+	g_CvarGlowSpectator = CreateConVar("hittable_glow_spectator", "1", "Show hittable glows to spectators");
 	
 	g_CvarGlowInfected.AddChangeHook(view_as<ConVarChanged>(OnConVarChanged));
 	g_CvarGlowSpectator.AddChangeHook(view_as<ConVarChanged>(OnConVarChanged));
@@ -99,13 +99,10 @@ public void ClearArrayEvent() { KillClones(true); }
 
 public void ClearVisionEvent(Event event, const char[] name, bool dontBroadcast)
 {
-	int client = GetClientOfUserId(GetEventInt(event, "userid"));
-	if (!client || !IsClientInGame(client) || IsFakeClient(client))
-	{
-		return;
-	}
+	if (!bTankAlive) return;
 	
-	if (bTankAlive)
+	int client = GetClientOfUserId(GetEventInt(event, "userid"));
+	if (client && IsClientInGame(client) && !IsFakeClient(client))
 	{
 		// Reproduce glows to clear vision of transferred players
 		RequestFrame(KillClones, false);
@@ -134,9 +131,6 @@ public int L4D2_OnTankPassControl(int oldTank, int newTank, int passCount)
 {
 	KillClones(false);
 	bVision[newTank] = true;
-	if (!IsClientInGame(oldTank) || IsFakeClient(oldTank) || !GetConVarBool(g_CvarGlowInfected))
-		bVision[oldTank] = false;
-
 	if (bTankAlive) RecreateHittableClones();
 }
 
@@ -175,16 +169,21 @@ void RecreateHittableClones()
 		for (int i = 0; i < ArraySize; i++)
 		{
 			int storedEntity = EntRefToEntIndex(GetArrayCell(g_ArrayHittables, i));
-			if (IsValidEntity(storedEntity))
+			if (IsTankHittable(storedEntity))
 			{
 				int clone = CreateClone(storedEntity);
 				if (clone > 0)
 				{
-					PushArrayCell(g_ArrayHittableClones, clone);
+					PushArrayCell(g_ArrayHittableClones, EntIndexToEntRef(clone));
 					MakeEntityVisible(clone, false);
 					SDKHook(clone, SDKHook_SetTransmit, CloneTransmit);
 					L4D2_SetEntGlow(clone, L4D2Glow_Constant, 3250, 250, OUR_COLOR, false);
 				}
+			}
+			else
+			{
+				// Remove this cell and fall back due to the feature of Erase method
+				RemoveFromArray(g_ArrayHittables, i--);
 			}
 		}
 	}
@@ -198,7 +197,7 @@ void KillClones(bool both)
 	int ArraySize = GetArraySize(g_ArrayHittableClones);
 	for (int i = 0; i < ArraySize; i++)
 	{
-		int storedEntity = GetArrayCell(g_ArrayHittableClones, i);
+		int storedEntity = EntRefToEntIndex(GetArrayCell(g_ArrayHittableClones, i));
 		if (IsValidEntity(storedEntity))
 		{
 			SDKUnhook(storedEntity, SDKHook_SetTransmit, CloneTransmit);
@@ -228,7 +227,7 @@ void KillClones(bool both)
 	// 4. Reset bVision
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (!bTankAlive || !IsClientInGame(i))
+		if (!bTankAlive || !IsClientInGame(i) || IsFakeClient(i))
 		{
 			bVision[i] = false;
 		}
@@ -251,13 +250,8 @@ public Action CloneTransmit(int entity, int client)
 
 bool CheckTeamVisionAccess(L4D2_Team team)
 {
-	if (g_CvarGlowInfected.BoolValue && team == L4D2Team_Infected)
-		return true;
-	
-	if (g_CvarGlowSpectator.BoolValue && team == L4D2Team_Spectator)
-		return true;
-
-	return false;
+	return (team == L4D2Team_Infected && g_CvarGlowInfected.BoolValue)
+		|| (team == L4D2Team_Spectator && g_CvarGlowSpectator.BoolValue);
 }
 
 
@@ -293,6 +287,7 @@ public void PossibleTankPropCreated(int entity, const char[] classname)
     {
         // Use SpawnPost to just push it into the Array right away.
         // These entities get spawned after the Tank has punched them, so doing anything here will not work smoothly.
+        bRecreate = true;
         SDKHook(entity, SDKHook_OnTakeDamagePost, PropDamagedPost);
     }
 }
@@ -313,11 +308,26 @@ public void PropDamagedPost(int entity, int attacker, int inflictor, float damag
 		if (FindValueInArray(g_ArrayHittables, entRef) == -1)
 		{
 			// Since the Tank has punch them to spawn, it should be paired with glow right away.
-			PushArrayCell(g_ArrayHittables, entRef);
-			
-			// Reproduce glows to filter glows paired with entities out of existence.
-			KillClones(false);
-			RecreateHittableClones();
+			if (!bRecreate)
+			{
+				int clone = CreateClone(entity);
+				if (clone > 0)
+				{
+					PushArrayCell(g_ArrayHittableClones, EntIndexToEntRef(clone));
+					PushArrayCell(g_ArrayHittables, entRef);
+					MakeEntityVisible(clone, false);
+					SDKHook(clone, SDKHook_SetTransmit, CloneTransmit);
+					L4D2_SetEntGlow(clone, L4D2Glow_Constant, 3250, 250, OUR_COLOR, false);
+				}
+			}
+			else
+			{
+				// Reproduce glows to filter glows paired with entities out of existence.
+				PushArrayCell(g_ArrayHittables, entRef);
+				KillClones(false);
+				RecreateHittableClones();
+				bRecreate = false;
+			}
 		}
 	}
 }
@@ -376,12 +386,12 @@ stock bool IsTankHittable(int iEntity) {
 	char className[64];
 	
 	GetEdictClassname(iEntity, className, sizeof(className));
-	if ( StrEqual(className, "prop_physics") ) {
+	if ( strcmp(className, "prop_physics") == 0 ) {
 		if ( GetEntProp(iEntity, Prop_Send, "m_hasTankGlow", 1) ) {
 			return true;
 		}
 	}
-	else if ( StrEqual(className, "prop_car_alarm") ) {
+	else if ( strcmp(className, "prop_car_alarm") == 0 ) {
 		return true;
 	}
 	
