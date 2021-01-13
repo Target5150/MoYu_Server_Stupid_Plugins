@@ -6,9 +6,10 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION	"1.1.3"
+#define PLUGIN_VERSION	"1.1.4"
 
 #define OUR_COLOR {255, 255, 255}
+#define CLONE_CLASSNAME "prop_dynamic_override"
 
 bool bVision[MAXPLAYERS+1];
 bool bTankAlive;
@@ -147,7 +148,7 @@ int CreateClone(int entity)
 	static char entityModel[64]; 
 	GetEntPropString(entity, Prop_Data, "m_ModelName", entityModel, sizeof(entityModel)); 
 	int clone=0;
-	clone = CreateEntityByName("prop_dynamic_override"); //prop_dynamic
+	clone = CreateEntityByName(CLONE_CLASSNAME); //prop_dynamic
 	SetEntityModel(clone, entityModel);
 	DispatchSpawn(clone);
 
@@ -198,7 +199,7 @@ void KillClones(bool both)
 	for (int i = 0; i < ArraySize; i++)
 	{
 		int storedEntity = EntRefToEntIndex(GetArrayCell(g_ArrayHittableClones, i));
-		if (IsValidEntity(storedEntity))
+		if (IsHittableClone(storedEntity))
 		{
 			SDKUnhook(storedEntity, SDKHook_SetTransmit, CloneTransmit);
 			RemoveEntity(storedEntity);
@@ -287,25 +288,24 @@ public void PossibleTankPropCreated(int entity, const char[] classname)
     {
         // Use SpawnPost to just push it into the Array right away.
         // These entities get spawned after the Tank has punched them, so doing anything here will not work smoothly.
-        bRecreate = true;
-        SDKHook(entity, SDKHook_OnTakeDamagePost, PropDamagedPost);
+        bRecreate = SDKHookEx(entity, SDKHook_OnTakeDamagePost, PropDamagedPost);
     }
 }
 
 public void PropDamagedPost(int entity, int attacker, int inflictor, float damage, int damagetype)
 {
 	if (!bTankAlive) return;
-	if (!IsValidEntity(entity)) return;
-	if (!attacker
-			|| attacker > MaxClients
-			|| !IsClientInGame(attacker)
-			|| !IsTank(attacker))
-		return;
+	if (!IsValidEntity(entity) || !IsValidEntity(inflictor) || !IsValidEdict(inflictor)) return;
+	if (!IsValidClient(attacker) || !IsClientInGame(attacker)) return;
+	if (!GetEntProp(entity, Prop_Send, "m_hasTankGlow")) return;
 	
-	if (GetEntProp(entity, Prop_Send, "m_hasTankGlow", 1)) // Just to be safe.
+	int entRef = EntIndexToEntRef(entity);
+	if (FindValueInArray(g_ArrayHittables, entRef) == -1) // Prevent multiple pushes.
 	{
-		int entRef = EntIndexToEntRef(entity);
-		if (FindValueInArray(g_ArrayHittables, entRef) == -1)
+		// 1. The tank punched directly the hittable.
+		// 2. The tank threw a rock on the hittable.
+		// 3. The tank punched a hittable which later collided with another hittable.
+		if (IsTank(attacker) || FindValueInArray(g_ArrayHittables, EntIndexToEntRef(inflictor)) != -1)
 		{
 			// Since the Tank has punch them to spawn, it should be paired with glow right away.
 			if (!bRecreate)
@@ -336,6 +336,22 @@ public void PropDamagedPost(int entity, int attacker, int inflictor, float damag
 /**
  *  Stocks
  */
+stock bool IsHittableClone(int entity)
+{
+	if (!IsValidEntity(entity)) {
+		return false;
+	}
+	
+	static char clsname[64];
+	GetEntityClassname(entity, clsname, sizeof(clsname));
+	return strcmp(clsname, CLONE_CLASSNAME) == 0;
+}
+
+stock bool IsValidClient(int client)
+{
+	return client > 0 && client <= MaxClients;
+}
+
 stock void MakeEntityVisible(int ent, bool visible=true)
 {
 	if(visible)
