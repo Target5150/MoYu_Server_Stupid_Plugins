@@ -17,6 +17,7 @@ out what's going on :D Kinda makes my other plugins look bad huh :/
 #include <builtinvotes>
 #include <left4dhooks>
 #include <l4d2util_rounds>
+#include <l4d2lib>
 #include <readyup>
 #include <colors>
 
@@ -53,6 +54,8 @@ new Handle:g_hCvarBossVoting; 												// Determines if boss voting will be e
 
 // Handles
 new Handle:g_hVsBossBuffer; 												// Boss Buffer
+new Handle:g_hVsBossFlowMax; 												// Boss Flow Min
+new Handle:g_hVsBossFlowMin; 												// Boss Flow Max
 new Handle:g_hStaticTankMaps; 												// Stores All Static Tank Maps
 new Handle:g_hStaticWitchMaps; 												// Stores All Static Witch Maps
 new Handle:g_forwardUpdateBosses;
@@ -117,7 +120,7 @@ public OnPluginStart()
 	// Hooks/Events
 	HookEvent("player_left_start_area", LeftStartAreaEvent, EventHookMode_PostNoCopy); // Called when a player has left the saferoom
 	HookEvent("round_start", RoundStartEvent, EventHookMode_PostNoCopy); // When a new round starts (2 rounds in 1 map -- this should be called twice a map)
-	HookEvent("player_say", DKRWorkaround, EventHookMode_Pre); // Called when a message is sent in chat. Used to grab the Dark Carnival: Remix boss percentages.
+	HookEvent("player_say", DKRWorkaround, EventHookMode_Post); // Called when a message is sent in chat. Used to grab the Dark Carnival: Remix boss percentages.
 }
 
 /* ========================================================
@@ -459,10 +462,10 @@ public int GetPercentageFromText(String:text[])
 public Action:DKRWorkaround(Handle:event, String:name[], bool:dontBroadcast)
 {
 	// If the current map is not part of the Dark Carnival: Remix campaign, don't continue
-	if (!g_bIsRemix) return Plugin_Handled;
+	if (!g_bIsRemix) return;
 	
 	// Check if the function has already ran more than twice this map
-	if (g_bDKRFirstRoundBossesSet || InSecondHalfOfRound()) return Plugin_Handled;
+	if (g_bDKRFirstRoundBossesSet || InSecondHalfOfRound()) return;
 	
 	// Check if the message is not from a user (Which means its from the map script)
 	new UserID = GetEventInt(event, "userid", 0);
@@ -519,8 +522,9 @@ public Action:DKRWorkaround(Handle:event, String:name[], bool:dontBroadcast)
 			// This function has been executed two or more times, so we should be done here for this map.
 			g_bDKRFirstRoundBossesSet = true;
 		}
+		
+		UpdateReadyUpFooter(INVALID_HANDLE);
 	}
-	return Plugin_Handled;
 }
 
 /* ========================================================
@@ -780,8 +784,8 @@ public Action:UpdateReadyUpFooter(Handle:timer)
 public Action:BossCmd(client, args)
 {
 	// Show our boss percents
-	CreateTimer(0.1, PrintBossPercents, client);
-	CreateTimer(0.2, PrintCurrent, client);
+	PrintBossPercents(INVALID_HANDLE, client);
+	CreateTimer(0.1, PrintCurrent, client);
 }
 
 public Action PrintCurrent(Handle timer, int client) {
@@ -993,9 +997,9 @@ public Action:VoteBossCmd(client, args)
 	}
 	
 	// Check if percent is within limits
-	if ((bv_iWitch > 100 || bv_iWitch < 0) || (bv_iTank > 100 || bv_iTank < 0))
+	if (!ValidateFlow(bv_iTank, bv_iWitch, bv_bTank, bv_bWitch))
 	{
-		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Boss percents need to be between {olive}0{default} and {olive}100{default}.");
+		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Boss percents are {olive}invalid{default} or {olive}banned{default}.");
 		return;
 	}
 	
@@ -1108,6 +1112,51 @@ public BossVoteResultHandler(Handle:vote, num_votes, num_clients, const client_i
 	// Vote Failed
 	DisplayBuiltinVoteFail(vote, BuiltinVoteFail_Loses);
 	return;
+}
+
+// credit to SirPlease
+bool ValidateFlow(int iTank, int iWitch, bool bTank, bool bWitch)
+{
+	int iBossMinFlow = RoundToCeil(GetConVarFloat(g_hVsBossFlowMin) * 100);
+	int iBossMaxFlow = RoundToFloor(GetConVarFloat(g_hVsBossFlowMax) * 100);
+	
+	// mapinfo override
+	iBossMinFlow = L4D2_GetMapValueInt("versus_boss_flow_min", iBossMinFlow);
+	iBossMaxFlow = L4D2_GetMapValueInt("versus_boss_flow_max", iBossMaxFlow);
+	
+	if (bTank)
+	{
+		int iMinBanFlow = L4D2_GetMapValueInt("tank_ban_flow_min", -1);
+		int iMaxBanFlow = L4D2_GetMapValueInt("tank_ban_flow_max", -1);
+		int iMinBanFlowB = L4D2_GetMapValueInt("tank_ban_flow_min_b", -1);
+		int iMaxBanFlowB = L4D2_GetMapValueInt("tank_ban_flow_max_b", -1);
+		int iMinBanFlowC = L4D2_GetMapValueInt("tank_ban_flow_min_c", -1);
+		int iMaxBanFlowC = L4D2_GetMapValueInt("tank_ban_flow_max_c", -1);
+		
+		// check each array index to see if it is within a ban range
+		bool bValidSpawn[101] = {false, ...};
+		int iValidSpawnTotal = 0;
+		for (int i = 0; i <= 100; i++) {
+		    bValidSpawn[i] = (iBossMinFlow <= i && i <= iBossMaxFlow) && !(iMinBanFlow <= i && i <= iMaxBanFlow) && !(iMinBanFlowB <= i && i <= iMaxBanFlowB) && !(iMinBanFlowC <= i && i <= iMaxBanFlowC);
+		    if (bValidSpawn[i]) iValidSpawnTotal++;
+		}
+		
+		if (iValidSpawnTotal == 0) {
+			return false;
+		}
+		
+		return bValidSpawn[iTank];
+	}
+	
+	if (bWitch)
+	{
+		iBossMinFlow = L4D2_GetMapValueInt("witch_flow_min", iBossMinFlow);
+		iBossMaxFlow = L4D2_GetMapValueInt("witch_flow_max", iBossMaxFlow);
+		
+		return iBossMinFlow <= iWitch && iWitch <= iBossMaxFlow;
+	}
+	
+	return false;
 }
 
 public SetWitchPercent(int percent)
