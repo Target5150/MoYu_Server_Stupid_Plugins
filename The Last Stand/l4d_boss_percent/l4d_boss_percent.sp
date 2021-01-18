@@ -54,8 +54,8 @@ new Handle:g_hCvarBossVoting; 												// Determines if boss voting will be e
 
 // Handles
 new Handle:g_hVsBossBuffer; 												// Boss Buffer
-new Handle:g_hVsBossFlowMax; 												// Boss Flow Min
-new Handle:g_hVsBossFlowMin; 												// Boss Flow Max
+new Handle:g_hVsBossFlowMin; 												// Boss Flow Min
+new Handle:g_hVsBossFlowMax; 												// Boss Flow Max
 new Handle:g_hStaticTankMaps; 												// Stores All Static Tank Maps
 new Handle:g_hStaticWitchMaps; 												// Stores All Static Witch Maps
 new Handle:g_forwardUpdateBosses;
@@ -90,6 +90,8 @@ public OnPluginStart()
 {
 	// Variable Setting
 	g_hVsBossBuffer = FindConVar("versus_boss_buffer"); // Get the boss buffer
+	g_hVsBossFlowMin = FindConVar("versus_boss_flow_min"); // Get boss flow min
+	g_hVsBossFlowMax = FindConVar("versus_boss_flow_max"); // Get boss flow max
 	g_hStaticWitchMaps = CreateTrie(); // Create list of static witch maps
 	g_hStaticTankMaps = CreateTrie(); // Create list of static tank maps
 	
@@ -1115,7 +1117,7 @@ public BossVoteResultHandler(Handle:vote, num_votes, num_clients, const client_i
 }
 
 // credit to SirPlease
-bool ValidateFlow(int iTank, int iWitch, bool bTank, bool bWitch)
+bool ValidateFlow(int iTank = -1, int iWitch = -1, bool bTank = false, bool bWitch = false)
 {
 	int iBossMinFlow = RoundToCeil(GetConVarFloat(g_hVsBossFlowMin) * 100);
 	int iBossMaxFlow = RoundToFloor(GetConVarFloat(g_hVsBossFlowMax) * 100);
@@ -1123,7 +1125,7 @@ bool ValidateFlow(int iTank, int iWitch, bool bTank, bool bWitch)
 	// mapinfo override
 	iBossMinFlow = L4D2_GetMapValueInt("versus_boss_flow_min", iBossMinFlow);
 	iBossMaxFlow = L4D2_GetMapValueInt("versus_boss_flow_max", iBossMaxFlow);
-	
+
 	if (bTank)
 	{
 		int iMinBanFlow = L4D2_GetMapValueInt("tank_ban_flow_min", -1);
@@ -1141,11 +1143,8 @@ bool ValidateFlow(int iTank, int iWitch, bool bTank, bool bWitch)
 		    if (bValidSpawn[i]) iValidSpawnTotal++;
 		}
 		
-		if (iValidSpawnTotal == 0) {
+		if (iValidSpawnTotal == 0 || !bValidSpawn[iTank])
 			return false;
-		}
-		
-		return bValidSpawn[iTank];
 	}
 	
 	if (bWitch)
@@ -1153,10 +1152,11 @@ bool ValidateFlow(int iTank, int iWitch, bool bTank, bool bWitch)
 		iBossMinFlow = L4D2_GetMapValueInt("witch_flow_min", iBossMinFlow);
 		iBossMaxFlow = L4D2_GetMapValueInt("witch_flow_max", iBossMaxFlow);
 		
-		return iBossMinFlow <= iWitch && iWitch <= iBossMaxFlow;
+		if (iWitch < iBossMinFlow || iBossMaxFlow < iWitch)
+			return false;
 	}
 	
-	return false;
+	return (bTank || bWitch);
 }
 
 public SetWitchPercent(int percent)

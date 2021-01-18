@@ -969,11 +969,19 @@ SurvivorCharacter GetFixedSurvivorCharacter(int client)
 
 float GetLerpTime(int client)
 {
-	ConVar cVarMinUpdateRate = FindConVar("sv_minupdaterate");
-	ConVar cVarMaxUpdateRate = FindConVar("sv_maxupdaterate");
-	ConVar cVarMinInterpRatio = FindConVar("sv_client_min_interp_ratio");
-	ConVar cVarMaxInterpRatio = FindConVar("sv_client_max_interp_ratio");
-
+	static ConVar cVarMinUpdateRate = null;
+	static ConVar cVarMaxUpdateRate = null;
+	static ConVar cVarMinInterpRatio = null;
+	static ConVar cVarMaxInterpRatio = null;
+	
+	if (!cVarMinUpdateRate || !cVarMaxUpdateRate || !cVarMinInterpRatio || !cVarMaxInterpRatio)
+	{
+		cVarMinUpdateRate = FindConVar("sv_minupdaterate");
+		cVarMaxUpdateRate = FindConVar("sv_maxupdaterate");
+		cVarMinInterpRatio = FindConVar("sv_client_min_interp_ratio");
+		cVarMaxInterpRatio = FindConVar("sv_client_max_interp_ratio");
+	}
+	
 	static char buffer[64];
 	
 	if (!GetClientInfo(client, "cl_updaterate", buffer, sizeof(buffer))) buffer = "";
