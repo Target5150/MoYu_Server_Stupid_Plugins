@@ -33,6 +33,9 @@ new     bool:   g_bReadyUpAvailable     = false;
 bool	g_bFooterAdded;
 bool	g_bUndone;
 
+ConVar g_cvMaxSI;
+int g_iMaxSI;
+
 
 new const String: g_csSIClassName[][] =
 {
@@ -59,8 +62,17 @@ public Plugin:myinfo =
 
 public OnPluginStart()
 {
+	g_cvMaxSI = FindConVar("z_max_player_zombies");
+	g_cvMaxSI.AddChangeHook(OnCvarChanged);
+	g_iMaxSI = g_cvMaxSI.IntValue;
+	
 	HookEvent("player_team", OnPlayerTeam);
-	HookEvent("round_start", EventHook:OnRoundStart, EventHookMode_PostNoCopy);
+	HookEvent("round_start", EventHook:Event_RoundStart, EventHookMode_PostNoCopy);
+}
+
+public void OnCvarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	g_iMaxSI = g_cvMaxSI.IntValue;
 }
 
 public OnAllPluginsLoaded()
@@ -76,7 +88,7 @@ public OnLibraryAdded(const String:name[])
     if ( StrEqual(name, "readyup") ) { g_bReadyUpAvailable = true; }
 }
 
-public void OnRoundStart()
+public void Event_RoundStart()
 {
 	g_bFooterAdded = false;
 	g_bUndone = false;
@@ -86,12 +98,12 @@ public void OnRoundStart()
 
 public void OnPlayerTeam(Event event, const char[] name, bool dontBroadcast)
 {
-	if (!g_bReadyUpAvailable || !(!g_bFooterAdded && g_bUndone)) return;
+	if (!g_bReadyUpAvailable || g_bFooterAdded || !g_bUndone) return;
 	
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	int team = event.GetInt("team");
 	
-	if (!IS_VALID_CLIENT(client) || team != 3) return;
+	if (!IS_VALID_INGAME(client) || team != 3) return;
 	
 	CreateTimer(1.0, UpdateReadyUpFooter);
 }
@@ -120,7 +132,7 @@ public OnRoundIsLive()
     // announce SI classes up now
     char msg[256];
     ProcessSIString(msg, sizeof(msg));
-    PrintToSurvivors(msg);
+    PrintToClientExInfected(msg);
 }
 
 public Action: L4D_OnFirstSurvivorLeftSafeArea( client )
@@ -129,7 +141,7 @@ public Action: L4D_OnFirstSurvivorLeftSafeArea( client )
     if (!g_bReadyUpAvailable) {
         char msg[256];
         ProcessSIString(msg, sizeof(msg));
-        PrintToSurvivors(msg);
+        PrintToClientExInfected(msg);
     }
 }
 
@@ -192,10 +204,10 @@ stock void ProcessSIString(char[] msg, int maxlength, bool long=true)
     }
 }
 
-stock PrintToSurvivors(const String:Message[])
+stock void PrintToClientExInfected(const char[] Message)
 {
-	for (new i = 1; i <= MaxClients; i++) {
-		if (!IS_VALID_SURVIVOR(i)) { continue; }
+	for (int i = 1; i <= MaxClients; i++) {
+		if (IS_VALID_INFECTED(i) || (IsFakeClient(i) && !IsClientSourceTV(i))) { continue; }
 
 		CPrintToChat(i, Message);
 		//PrintHintText(i, Message2);
@@ -205,18 +217,13 @@ stock PrintToSurvivors(const String:Message[])
 stock bool IsInfectedTeamFullAlive()
 {
 	int players = 0;
-	for (int i = 1; i < MaxClients; i++)
-	{
+	for (int i = 1; i <= MaxClients; i++) {
 		if (IS_INFECTED_ALIVE(i)) players++;
 	}
-	
-	if (players >= GetConVarInt(FindConVar("z_max_player_zombies")))
-		return true;
-	
-	return false;
+	return players >= g_iMaxSI;
 }
 
 stock bool InSecondHalfOfRound()
 {
-	return bool:GameRules_GetProp("m_bInSecondHalfOfRound");
+	return !!GameRules_GetProp("m_bInSecondHalfOfRound");
 }
