@@ -870,19 +870,9 @@ void UpdatePanel()
 	{
 		for (int i = 1; i <= MaxClients; i++)
 		{
-			if (IsClientInGame(i) && !hiddenManually[i])
+			if (IsClientConnected(i) && IsClientInGame(i))
 			{
-				if (GetClientMenu(i) != MenuSource_None && GetClientMenu(i) != MenuSource_RawPanel)
-				{
-					CPrintToChat(i, "[{olive}Readyup{default}] Panel is automatically {green}hidden.");
-					CPrintToChat(i, "[{olive}Readyup{default}] Say {green}!show {default}to redraw the panel.");
-					hiddenManually[i] = true;
-					hiddenPanel[i] = true;
-				}
-				else
-				{
-					hiddenPanel[i] = false;
-				}
+				if (IsClientInGame(i) && !hiddenManually[i]) hiddenPanel[i] = false;
 			}
 		}
 	}
@@ -1326,7 +1316,7 @@ void MakePropsBreakable()
 		if (!IsValidEdict(iEntity) ||  !IsValidEntity(iEntity)) {
 			continue;
 		}
-		DispatchKeyValueFloat(iEntity, "minhealthdmg", 0.0);
+		DispatchKeyValueFloat(iEntity, "minhealthdmg", 5.0);
 	}
 }
 
