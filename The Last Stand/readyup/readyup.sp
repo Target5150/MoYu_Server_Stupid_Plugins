@@ -1316,7 +1316,7 @@ void MakePropsBreakable()
 		if (!IsValidEdict(iEntity) ||  !IsValidEntity(iEntity)) {
 			continue;
 		}
-		DispatchKeyValueFloat(iEntity, "minhealthdmg", 5.0);
+		DispatchKeyValueFloat(iEntity, "minhealthdmg", 0.0);
 	}
 }
 
