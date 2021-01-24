@@ -118,7 +118,7 @@ public Action:RoundStartDelay( Handle:timer ) {
     }
 }
 
-public CarAlarmLogicRelayTriggered( const String:output[], caller, activator, Float:delay ) {
+public Action CarAlarmLogicRelayTriggered( const String:output[], caller, activator, Float:delay ) {
     decl String:sTargetName[128];
     GetEntityName(caller, sTargetName, sizeof(sTargetName));
     
@@ -130,7 +130,7 @@ public CarAlarmLogicRelayTriggered( const String:output[], caller, activator, Fl
         // triggered the activator is the car itself. When the cars get
         // randomised the activator is the player who entered the trigger area.
         if ( StrEqual(sClassName, "prop_car_alarm") ) {
-            return;
+            return Plugin_Continue;
         }
     }
         
@@ -144,7 +144,11 @@ public CarAlarmLogicRelayTriggered( const String:output[], caller, activator, Fl
             CreateTimer(1.0, PatchAlarmedCars);
             bPatched = true;
         }
+        if ( FindStringInArray(hFirstRoundCars, sTargetName) == -1 ) {
+        	return Plugin_Handled;
+        }
     }
+    return Plugin_Continue;
 }
 
 public Action:PatchAlarmedCars( Handle:timer ) {
