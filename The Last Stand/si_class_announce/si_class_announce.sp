@@ -207,7 +207,7 @@ stock void ProcessSIString(char[] msg, int maxlength, bool long=true)
 stock void PrintToClientExInfected(const char[] Message)
 {
 	for (int i = 1; i <= MaxClients; i++) {
-		if (IS_VALID_INFECTED(i) || (IsFakeClient(i) && !IsClientSourceTV(i))) { continue; }
+		if (!IS_VALID_INGAME(i) || IS_INFECTED(i) || (IsFakeClient(i) && !IsClientSourceTV(i))) { continue; }
 
 		CPrintToChat(i, Message);
 		//PrintHintText(i, Message2);

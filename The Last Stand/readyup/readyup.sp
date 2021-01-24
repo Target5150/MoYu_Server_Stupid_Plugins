@@ -870,10 +870,7 @@ void UpdatePanel()
 	{
 		for (int i = 1; i <= MaxClients; i++)
 		{
-			if (IsClientConnected(i) && IsClientInGame(i))
-			{
-				if (IsClientInGame(i) && !hiddenManually[i]) hiddenPanel[i] = false;
-			}
+			if (IsClientInGame(i) && !hiddenManually[i]) hiddenPanel[i] = false;
 		}
 	}
 	
