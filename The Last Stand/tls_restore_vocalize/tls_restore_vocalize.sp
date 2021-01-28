@@ -627,7 +627,7 @@ public Action OnVocalizeCommand(int client, const char[] vocalize, int initiator
 	
 	if (!IsSurvivor(client) || !IsPlayerAlive(client)) return;
 	
-	if (IsActorBusy(client)) return;
+	//if (IsActorBusy(client)) return;
 	
 	Vocalize emVocalize = IdentifyVocalize(vocalize);
 	if (emVocalize == NULL_VOCALIZE) return;
@@ -635,21 +635,6 @@ public Action OnVocalizeCommand(int client, const char[] vocalize, int initiator
 	SurvivorCharacter emCharacter = IdentifySurvivor(client);
 	if (emCharacter == SC_NONE) return;
 
-	DataPack dp = new DataPack();
-	dp.WriteCell(client);
-	dp.WriteCell(emVocalize);
-	dp.WriteCell(emCharacter);
-	RequestFrame(Delay_Vocalize, dp);
-}
-
-public void Delay_Vocalize(DataPack dp)
-{
-	dp.Reset();
-	
-	int client = dp.ReadCell();
-	Vocalize emVocalize = dp.ReadCell();
-	SurvivorCharacter emCharacter = dp.ReadCell();
-	
 	char szVoiceFile[PLATFORM_MAX_PATH];
 	PickVoice(szVoiceFile, sizeof(szVoiceFile), emVocalize, emCharacter);
 	if (FileExists(szVoiceFile, true))
@@ -660,8 +645,6 @@ public void Delay_Vocalize(DataPack dp)
 	{
 		LogError("[VocalRestore] Unable to open scene file (%s)", szVoiceFile);
 	}
-	
-	delete dp;
 }
 
 void PickVoice(char[] szFile, int maxlength, Vocalize emVocalize, SurvivorCharacter emCharacter)

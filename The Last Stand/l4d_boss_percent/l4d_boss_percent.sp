@@ -70,10 +70,10 @@ new bool:g_bTankDisabled;													// Stores if another plugin has disabled t
 
 // Dark Carnival: Remix Work Around Variables
 new bool:g_bIsRemix; 														// Stores if the current map is Dark Carnival: Remix. So we don't have to keep checking via IsDKR()
-new g_idkrwaAmount; 														// Stores the amount of times the DKRWorkaround method has been executed. We only want to execute it twice, one to get the tank percentage, and a second time to get the witch percentage.
+//new g_idkrwaAmount; 														// Stores the amount of times the DKRWorkaround method has been executed. We only want to execute it twice, one to get the tank percentage, and a second time to get the witch percentage.
 int g_fDKRFirstRoundTankPercent; 											// Stores the Tank percent from the first half of a DKR map. Used so we can set the 2nd half to the same percent
 int g_fDKRFirstRoundWitchPercent; 											// Stores the Witch percent from the first half of a DKR map. Used so we can set the 2nd half to the same percent
-new bool:g_bDKRFirstRoundBossesSet; 										// Stores if the first round of DKR boss percentages have been set
+//new bool:g_bDKRFirstRoundBossesSet; 										// Stores if the first round of DKR boss percentages have been set
 
 // Boss Voting Variables
 new Handle:bv_hVote;														// Our boss vote handle
@@ -281,8 +281,8 @@ public void OnMapEnd()
 	g_fDKRFirstRoundWitchPercent = -1;
 	g_fWitchPercent = -1;
 	g_fTankPercent = -1;
-	g_bDKRFirstRoundBossesSet = false;
-	g_idkrwaAmount = 0;
+	//g_bDKRFirstRoundBossesSet = false;
+	//g_idkrwaAmount = 0;
 	g_bTankDisabled = false;
 	g_bWitchDisabled = false;
 }
@@ -467,11 +467,11 @@ public Action:DKRWorkaround(Handle:event, String:name[], bool:dontBroadcast)
 	if (!g_bIsRemix) return;
 	
 	// Check if the function has already ran more than twice this map
-	if (g_bDKRFirstRoundBossesSet || InSecondHalfOfRound()) return;
+	//if (g_bDKRFirstRoundBossesSet || InSecondHalfOfRound()) return;
 	
 	// Check if the message is not from a user (Which means its from the map script)
 	new UserID = GetEventInt(event, "userid", 0);
-	if (!UserID && !InSecondHalfOfRound())
+	if (!UserID/* && !InSecondHalfOfRound()*/)
 	{
 	
 		// Get the message text
@@ -516,14 +516,14 @@ public Action:DKRWorkaround(Handle:event, String:name[], bool:dontBroadcast)
 		}
 		
 		// Increase the amount of times we've done this function. We only want to do it twice. Once for each boss, for each map.
-		g_idkrwaAmount = g_idkrwaAmount + 1;
+		//g_idkrwaAmount = g_idkrwaAmount + 1;
 		
 		// Check if both bosses have already been set 
-		if (g_idkrwaAmount > 1)
-		{
+		//if (g_idkrwaAmount > 1)
+		//{
 			// This function has been executed two or more times, so we should be done here for this map.
-			g_bDKRFirstRoundBossesSet = true;
-		}
+		//	g_bDKRFirstRoundBossesSet = true;
+		//}
 		
 		UpdateReadyUpFooter(INVALID_HANDLE);
 	}
@@ -577,8 +577,8 @@ public Action:GetBossPercents(Handle:timer)
 		{
 			// Bosses cannot be changed on Dark Carnival: Remix maps. Unless they are completely disabled. So, we need to check if that's the case here
 			
-			if (g_bDKRFirstRoundBossesSet)
-			{
+			//if (g_bDKRFirstRoundBossesSet)
+			//{
 				// If the Witch is not set to spawn this round, set it's percentage to 0
 				if (!L4D2Direct_GetVSWitchToSpawnThisRound(0))
 				{
@@ -612,7 +612,7 @@ public Action:GetBossPercents(Handle:timer)
 					// The boss must have been re-enabled :)
 					g_fTankPercent = g_fDKRFirstRoundTankPercent;
 				}
-			}
+			//}
 		}
 	} 
 	else 
