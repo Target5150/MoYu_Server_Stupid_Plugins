@@ -978,8 +978,7 @@ public Action:VoteBossCmd(client, args)
 	// Check to make sure static bosses don't get changed
 	if (!IsStaticTankMap())
 	{
-		bv_bTank = true;
-		bv_iTank = StringToInt(bv_sTank);
+		bv_bTank = (bv_iTank = StringToInt(bv_sTank)) > 0;
 	}
 	else
 	{
@@ -989,8 +988,7 @@ public Action:VoteBossCmd(client, args)
 	
 	if (!IsStaticWitchMap())
 	{
-		bv_bWitch = true;
-		bv_iWitch = StringToInt(bv_sWitch);
+		bv_bWitch = (bv_iWitch = StringToInt(bv_sWitch)) > 0;
 	}
 	else
 	{
@@ -1117,7 +1115,7 @@ public BossVoteResultHandler(Handle:vote, num_votes, num_clients, const client_i
 }
 
 // credit to SirPlease
-bool ValidateFlow(int iTank = -1, int iWitch = -1, bool bTank = false, bool bWitch = false)
+bool ValidateFlow(int iTank = 0, int iWitch = 0, bool bTank = false, bool bWitch = false)
 {
 	int iBossMinFlow = RoundToCeil(GetConVarFloat(g_hVsBossFlowMin) * 100);
 	int iBossMaxFlow = RoundToFloor(GetConVarFloat(g_hVsBossFlowMax) * 100);
@@ -1135,15 +1133,10 @@ bool ValidateFlow(int iTank = -1, int iWitch = -1, bool bTank = false, bool bWit
 		int iMinBanFlowC = L4D2_GetMapValueInt("tank_ban_flow_min_c", -1);
 		int iMaxBanFlowC = L4D2_GetMapValueInt("tank_ban_flow_max_c", -1);
 		
-		// check each array index to see if it is within a ban range
-		bool bValidSpawn[101] = {false, ...};
-		int iValidSpawnTotal = 0;
-		for (int i = 0; i <= 100; i++) {
-		    bValidSpawn[i] = (iBossMinFlow <= i && i <= iBossMaxFlow) && !(iMinBanFlow <= i && i <= iMaxBanFlow) && !(iMinBanFlowB <= i && i <= iMaxBanFlowB) && !(iMinBanFlowC <= i && i <= iMaxBanFlowC);
-		    if (bValidSpawn[i]) iValidSpawnTotal++;
-		}
-		
-		if (iValidSpawnTotal == 0 || !bValidSpawn[iTank])
+		if (!(iBossMinFlow <= iTank && iTank <= iBossMaxFlow)
+				|| (iMinBanFlow <= iTank && iTank <= iMaxBanFlow)
+				|| (iMinBanFlowB <= iTank && iTank <= iMaxBanFlowB)
+				|| (iMinBanFlowC <= iTank && iTank <= iMaxBanFlowC))
 			return false;
 	}
 	
