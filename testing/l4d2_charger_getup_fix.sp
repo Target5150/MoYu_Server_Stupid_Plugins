@@ -1,9 +1,22 @@
 #include <sourcemod>
 #include <left4dhooks>
 #include <sdkhooks>
-#include <colors>
 #include <godframecontrol>
 
+#pragma semicolon 1
+#pragma newdecls required
+
+#define PLUGIN_VERSION "3.0.0a"
+#define DEBUG 0
+
+public Plugin myinfo = 
+{
+	name = "[L4D2] Long Charger Get-Up Fix",
+	author = "Spoon, Forgetest",
+	description = "Allows control over long charger get ups, and fixes no get up on rare cases.",
+	version = PLUGIN_VERSION,
+	url = "https://github.com/spoon-l4d2"
+};
 
 // Charges that land against a wall and are cleared instantly
 #define SEQ_INSTANT_NICK 671
@@ -32,33 +45,24 @@
 #define TEAM_SPECTATOR 1
 
 // Cvars
-new Handle:cvar_longChargeGetUpFixEnabled = INVALID_HANDLE;
-new Handle:cvar_keepWallSlamLongGetUp = INVALID_HANDLE;
-new Handle:cvar_keepLongChargeLongGetUp = INVALID_HANDLE;
+ConVar cvar_longChargeGetUpFixEnabled;
+//ConVar cvar_keepWallSlamLongGetUp;
+ConVar cvar_keepLongChargeLongGetUp;
 
 // Fake godframe event variables
-new Handle:g_hLongChargeDuration;
-new Handle:g_hChargeDuration;
+ConVar g_hLongChargeDuration;
+ConVar g_hChargeDuration;
 
 // Variables
-new ChargerTarget[MAXPLAYERS+1];
+int ChargerTarget[MAXPLAYERS+1];
 bool bLateLoad, bWallSlamed[MAXPLAYERS+1], bInForcedGetUp[MAXPLAYERS+1], bIgnoreJockeyed[MAXPLAYERS+1];
-
-public Plugin:myinfo = 
-{
-	name = "[L4D2] Long Charger Get-Up Fix",
-	author = "Spoon",
-	description = "Allows control over long charger get ups.",
-	version = "2.0.1",
-	url = "https://github.com/spoon-l4d2"
-};
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	bLateLoad = late;
 }
 
-public OnPluginStart()
+public void OnPluginStart()
 {
 	// Event Hooks
 	HookEvent("charger_killed", Event_ChargerKilled, EventHookMode_Post);
@@ -79,14 +83,13 @@ public OnPluginStart()
 	
 	// Cvars
 	cvar_longChargeGetUpFixEnabled = CreateConVar("charger_long_getup_fix", "1", "Enable the long Charger get-up fix?");
-	cvar_keepWallSlamLongGetUp = CreateConVar("charger_keep_wall_charge_animation", "1", "Enable the long wall slam animation (with god frames)");
+	//cvar_keepWallSlamLongGetUp = CreateConVar("charger_keep_wall_charge_animation", "1", "Enable the long wall slam animation (with god frames)");
 	cvar_keepLongChargeLongGetUp = CreateConVar("charger_keep_far_charge_animation", "0", "Enable the long 'far' slam animation (with god frames)");
 
 
 	if (bLateLoad)
 		for (int i = 1; i <= MaxClients; i++)
 			if (IsClientInGame(i)) OnClientPutInServer(i);
-
 }
 
 // ==========================================
@@ -119,25 +122,25 @@ public void OnClientDisconnect(int client)
 	}
 	else if (GetClientTeam(client) == TEAM_SURVIVOR)
 	{
-		for (new i = 0; i < (MAXPLAYERS+1); i++)
+		for (int i = 0; i <= MaxClients; i++)
 		{
 			if (ChargerTarget[i] == client)
 			{
-				new newChargerTarget = GetEntDataEnt2(i, 15972);
+				int newChargerTarget = GetEntDataEnt2(i, 15972);
 				ChargerTarget[i] = newChargerTarget;
 			}
 		}
 	}
 } 
 
-public Event_PlayerTeam(Handle:event, const String:name[], bool:dontBroadcast)
+public void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
 { // Wall Slam Charge Checks
 
 	if (!GetConVarBool(cvar_longChargeGetUpFixEnabled)) return;
 
-	new client = GetClientOfUserId(GetEventInt(event, "userid"));
+	int client = GetClientOfUserId(GetEventInt(event, "userid"));
 	if (client <= 0) return;
-	new oldTeam = GetEventInt(event, "oldteam");
+	int oldTeam = GetEventInt(event, "oldteam");
 	
 	if (oldTeam == TEAM_INFECTED)
 	{ // Not really needed but better safe than sorry I guess
@@ -145,11 +148,11 @@ public Event_PlayerTeam(Handle:event, const String:name[], bool:dontBroadcast)
 	}
 	else if (oldTeam == TEAM_SURVIVOR)
 	{
-		for (new i = 0; i < (MAXPLAYERS+1); i++)
+		for (int i = 0; i <= MaxClients; i++)
 		{
 			if (ChargerTarget[i] == client)
 			{
-				new newChargerTarget = GetEntDataEnt2(i, 15972);
+				int newChargerTarget = GetEntDataEnt2(i, 15972);
 				ChargerTarget[i] = newChargerTarget;
 				
 				if (bInForcedGetUp[client])
@@ -213,19 +216,19 @@ public void OnTakeDamagePost(int victim, int attacker, int inflictor, float dama
 //	SetCommandFlags(command, flags);
 //}
 
-public PlayClientGetUpAnimation(client)
+void PlayClientGetUpAnimation(int client)
 {
 	L4D2Direct_DoAnimationEvent(client, 78);
 }
 
-public CancelGetUpAnimation(client)
+void CancelGetUpAnimation(int client)
 {
 	SetEntPropFloat(client, Prop_Send, "m_flCycle", 1000.0);
 }
 
-public Event_RoundStart(Handle:event, const String:name[], bool:dontBroadcast)
+public void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {	
-	for (new i = 0; i < MAXPLAYERS+1; i++)
+	for (int i = 0; i <= MaxClients; i++)
 	{
 		bWallSlamed[i] = false;
 		bInForcedGetUp[i] = false;
@@ -235,12 +238,12 @@ public Event_RoundStart(Handle:event, const String:name[], bool:dontBroadcast)
 	}
 }
 
-public Event_PummelStart(Handle:event, const String:name[], bool:dontBroadcast)
+public void Event_PummelStart(Event event, const char[] name, bool dontBroadcast)
 {
 	if (!GetConVarBool(cvar_longChargeGetUpFixEnabled)) return;
 
-	new chargerClient = GetClientOfUserId(GetEventInt(event, "userid"));
-	new survivorClient = GetClientOfUserId(GetEventInt(event, "victim"));
+	int chargerClient = GetClientOfUserId(GetEventInt(event, "userid"));
+	int survivorClient = GetClientOfUserId(GetEventInt(event, "victim"));
 	
 	if (survivorClient > 0 && chargerClient > 0)
 	{
@@ -250,55 +253,67 @@ public Event_PummelStart(Handle:event, const String:name[], bool:dontBroadcast)
 	}
 }
 
-public Event_ChargerKilled(Handle:event, const String:name[], bool:dontBroadcast)
+public void Event_ChargerKilled(Event event, const char[] name, bool dontBroadcast)
 {
 	if (!GetConVarBool(cvar_longChargeGetUpFixEnabled)) return;
 
-	new chargerClient = GetClientOfUserId(GetEventInt(event, "userid"));
-	new survivorClient = ChargerTarget[chargerClient];
+	int chargerClient = GetClientOfUserId(GetEventInt(event, "userid"));
+	int survivorClient = ChargerTarget[chargerClient];
 
 	if (survivorClient > 0 && chargerClient > 0)
 	{
-		PrintToChatAll("\x05Event_ChargerKilled \x01- seq: \x05%i", GetEntProp(survivorClient, Prop_Send, "m_nSequence"));
+		#if DEBUG
+			PrintToChatAll("\x05Event_ChargerKilled \x01- seq: \x05%i", GetEntProp(survivorClient, Prop_Send, "m_nSequence"));
+		#endif
 		if (bInForcedGetUp[survivorClient])
 		{
+			#if DEBUG
+				PrintToChatAll("\x01 - IgnoreJockeyed: %i", bIgnoreJockeyed[survivorClient]);
+			#endif
 			bInForcedGetUp[survivorClient] = false;
 			if (!bIgnoreJockeyed[survivorClient])
 			{
-				PrintToChatAll("\x01 - \x03Checked in forced get-up");
 				CancelGetUpAnimation(survivorClient);
 			}
 		}
 		
-		if (bIgnoreJockeyed[survivorClient]) bIgnoreJockeyed[survivorClient] = false;
-		
 		if (IsPlayingGetUpAnimation(survivorClient, 2))
 		{ // Long Charge Get Up		
-			PrintToChatAll("\x05Event_ChargerKilled \x01- \x04Long Charge");
+			#if DEBUG
+				PrintToChatAll("\x05Event_ChargerKilled \x01- \x04Long Charge");
+			#endif
 			if (GetConVarBool(cvar_keepLongChargeLongGetUp))
 			{
 				GiveClientGodFrames(survivorClient, GetConVarFloat(g_hChargeDuration), 6);
 			}
 			else
 			{
-				CancelGetUpAnimation(survivorClient)
-				PlayClientGetUpAnimation(survivorClient);
+				if (!bIgnoreJockeyed[survivorClient])
+				{
+					CancelGetUpAnimation(survivorClient);
+					PlayClientGetUpAnimation(survivorClient);
+				}
 				GiveClientGodFrames(survivorClient, GetConVarFloat(g_hLongChargeDuration), 6);
 			}
 		} 
 		else if (IsPlayingGetUpAnimation(survivorClient, 1))
 		{ // Wall Slam Get Up
-			PrintToChatAll("\x05Event_ChargerKilled \x01- \x04Wall Slam");
-			if (GetConVarBool(cvar_keepWallSlamLongGetUp))
-			{
-				GiveClientGodFrames(survivorClient, GetConVarFloat(g_hChargeDuration), 6);
-			}
-			else
-			{
-				CancelGetUpAnimation(survivorClient)
-				PlayClientGetUpAnimation(survivorClient);
+			#if DEBUG
+				PrintToChatAll("\x05Event_ChargerKilled \x01- \x04Wall Slam");
+			#endif
+			//if (GetConVarBool(cvar_keepWallSlamLongGetUp))
+			//{
+			//	GiveClientGodFrames(survivorClient, GetConVarFloat(g_hChargeDuration), 6);
+			//}
+			//else
+			//{
+				if (!bIgnoreJockeyed[survivorClient])
+				{
+					CancelGetUpAnimation(survivorClient);
+					PlayClientGetUpAnimation(survivorClient);
+				}
 				GiveClientGodFrames(survivorClient, GetConVarFloat(g_hLongChargeDuration), 6);
-			}
+			//}
 		}
 		else
 		{
@@ -310,67 +325,82 @@ public Event_ChargerKilled(Handle:event, const String:name[], bool:dontBroadcast
 	}
 }
 
-public Action:ResetChargerTarget(Handle:timer, client)
+public Action ResetChargerTarget(Handle timer, int client)
 {
+	bIgnoreJockeyed[ChargerTarget[client]] = false;
 	ChargerTarget[client] = -1;
 }
 
-public Action:BlueMoonCaseCheck(Handle:timer, survivorClient)
+public Action BlueMoonCaseCheck(Handle timer, int survivorClient)
 {
-	PrintToChatAll("\x05BlueMoonCaseCheck \x01- seq: \x05%i", GetEntProp(survivorClient, Prop_Send, "m_nSequence"));
+	#if DEBUG
+		PrintToChatAll("\x05BlueMoonCaseCheck \x01- seq: \x05%i", GetEntProp(survivorClient, Prop_Send, "m_nSequence"));
+	#endif
 	if (IsPlayingGetUpAnimation(survivorClient, 2))
 	{ // Long Charge Get Up
-		PrintToChatAll("\x05BlueMoonCaseCheck \x01- \x04Long Charge");
+		#if DEBUG
+			PrintToChatAll("\x05BlueMoonCaseCheck \x01- \x04Long Charge");
+		#endif
 		if (GetConVarBool(cvar_keepLongChargeLongGetUp))
 		{
 			GiveClientGodFrames(survivorClient, GetConVarFloat(g_hChargeDuration), 6);
 		}
 		else
 		{
-			CancelGetUpAnimation(survivorClient)
-			PlayClientGetUpAnimation(survivorClient);
+			if (!bIgnoreJockeyed[survivorClient])
+			{
+				CancelGetUpAnimation(survivorClient);
+				PlayClientGetUpAnimation(survivorClient);
+			}
 			GiveClientGodFrames(survivorClient, GetConVarFloat(g_hLongChargeDuration), 6);
 		}
 	} 
 	else if (IsPlayingGetUpAnimation(survivorClient, 1))
 	{ // Wall Slam Get Up
-		PrintToChatAll("\x05BlueMoonCaseCheck \x01- \x04Wall Slam");
-		if (GetConVarBool(cvar_keepWallSlamLongGetUp))
-		{
-			GiveClientGodFrames(survivorClient, GetConVarFloat(g_hChargeDuration), 6);
-		}
-		else
-		{
-			CancelGetUpAnimation(survivorClient)
-			PlayClientGetUpAnimation(survivorClient);
+		#if DEBUG
+			PrintToChatAll("\x05BlueMoonCaseCheck \x01- \x04Wall Slam");
+		#endif
+		//if (GetConVarBool(cvar_keepWallSlamLongGetUp))
+		//{
+		//	GiveClientGodFrames(survivorClient, GetConVarFloat(g_hChargeDuration), 6);
+		//}
+		//else
+		//{
+			if (!bIgnoreJockeyed[survivorClient])
+			{
+				CancelGetUpAnimation(survivorClient);
+				PlayClientGetUpAnimation(survivorClient);
+			}
 			GiveClientGodFrames(survivorClient, GetConVarFloat(g_hLongChargeDuration), 6);
-		}
+		//}
 	}
 }
 
-public Event_ChargeCarryStart(Handle:event, const String:name[], bool:dontBroadcast)
+public void Event_ChargeCarryStart(Event event, const char[] name, bool dontBroadcast)
 {
 	if (!GetConVarBool(cvar_longChargeGetUpFixEnabled)) return;
 
-	new chargerClient = GetClientOfUserId(GetEventInt(event, "userid"));
-	new survivorClient = GetClientOfUserId(GetEventInt(event, "victim"));
+	int chargerClient = GetClientOfUserId(GetEventInt(event, "userid"));
+	int survivorClient = GetClientOfUserId(GetEventInt(event, "victim"));
 	
 	if (survivorClient > 0 && chargerClient > 0)
 	{
-		PrintToChatAll("\x01[\x05Event_ChargeCarryStart\x01] victim: %N (#%i)", survivorClient, GetClientUserId(survivorClient));
+		#if DEBUG
+			PrintToChatAll("\x01[\x05Event_ChargeCarryStart\x01] victim: %N (#%i)", survivorClient, GetClientUserId(survivorClient));
+		#endif
 		ChargerTarget[chargerClient] = survivorClient;
 	}
 }
 
-public Event_PlayerHurt(Handle:event, const String:name[], bool:dontBroadcast)
+public void Event_PlayerHurt(Event event, const char[] name, bool dontBroadcast)
 { // Wall Slam Charge Checks
 
 	if (!GetConVarBool(cvar_longChargeGetUpFixEnabled)) return;
 
-	new survivorClient;
-	new chargerClient;
-	new survivorUserId =  GetEventInt(event, "userid");
-	new chargerUserId = GetEventInt(event, "attacker");
+	int survivorClient;
+	int chargerClient;
+	int survivorUserId =  GetEventInt(event, "userid");
+	int chargerUserId = GetEventInt(event, "attacker");
 	
 	if (survivorUserId)
 		survivorClient = GetClientOfUserId(survivorUserId);
@@ -389,7 +419,9 @@ public void Event_JockeyRide(Event event, const char[] name, bool dontBroadcast)
 	
 	if (jockey > 0 && survivor > 0)
 	{
-		PrintToChatAll("\x01[\x05Event_JockeyRide\x01] victim: %N (#%i)", survivor, GetClientUserId(survivor));
+		#if DEBUG
+			PrintToChatAll("\x01[\x05Event_JockeyRide\x01] victim: %N (#%i)", survivor, GetClientUserId(survivor));
+		#endif
 		bIgnoreJockeyed[survivor] = true;
 	}
 }
@@ -401,7 +433,9 @@ public void Event_JockeyRideEnd(Event event, const char[] name, bool dontBroadca
 	
 	if (jockey > 0 && survivor > 0)
 	{
-		PrintToChatAll("\x01[\x05Event_JockeyRideEnd\x01] victim: %N (#%i)", survivor, GetClientUserId(survivor));
+		#if DEBUG
+			PrintToChatAll("\x01[\x05Event_JockeyRideEnd\x01] victim: %N (#%i)", survivor, GetClientUserId(survivor));
+		#endif
 		bIgnoreJockeyed[survivor] = false;
 		for (int i = 1; i <= MaxClients; i++)
 		{
@@ -445,11 +479,11 @@ public void Event_BotPlayerReplace(Event event, const char[] name, bool dontBroa
 // ================= Checks =================
 // ==========================================
 
-stock GetSequenceInt(client, type)
+stock int GetSequenceInt(int client, int type)
 {
 	if (client < 1) return -1;
 
-	decl String:survivorModel[PLATFORM_MAX_PATH];
+	char survivorModel[PLATFORM_MAX_PATH];
 	GetClientModel(client, survivorModel, sizeof(survivorModel));
 	
 	if(StrEqual(survivorModel, "models/survivors/survivor_coach.mdl", false))
@@ -520,17 +554,17 @@ stock GetSequenceInt(client, type)
 	return -1;
 }
 
-bool:IsPlayingGetUpAnimation(survivor, type)  
+bool IsPlayingGetUpAnimation(int survivor, int type)  
 {
 	if (survivor < 1)
 		return false;
 
-	new sequence = GetEntProp(survivor, Prop_Send, "m_nSequence");
+	int sequence = GetEntProp(survivor, Prop_Send, "m_nSequence");
 	if (sequence == GetSequenceInt(survivor, type)) return true;
 	return false;
 }
 
-stock bool:IsCharger(client)  
+stock bool IsCharger(int client)  
 {
 	if (!IsInfected(client))
 		return false;
@@ -567,12 +601,12 @@ stock bool IsPlayerIncap(int client)
 	return !!GetEntProp(client, Prop_Send, "m_isIncapacitated");
 }
 
-stock bool:IsSurvivor(client)
+stock bool IsSurvivor(int client)
 {
 	return client > 0 && client <= MaxClients && IsClientInGame(client) && GetClientTeam(client) == 2;
 }
 
-stock bool:IsInfected(client)
+stock bool IsInfected(int client)
 {
 	return client > 0 && client <= MaxClients && IsClientInGame(client) && GetClientTeam(client) == 3;
 }
