@@ -5,7 +5,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.2.1"
+#define PLUGIN_VERSION "1.2.3"
 
 public Plugin myinfo = 
 {
@@ -627,11 +627,11 @@ public Action OnVocalizeCommand(int client, const char[] vocalize, int initiator
 	
 	if (!IsSurvivor(client) || !IsPlayerAlive(client)) return;
 	
-	//if (IsActorBusy(client)) return;
-	
 	Vocalize emVocalize = IdentifyVocalize(vocalize);
-	if (emVocalize == NULL_VOCALIZE) return;
-	
+	if (emVocalize == NULL_VOCALIZE
+			|| (emVocalize == Vocal_PlayerTaunt && IsActorBusy(client))) // :D
+		return;
+
 	SurvivorCharacter emCharacter = IdentifySurvivor(client);
 	if (emCharacter == SC_NONE) return;
 
@@ -770,7 +770,7 @@ stock SurvivorCharacter ClientModelToSC(const char[] model)
  * This is safe to use multiple times in a function.
  * The seed is set automatically for each plugin.
  * Rewritten by MatthiasVance, thanks.
- *
+ * 
  * @param min			Min value used as lower border
  * @param max			Max value used as upper border
  * @return				Random Integer number between min and max
@@ -778,13 +778,13 @@ stock SurvivorCharacter ClientModelToSC(const char[] model)
 #define SIZE_OF_INT         2147483647 // without 0
 stock int Math_GetRandomInt(int min, int max)
 {
-    int random = GetURandomInt();
-
-    if (random == 0) {
-        random++;
-    }
-
-    return RoundToCeil(float(random) / (float(SIZE_OF_INT) / float(max - min + 1))) + min - 1;
+	int random = GetURandomInt();
+	
+	if (random == 0) {
+		random++;
+	}
+		
+	return RoundToCeil(float(random) / (float(SIZE_OF_INT) / float(max - min + 1))) + min - 1;
 }
 
 /**

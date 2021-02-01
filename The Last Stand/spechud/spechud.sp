@@ -386,8 +386,8 @@ public Action HudDrawTimer(Handle hTimer)
 		FillSurvivorInfo(specHud);
 		FillScoreInfo(specHud);
 		FillInfectedInfo(specHud);
-		FillTankInfo(specHud);
-		FillGameInfo(specHud);
+		if (!FillTankInfo(specHud))
+			FillGameInfo(specHud);
 
 		for (int i = 1; i <= MaxClients; ++i)
 		{
@@ -549,17 +549,17 @@ void FillSurvivorInfo(Panel hSpecHud)
 			
 			if (IsSurvivorHanging(client))
 			{
-				FormatEx(info, sizeof(info), "%s: %iHP <Hanging>", name, GetSurvivorHealth(client));
+				FormatEx(info, sizeof(info), "%s: %iHP <Hanging>", name, GetClientHealth(client));
 			}
 			else if (IsIncapacitated(client))
 			{
 				GetLongWeaponName(activeWepId, buffer, sizeof(buffer));
-				FormatEx(info, sizeof(info), "%s: %iHP <#%i> [%s %i]", name, GetSurvivorHealth(client), (GetSurvivorIncapCount(client) + 1), buffer, GetWeaponClip(activeWep));
+				FormatEx(info, sizeof(info), "%s: %iHP <#%i> [%s %i]", name, GetClientHealth(client), (GetSurvivorIncapCount(client) + 1), buffer, GetWeaponClip(activeWep));
 			}
 			else
 			{
-				int health = GetSurvivorHealth(client) + GetSurvivorTemporaryHealth(client);
 				int tempHealth = GetSurvivorTemporaryHealth(client);
+				int health = GetClientHealth(client) + tempHealth;
 				int incapCount = GetSurvivorIncapCount(client);
 				if (incapCount == 0)
 				{
@@ -612,7 +612,7 @@ void FillScoreInfo(Panel hSpecHud)
 		DrawPanelText(hSpecHud, info);
 	}
 	
-	if (bScoremod)
+	else if (bScoremod)
 	{
 		int healthBonus = HealthBonus();
 		
@@ -629,7 +629,7 @@ void FillScoreInfo(Panel hSpecHud)
 		DrawPanelText(hSpecHud, info);
 	}
 	
-	if (bNextScoremod)
+	else if (bNextScoremod)
 	{
 		int permBonus	= SMNext_GetPermBonus(),	maxPermBonus	= SMNext_GetMaxPermBonus();
 		int tempBonus	= SMNext_GetTempBonus(),	maxTempBonus	= SMNext_GetMaxTempBonus();
@@ -723,23 +723,19 @@ void FillInfectedInfo(Panel hSpecHud)
 			else
 			{
 				float fCooldown = GetAbilityCooldown(client);
-				FormatEx(buffer, sizeof(buffer), "[%.0fs]", fCooldown);
+				if (fCooldown < 30.0 && fCooldown > 0.2 && !HasAbilityVictim(client, zClass))
+				{
+					FormatEx(buffer, sizeof(buffer), "[%.0fs]", fCooldown);
+				}
+				else { buffer[0] = '\0'; }
 				
 				if (GetEntityFlags(client) & FL_ONFIRE)
 				{
-					FormatEx(info, sizeof(info), "%s: %s (%iHP) [On Fire]", name, ZOMBIECLASS_NAME(zClass), iHP);
-					
-					if (fCooldown < 99.9 && fCooldown > 0.0 && !HasAbilityVictim(client, zClass)) {
-						Format(info, sizeof(info), "%s %s", info, buffer);
-					}
+					FormatEx(info, sizeof(info), "%s: %s (%iHP) [On Fire] %s", name, ZOMBIECLASS_NAME(zClass), iHP, buffer);
 				}
 				else
 				{
-					FormatEx(info, sizeof(info), "%s: %s (%iHP)", name, ZOMBIECLASS_NAME(zClass), iHP, buffer);
-					
-					if (fCooldown < 99.9 && fCooldown > 0.0 && !HasAbilityVictim(client, zClass)) {
-						Format(info, sizeof(info), "%s %s", info, buffer);
-					}
+					FormatEx(info, sizeof(info), "%s: %s (%iHP) %s", name, ZOMBIECLASS_NAME(zClass), iHP, buffer);
 				}
 			}
 		}
@@ -765,15 +761,11 @@ bool FillTankInfo(Panel hSpecHud, bool bTankHUD = false)
 
 	if (bTankHUD)
 	{
-		strcopy(info, sizeof(info), sReadyCfgName);
-		Format(info, sizeof(info), "%s :: Tank HUD", info);
+		FormatEx(info, sizeof(info), "%s :: Tank HUD", sReadyCfgName);
 		DrawPanelText(hSpecHud, info);
 		
 		int len = strlen(info);
-		for (int i = 0; i < len; ++i)
-		{
-			info[i] = '_';
-		}
+		for (int i = 0; i < len; ++i) info[i] = '_';
 		DrawPanelText(hSpecHud, info);
 	}
 	else
@@ -829,7 +821,7 @@ bool FillTankInfo(Panel hSpecHud, bool bTankHUD = false)
 	}
 	DrawPanelText(hSpecHud, info);
 
-	// Draw lerptime
+	// Draw network
 	if (!IsFakeClient(tank))
 	{
 		FormatEx(info, sizeof(info), "Network : %ims / %.1f", RoundToNearest(GetClientAvgLatency(tank, NetFlow_Both) * 500.0), GetLerpTime(tank) * 1000.0);
@@ -854,18 +846,12 @@ bool FillTankInfo(Panel hSpecHud, bool bTankHUD = false)
 void FillGameInfo(Panel hSpecHud)
 {
 	// Turns out too much info actually CAN be bad, funny ikr
-	int tank = FindTank();
-	if (tank != -1)
-		return;
-
 	static char info[512];
 	static char buffer[32];
 
-	strcopy(info, sizeof(info), sReadyCfgName);
-
 	if (g_Gamemode == L4D2Gamemode_Scavenge)
 	{
-		Format(info, sizeof(info), "->3. %s", info);
+		FormatEx(info, sizeof(info), "->3. %s", sReadyCfgName);
 		
 		DrawPanelText(hSpecHud, " ");
 		DrawPanelText(hSpecHud, info);
@@ -885,7 +871,7 @@ void FillGameInfo(Panel hSpecHud)
 	}
 	else
 	{
-		Format(info, sizeof(info), "->3. %s (R#%d)", info, InSecondHalfOfRound() + 1);
+		FormatEx(info, sizeof(info), "->3. %s (R#%d)", sReadyCfgName, InSecondHalfOfRound() + 1);
 		DrawPanelText(hSpecHud, " ");
 		DrawPanelText(hSpecHud, info);
 
@@ -1114,10 +1100,9 @@ stock float ToPercent(int score, int maxbonus)
 	return (score < 1 ? 0.0 : (100.0 * score / maxbonus));
 }
 
-bool GetClientFixedName(int client, char[] name, int length)
+void GetClientFixedName(int client, char[] name, int length)
 {
-	if (!GetClientName(client, name, length))
-		return false;
+	GetClientName(client, name, length);
 
 	if (name[0] == '[')
 	{
@@ -1133,8 +1118,6 @@ bool GetClientFixedName(int client, char[] name, int length)
 		name[15] = name[16] = name[17] = '.';
 		name[18] = 0;
 	}
-	
-	return true;
 }
 
 int GetRealClientCount() 
@@ -1142,7 +1125,7 @@ int GetRealClientCount()
 	int clients = 0;
 	for (int i = 1; i <= MaxClients; ++i) 
 	{
-		if (IsClientConnected(i) && !IsFakeClient(i)) clients++;
+		if (IsClientConnected(i) && !IsFakeClient(i)) ++clients;
 	}
 	return clients;
 }
@@ -1200,7 +1183,7 @@ bool IsInfected(int client)
 
 bool IsInfectedGhost(int client) 
 {
-	return view_as<bool>(GetEntProp(client, Prop_Send, "m_isGhost"));
+	return !!GetEntProp(client, Prop_Send, "m_isGhost");
 }
 
 L4D2SI GetInfectedClass(int client)
@@ -1226,12 +1209,12 @@ int GetTankFrustration(int tank)
 
 bool IsIncapacitated(int client)
 {
-	return view_as<bool>(GetEntProp(client, Prop_Send, "m_isIncapacitated"));
+	return !!GetEntProp(client, Prop_Send, "m_isIncapacitated");
 }
 
 bool IsSurvivorHanging(int client)
 {
-	return view_as<bool>(GetEntProp(client, Prop_Send, "m_isHangingFromLedge") | GetEntProp(client, Prop_Send, "m_isFallingFromLedge"));
+	return !!GetEntProp(client, Prop_Send, "m_isHangingFromLedge") || !!GetEntProp(client, Prop_Send, "m_isFallingFromLedge");
 }
 
 int GetSurvivorIncapCount(int client)
@@ -1243,11 +1226,6 @@ int GetSurvivorTemporaryHealth(int client)
 {
 	int temphp = RoundToCeil(GetEntPropFloat(client, Prop_Send, "m_healthBuffer") - ((GetGameTime() - GetEntPropFloat(client, Prop_Send, "m_healthBufferTime")) * fPainPillsDecayRate)) - 1;
 	return (temphp > 0 ? temphp : 0);
-}
-
-int GetSurvivorHealth(int client)
-{
-	return GetEntProp(client, Prop_Send, "m_iHealth");
 }
 
 public void GetCurrentGameMode()

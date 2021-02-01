@@ -865,7 +865,7 @@ public Action PrintBossPercents(Handle timer, int client)
 		}
 		else
 		{
-			CPrintToChat(client, p_sTankString);
+			if (IsClientInGame(client)) CPrintToChat(client, p_sTankString);
 		}
 	}
 	if (GetConVarBool(g_hCvarWitchPercent))
@@ -881,7 +881,7 @@ public Action PrintBossPercents(Handle timer, int client)
 		}
 		else
 		{
-			CPrintToChat(client, p_sWitchString);
+			if (IsClientInGame(client)) CPrintToChat(client, p_sWitchString);
 		}
 	}
 }

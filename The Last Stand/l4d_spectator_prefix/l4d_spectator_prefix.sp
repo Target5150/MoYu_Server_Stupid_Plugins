@@ -6,25 +6,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.2.3"
-
-enum L4D2_Team
-{
-    L4D2Team_Spectator = 1,
-    L4D2Team_Survivor,
-    L4D2Team_Infected
-};
-
-char g_sPrefixType[32];
-char g_sPrefixTypeCaster[32];
-
-ConVar g_cvPrefixType;
-ConVar g_cvPrefixTypeCaster;
-ConVar g_cvSupressMsg;
-
-StringMap g_triePrefixed;
-
-bool readyupAvailable;
+#define PLUGIN_VERSION "1.2.4"
 
 public Plugin myinfo = 
 {
@@ -35,6 +17,25 @@ public Plugin myinfo =
 	url = "https://steamcommunity.com/id/fbef0102/"
 };
 
+enum L4D2_Team
+{
+    L4D2Team_Spectator = 1,
+    L4D2Team_Survivor,
+    L4D2Team_Infected
+};
+
+ConVar g_cvPrefixType;
+ConVar g_cvPrefixTypeCaster;
+ConVar g_cvSupressMsg;
+
+char g_sPrefixType[32];
+char g_sPrefixTypeCaster[32];
+bool g_bSupress;
+
+StringMap g_triePrefixed;
+
+bool readyupAvailable;
+
 public void OnPluginStart()
 {
 	g_cvPrefixType =		CreateConVar("sp_prefix_type",			"(S)", "Determine your preferred type of Spectator Prefix");
@@ -43,9 +44,11 @@ public void OnPluginStart()
 	
 	g_cvPrefixType.GetString(g_sPrefixType, sizeof(g_sPrefixType));
 	g_cvPrefixTypeCaster.GetString(g_sPrefixTypeCaster, sizeof(g_sPrefixTypeCaster));
+	g_bSupress = g_cvSupressMsg.BoolValue;
 	
 	g_cvPrefixType.AddChangeHook(OnConVarChanged);
 	g_cvPrefixTypeCaster.AddChangeHook(OnConVarChanged);
+	g_cvSupressMsg.AddChangeHook(OnConVarChanged);
 	
 	g_triePrefixed = new StringMap();
 	
@@ -60,15 +63,21 @@ public void OnPluginEnd()
 		StringMapSnapshot snap = g_triePrefixed.Snapshot();
 		
 		int length = snap.Length;
-		char buffer[8];
+		char buffer[64], authId[64];
 		for (int i = 0; i < length; i++)
 		{
 			snap.GetKey(i, buffer, sizeof(buffer));
-			RemovePrefix(StringToInt(buffer));
+			for (int j = 1; j <= MaxClients; j++)
+			{
+				if (IsClientAndInGame(j))
+				{
+					GetClientAuthId(j, AuthId_Steam2, buffer, sizeof(buffer));
+					if (StrEqual(authId, buffer)) RemovePrefix(j);
+				}
+			}
 		}
 		delete snap;
 	}
-	delete g_triePrefixed;
 }
 
 public void OnAllPluginsLoaded() { readyupAvailable = LibraryExists("readyup"); }
@@ -77,12 +86,11 @@ public void OnLibraryRemoved(const char[] name) { if (StrEqual(name, "readyup"))
 
 public void OnMapStart() { g_triePrefixed.Clear(); }
 
-//public void OnClientDisconnect(int client) { if (!IsFakeClient(client)) RemovePrefix(client); }
-
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	g_cvPrefixType.GetString(g_sPrefixType, sizeof(g_sPrefixType));
 	g_cvPrefixTypeCaster.GetString(g_sPrefixTypeCaster, sizeof(g_sPrefixTypeCaster));
+	g_bSupress = g_cvSupressMsg.BoolValue;
 }
 
 public void Event_NameChanged(Event event, const char[] name, bool dontBroadcast)
@@ -117,6 +125,8 @@ void DelayStuff(DataPack pack)
 		
 		if (!HasPrefix(name)) AddPrefix(client, name);
 	}
+	
+	delete pack;
 }
 
 public void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
@@ -137,10 +147,8 @@ public void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
 
 void AddPrefix(int client, const char[] newname = "")
 {
-	bool supress = g_cvSupressMsg.BoolValue;
-	
-	char buffer[8], name[MAX_NAME_LENGTH];
-	IntToString(client, buffer, sizeof(buffer));
+	char buffer[64], name[MAX_NAME_LENGTH];
+	GetClientAuthId(client, AuthId_Steam2, buffer, sizeof(buffer));
 	
 	if (newname[0] != '\0') strcopy(name, sizeof(name), newname);
 	else GetClientName(client, name, sizeof(name));
@@ -150,28 +158,27 @@ void AddPrefix(int client, const char[] newname = "")
 	if (readyupAvailable && IsClientCaster(client))
 	{
 		Format(name, sizeof(name), "%s %s", g_sPrefixTypeCaster, name);
-		CS_SetClientName(client, name, supress);
+		CS_SetClientName(client, name);
 	}
 	else
 	{
 		Format(name, sizeof(name), "%s %s", g_sPrefixType, name);
-		CS_SetClientName(client, name, supress);
+		CS_SetClientName(client, name);
 	}
 }
 
 void RemovePrefix(int client)
 {
-	bool supress = g_cvSupressMsg.BoolValue;
-	
-	char buffer[8], name[MAX_NAME_LENGTH];
-	IntToString(client, buffer, sizeof(buffer));
-	g_triePrefixed.GetString(buffer, name, sizeof(name));
-	g_triePrefixed.Remove(buffer);
-	
-	CS_SetClientName(client, name, supress);
+	char buffer[64], name[MAX_NAME_LENGTH];
+	GetClientAuthId(client, AuthId_Steam2, buffer, sizeof(buffer));
+	if (g_triePrefixed.GetString(buffer, name, sizeof(name))) // in case
+	{
+		g_triePrefixed.Remove(buffer);
+		CS_SetClientName(client, name);
+	}
 }
 
-void CS_SetClientName(int client, const char[] name, bool supress=false)
+void CS_SetClientName(int client, const char[] name)
 {
 	char oldname[MAX_NAME_LENGTH];
 	GetClientName(client, oldname, sizeof(oldname));
@@ -179,7 +186,7 @@ void CS_SetClientName(int client, const char[] name, bool supress=false)
 	SetClientInfo(client, "name", name);
 	SetEntPropString(client, Prop_Data, "m_szNetname", name);
 	
-	if (supress)
+	if (g_bSupress)
 		return;
 
 	Event event = CreateEvent("player_changename");
@@ -189,11 +196,11 @@ void CS_SetClientName(int client, const char[] name, bool supress=false)
 		event.SetInt("userid", GetClientUserId(client));
 		event.SetString("oldname", oldname);
 		event.SetString("newname", name);
-		event.BroadcastDisabled = supress;
+		event.BroadcastDisabled = g_bSupress;
 		event.Fire();
 	}
 	
-	Handle msg = StartMessageAll("SayText2");
+	BfWrite msg = view_as<BfWrite>(StartMessageAll("SayText2"));
 	
 	if (msg != null)
 	{
