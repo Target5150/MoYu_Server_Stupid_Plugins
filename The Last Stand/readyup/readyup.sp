@@ -1104,7 +1104,7 @@ void InitiateLive(bool real = true)
 
 	for (int i = 0; i < MAX_FOOTERS; i++)
 	{
-		readyFooter[i] = "";
+		readyFooter[i][0] = '\0';
 	}
 	footerCounter = 0;
 
@@ -1384,7 +1384,8 @@ public int Native_AddStringToReadyFooter(Handle plugin, int numParams)
 	GetNativeString(1, footer, sizeof(footer));
 	if (footerCounter < MAX_FOOTERS)
 	{
-		if (strlen(footer) < MAX_FOOTER_LEN)
+		int len = strlen(footer);
+		if (0 < len && len < MAX_FOOTER_LEN)
 		{
 			strcopy(readyFooter[footerCounter], MAX_FOOTER_LEN, footer);
 			footerCounter++;

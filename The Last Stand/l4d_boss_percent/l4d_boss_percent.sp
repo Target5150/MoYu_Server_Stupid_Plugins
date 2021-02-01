@@ -91,6 +91,8 @@ int bv_iWitch;															// Where we will keep our requested Witch percentag
 int g_fWitchPercent;													// Stores current Witch Percent
 int g_fTankPercent;														// Stores current Tank Percent
 
+Handle g_hUpdateFooterTimer;
+
 public void OnPluginStart()
 {
 	// Variable Setting
@@ -144,7 +146,8 @@ public void OnPluginStart()
 // Allows other plugins to update boss percentages
 public int Native_UpdateBossPercents(Handle plugin, int numParams){
 	CreateTimer(0.1, GetBossPercents);
-	CreateTimer(0.2, UpdateReadyUpFooter);
+	if (!g_hUpdateFooterTimer)
+		g_hUpdateFooterTimer = CreateTimer(0.2, UpdateReadyUpFooter);
 }
 
 // Allows other plugins to check if the current map contains a static witch spawn
@@ -211,7 +214,8 @@ public int Native_RefreshReadyUp(Handle plugin, int numParams)
 {
 	if (g_ReadyUpAvailable)
 	{
-		CreateTimer(0.2, UpdateReadyUpFooter);
+		if (!g_hUpdateFooterTimer)
+			g_hUpdateFooterTimer = CreateTimer(0.2, UpdateReadyUpFooter);
 		return true;
 	} 
 	else 
@@ -344,8 +348,8 @@ public void RoundStartEvent(Event event, const char[] name, bool dontBroadcast)
 	
 	// Find percentages and update readyup footer
 	CreateTimer(5.0, GetBossPercents);
-	CreateTimer(6.0, UpdateReadyUpFooter);
-	
+	if (!g_hUpdateFooterTimer)
+		g_hUpdateFooterTimer = CreateTimer(6.0, UpdateReadyUpFooter);
 }
 
 /* ========================================================
@@ -523,7 +527,8 @@ public Action DKRWorkaround(Event event, const char[] name, bool dontBroadcast)
 		//	g_bDKRFirstRoundBossesSet = true;
 		//}
 		
-		UpdateReadyUpFooter(INVALID_HANDLE);
+		if (!g_hUpdateFooterTimer)
+			g_hUpdateFooterTimer = CreateTimer(0.1, UpdateReadyUpFooter);
 	}
 }
 
@@ -688,6 +693,8 @@ public bool DisabledTankCheck()
  */
 public Action UpdateReadyUpFooter(Handle timer) 
 {
+	g_hUpdateFooterTimer = null;
+	
 	// Check to see if Ready Up plugin is available
 	if (g_ReadyUpAvailable) 
 	{
@@ -1096,7 +1103,8 @@ public int BossVoteResultHandler(Handle vote, int num_votes, int num_clients, co
 				
 				// Update our shiz yo
 				CreateTimer(0.1, GetBossPercents);
-				CreateTimer(0.2, UpdateReadyUpFooter);
+				if (!g_hUpdateFooterTimer)
+					g_hUpdateFooterTimer = CreateTimer(0.2, UpdateReadyUpFooter);
 				
 				// Forward da message man :)
 				Call_StartForward(g_forwardUpdateBosses);
@@ -1268,7 +1276,8 @@ public Action ForceTankCommand(int client, int args)
 	
 	// Update our shiz yo
 	CreateTimer(0.1, GetBossPercents);
-	CreateTimer(0.2, UpdateReadyUpFooter);
+	if (!g_hUpdateFooterTimer)
+		g_hUpdateFooterTimer = CreateTimer(0.2, UpdateReadyUpFooter);
 	
 	// Forward da message man :)
 	CreateTimer(0.5, UpdatedForward);
@@ -1325,7 +1334,8 @@ public Action ForceWitchCommand(int client, int args)
 	
 	// Update our shiz yo
 	CreateTimer(0.1, GetBossPercents);
-	CreateTimer(0.2, UpdateReadyUpFooter);
+	if (!g_hUpdateFooterTimer)
+		g_hUpdateFooterTimer = CreateTimer(0.2, UpdateReadyUpFooter);
 	
 	// Forward da message man :)
 	CreateTimer(0.5, UpdatedForward);
