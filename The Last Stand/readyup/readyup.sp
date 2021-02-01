@@ -1429,15 +1429,14 @@ public int Native_FindIndexOfFooterString(Handle plugin, int numParams)
 
 public int Native_GetFooterStringAtIndex(Handle plugin, int numParams)
 {
-	int index = GetNativeCell(1);
+	int index = GetNativeCell(1), maxlen = GetNativeCell(3);
 	char buffer[65];
-	GetNativeString(2, buffer, sizeof(buffer));
 	
 	if (index < MAX_FOOTERS) {
-		buffer = readyFooter[index];
+		strcopy(buffer, sizeof(buffer), readyFooter[index]);
 	}
 	
-	SetNativeString(2, buffer, sizeof(buffer), true);
+	SetNativeString(2, buffer, maxlen, true);
 }
 
 public int Native_IsInReady(Handle plugin, int numParams)
