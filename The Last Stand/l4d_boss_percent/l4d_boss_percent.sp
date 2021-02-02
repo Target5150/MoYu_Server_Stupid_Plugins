@@ -159,68 +159,54 @@ public int Native_IsStaticTankMap(Handle plugin, int numParams){
 	return IsStaticTankMap();
 }
 
+// Used for other plugins to check if the current map is Dark Carnival: Remix (It tends to break things when it comes to bosses)
 public int Native_IsDarkCarniRemix(Handle plugin, int numParams){
 	return IsDKR();
 }
 
-public int Native_SetWitchDisabled(Handle plugin, int numParams)
-{
-	int n_trueFalse = GetNativeCell(1);
+// Other plugins can use this to set the witch as "disabled" on the ready up, and when the !boss command is used
+// YOU NEED TO SET THIS EVERY MAP
+public int Native_SetWitchDisabled(Handle plugin, int numParams){
+	g_bWitchDisabled = view_as<bool>(GetNativeCell(1));
 	 
-	if (n_trueFalse == 0)
-	{
-		g_bWitchDisabled = false;
-	}
-	else 
-	{
-		g_bWitchDisabled = true;
-	}
+	if (!g_hUpdateFooterTimer)
+		g_hUpdateFooterTimer = CreateTimer(0.2, UpdateReadyUpFooter);
 }
 
-public int Native_SetTankDisabled(Handle plugin, int numParams)
-{
-	int n_trueFalse = GetNativeCell(1);
-	 
-	if (n_trueFalse == 0)
-	{
-		g_bTankDisabled = false;
-	}
-	else 
-	{
-		g_bTankDisabled = true;
-	}
+// Other plugins can use this to set the tank as "disabled" on the ready up, and when the !boss command is used
+// YOU NEED TO SET THIS EVERY MAP
+public int Native_SetTankDisabled(Handle plugin, int numParams){
+	g_bTankDisabled = view_as<bool>(GetNativeCell(1));
+	
+	if (!g_hUpdateFooterTimer)
+		g_hUpdateFooterTimer = CreateTimer(0.1, UpdateReadyUpFooter);
 }
 
-public int Native_GetStoredWitchPercent(Handle plugin, int numParams)
-{
+// Used for other plugins to get the stored witch percent
+public int Native_GetStoredWitchPercent(Handle plugin, int numParams){
 	return g_fWitchPercent;
 }
 
-public int Native_GetStoredTankPercent(Handle plugin, int numParams)
-{
+// Used for other plugins to get the stored tank percent
+public int Native_GetStoredTankPercent(Handle plugin, int numParams){
 	return g_fTankPercent;
 }
 
-public int Native_GetReadyUpFooterIndex(Handle plugin, int numParams)
-{
-	if (g_ReadyUpAvailable)
-		return g_iReadyUpFooterIndex;
-	else
-		return -1;
+// Used for other plugins to get the ready footer index of the boss percents
+public int Native_GetReadyUpFooterIndex(Handle plugin, int numParams){
+	if (g_ReadyUpAvailable) return g_iReadyUpFooterIndex;
+	else return -1;
 }
 
-public int Native_RefreshReadyUp(Handle plugin, int numParams)
-{
-	if (g_ReadyUpAvailable)
-	{
+// Used for other plugins to refresh the boss percents on the ready up
+public int Native_RefreshReadyUp(Handle plugin, int numParams){
+	if (g_ReadyUpAvailable) {
 		if (!g_hUpdateFooterTimer)
-			g_hUpdateFooterTimer = CreateTimer(0.2, UpdateReadyUpFooter);
+			g_hUpdateFooterTimer = CreateTimer(0.1, UpdateReadyUpFooter);
+			
 		return true;
-	} 
-	else 
-	{
-		return false;
 	}
+	else return false;
 }
 
 /* ========================================================
@@ -297,7 +283,7 @@ public void LeftStartAreaEvent(Event event, const char[] name, bool dontBroadcas
 	if (!g_ReadyUpAvailable) {
 		for (int client = 1; client <= MaxClients; client++)
 		{
-			if (IsClientConnected(client) && IsClientInGame(client)) 
+			if (IsClientInGame(client)) 
 			{
 				PrintBossMiddleMan(client);
 			}
@@ -320,7 +306,7 @@ public void OnRoundIsLive()
 {
 	for (int client = 1; client <= MaxClients; client++)
 	{
-		if (IsClientConnected(client) && IsClientInGame(client)) 
+		if (IsClientInGame(client)) 
 		{
 			PrintBossMiddleMan(client);
 		}
@@ -379,7 +365,8 @@ public Action StaticTankMap_Command(int args)
 }
 
 // Checks the static witch map list to see if the current map contains a static witch spawn
-public bool IsStaticWitchMap(){
+public bool IsStaticWitchMap()
+{
 	bool tempValue;
 	if (GetTrieValue(g_hStaticWitchMaps, g_sCurrentMap, tempValue)) {
 		return true;				
@@ -390,7 +377,8 @@ public bool IsStaticWitchMap(){
 }
 
 // Checks the static tank map list to see if the current map contains a static tank spawn
-public bool IsStaticTankMap(){
+public bool IsStaticTankMap()
+{
 	bool tempValue;
 	if (GetTrieValue(g_hStaticTankMaps, g_sCurrentMap, tempValue)) {
 		return true;				
@@ -659,30 +647,6 @@ public Action GetBossPercents(Handle timer)
 	}
 }
 
-public bool DisabledTankCheck()
-{
-	if (!IsStaticTankMap()) return false;
-	if (g_fTankPercent > 0) return false;
-	if (g_bIsRemix) return false;
-	
-	if (InSecondHalfOfRound())
-	{
-		if (!L4D2Direct_GetVSTankToSpawnThisRound(1))
-		{
-			return true;
-		}
-	}
-	else
-	{
-		if (!L4D2Direct_GetVSTankToSpawnThisRound(0))
-		{
-			return true;
-		}
-	}
-	
-	return false;
-}
-
 /* 
  *
  * This method will update the ready up footer with our
@@ -800,7 +764,7 @@ public Action PrintCurrent(Handle timer, int client) {
 
 public void PrintBossMiddleMan(int client) {
 	// Show our boss percents
-	CreateTimer(0.1, PrintBossPercents, client);
+	PrintBossPercents(INVALID_HANDLE, client);
 }
 
 public Action PrintBossPercents(Handle timer, int client)
