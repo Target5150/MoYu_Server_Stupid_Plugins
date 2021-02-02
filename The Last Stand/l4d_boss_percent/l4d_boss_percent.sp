@@ -24,7 +24,7 @@ out what's going on :D Kinda makes my other plugins look bad huh :/
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "3.1.1"
+#define PLUGIN_VERSION "3.2.0"
 
 public Plugin myinfo =
 {
@@ -64,6 +64,7 @@ ConVar g_hVsBossFlowMax; 												// Boss Flow Max
 StringMap g_hStaticTankMaps; 											// Stores All Static Tank Maps
 StringMap g_hStaticWitchMaps; 											// Stores All Static Witch Maps
 GlobalForward g_forwardUpdateBosses;
+Handle g_hUpdateFooterTimer;
 
 // Variables
 bool g_ReadyUpAvailable; 												// Is Ready-Up plugin loaded?
@@ -90,8 +91,6 @@ int bv_iWitch;															// Where we will keep our requested Witch percentag
 // Percent Variables
 int g_fWitchPercent;													// Stores current Witch Percent
 int g_fTankPercent;														// Stores current Tank Percent
-
-Handle g_hUpdateFooterTimer;
 
 public void OnPluginStart()
 {
@@ -953,6 +952,7 @@ public Action VoteBossCmd(int client, int args)
 	if (args != 2)
 	{
 		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Usage: !voteboss {olive}<{default}tank{olive}> <{default}witch{olive}>{default}.");
+		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Use {default}\"{blue}0{default}\" for {olive}No Spawn.");
 		return;
 	}
 	
@@ -975,10 +975,11 @@ public Action VoteBossCmd(int client, int args)
 	GetCmdArg(2, bv_sWitch, 32);
 	
 	// Make sure the args are actual numbers
-	if (!IsInteger(bv_sTank))
+	if (!IsInteger(bv_sTank) || !IsInteger(bv_sWitch))
+	{
+		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Boss percentages are {olive}Invalid{default}.");
 		return;
-	if (!IsInteger(bv_sWitch))
-		return;
+	}
 	
 	// Check to make sure static bosses don't get changed
 	if (!IsStaticTankMap())
@@ -1029,7 +1030,7 @@ public Action VoteBossCmd(int client, int args)
 		}
 		else // Neither can be changed... ok...
 		{
-			return;
+			Format(bv_voteTitle, 64, "Set Bosses to: Disabled?");
 		}
 		
 		// Start the vote!
@@ -1089,16 +1090,19 @@ public int BossVoteResultHandler(Handle vote, int num_votes, int num_clients, co
 				{
 					DisplayBuiltinVotePass(vote, "Setting Tank Spawn...");
 					SetTankPercent(bv_iTank);
+					if (!IsStaticWitchMap()) SetWitchPercent(0);
 				}
 				else if (bv_bWitch) // Only Witch can be changed -- Tank must be static
 				{
 					DisplayBuiltinVotePass(vote, "Setting Witch Spawn...");
+					if (!IsStaticTankMap()) SetTankPercent(0);
 					SetWitchPercent(bv_iWitch);
 				}
 				else // Neither can be changed... ok...
 				{
-					DisplayBuiltinVoteFail(vote, BuiltinVoteFail_Loses);
-					return;
+					DisplayBuiltinVotePass(vote, "Setting Boss Disabled...");
+					if (!IsStaticTankMap()) SetTankPercent(0);
+					if (!IsStaticWitchMap()) SetWitchPercent(0);
 				}
 				
 				// Update our shiz yo
@@ -1155,7 +1159,9 @@ bool ValidateFlow(int iTank = 0, int iWitch = 0, bool bTank = false, bool bWitch
 			return false;
 	}
 	
-	return (bTank || bWitch);
+	// 1. Any boss change is requested and passes validation
+	// 2. Neither is requested and voter wants both to be disabled
+	return (bTank || bWitch) ^ (iTank <= 0 && iWitch <= 0);
 }
 
 public void SetWitchPercent(int percent)
