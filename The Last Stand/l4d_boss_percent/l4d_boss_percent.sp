@@ -58,7 +58,7 @@ ConVar g_hCvarWitchPercent; 											// Determines if Witch Percents will be d
 ConVar g_hCvarBossVoting; 												// Determines if boss voting will be enabled
 
 // Handles
-ConVar g_hVsBossBuffer; 												// Boss Buffer
+//ConVar g_hVsBossBuffer; 												// Boss Buffer
 ConVar g_hVsBossFlowMin; 												// Boss Flow Min
 ConVar g_hVsBossFlowMax; 												// Boss Flow Max
 StringMap g_hStaticTankMaps; 											// Stores All Static Tank Maps
@@ -96,7 +96,7 @@ Handle g_hUpdateFooterTimer;
 public void OnPluginStart()
 {
 	// Variable Setting
-	g_hVsBossBuffer = FindConVar("versus_boss_buffer"); // Get the boss buffer
+	//g_hVsBossBuffer = FindConVar("versus_boss_buffer"); // Get the boss buffer
 	g_hVsBossFlowMin = FindConVar("versus_boss_flow_min"); // Get boss flow min
 	g_hVsBossFlowMax = FindConVar("versus_boss_flow_max"); // Get boss flow max
 	g_hStaticWitchMaps = CreateTrie(); // Create list of static witch maps
@@ -546,14 +546,14 @@ public Action DKRWorkaround(Event event, const char[] name, bool dontBroadcast)
 // This method will return the Tank flow for a specified round
 stock float GetTankFlow(int round)
 {
-	return L4D2Direct_GetVSTankFlowPercent(round) -
-		( GetConVarFloat(g_hVsBossBuffer) / L4D2Direct_GetMapMaxFlowDistance() );
+	return L4D2Direct_GetVSTankFlowPercent(round)/* -
+		( GetConVarFloat(g_hVsBossBuffer) / L4D2Direct_GetMapMaxFlowDistance() )*/;
 }
 
 stock float GetWitchFlow(int round)
 {
-	return L4D2Direct_GetVSWitchFlowPercent(round) -
-		( GetConVarFloat(g_hVsBossBuffer) / L4D2Direct_GetMapMaxFlowDistance() );
+	return L4D2Direct_GetVSWitchFlowPercent(round)/* -
+		( GetConVarFloat(g_hVsBossBuffer) / L4D2Direct_GetMapMaxFlowDistance() )*/;
 }
 
 /* 
@@ -1004,7 +1004,7 @@ public Action VoteBossCmd(int client, int args)
 	// Check if percent is within limits
 	if (!ValidateFlow(bv_iTank, bv_iWitch, bv_bTank, bv_bWitch))
 	{
-		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Boss percents are {olive}invalid{default} or {olive}banned{default}.");
+		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Boss percentages are {olive}Invalid{default} or {olive}Banned{default}.");
 		return;
 	}
 	
@@ -1260,9 +1260,9 @@ public Action ForceTankCommand(int client, int args)
 	p_iRequestedPercent = StringToInt(bv_sTank);
 	
 	// Check if percent is within limits
-	if (p_iRequestedPercent > 100 || p_iRequestedPercent < 0)
+	if (!ValidateFlow(p_iRequestedPercent, _, true))
 	{
-		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Boss percent needs to be between {olive}0{default} and {olive}100{default}.");
+		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Boss percentage is {olive}Invalid{default} or {olive}Banned{default}.");
 		return;
 	}
 	
@@ -1318,9 +1318,9 @@ public Action ForceWitchCommand(int client, int args)
 	p_iRequestedPercent = StringToInt(bv_sWitch);
 	
 	// Check if percent is within limits
-	if (p_iRequestedPercent > 100 || p_iRequestedPercent < 0)
+	if (!ValidateFlow(_, p_iRequestedPercent, _, true))
 	{
-		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Boss percent needs to be between {olive}0{default} and {olive}100{default}.");
+		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Boss percentage is {olive}Invalid{default} or {olive}Banned{default}.");
 		return;
 	}
 	
