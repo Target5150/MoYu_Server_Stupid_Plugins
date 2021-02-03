@@ -1,5 +1,7 @@
 # melee spawn control
 
+- Credit to IA-NanaNana
+- Original post:https://forums.alliedmods.net/showthread.php?t=327605&highlight=melee+spawn+control
 - Simply unlock melee weapons only, you can add melee weapons to map basis melee spawn in every map now.
 
 	- Require Extension:**DHooks (Dynamic Hooks)**
