@@ -7,9 +7,13 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "9.0.2"
+#define PLUGIN_VERSION "9.1.0"
 
 #define NULL_VELOCITY view_as<float>({0.0, 0.0, 0.0})
+
+#define L4D2Team_Spectator	1
+#define L4D2Team_Survivor	2
+#define L4D2Team_Infected	3
 
 #define MAX_FOOTERS 10
 #define MAX_FOOTER_LEN 65
@@ -25,77 +29,55 @@ public Plugin myinfo =
 {
 	name = "L4D2 Ready-Up with convenience fixes",
 	author = "CanadaRox, Target",
-	description = "New and improved ready-up plugin with convenience fixes.",
+	description = "New and improved ready-up plugin with optimal for convenience.",
 	version = PLUGIN_VERSION,
-	url = "https://github.com/target5150"
+	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 };
 
-enum L4D2_Team
-{
-	L4D2Team_Spectator = 1,
-	L4D2Team_Survivor,
-	L4D2Team_Infected
-}
+// Game Cvars
+ConVar	director_no_specials, god, sb_stop, survivor_limit, z_max_player_zombies, sv_infinite_primary_ammo;
+
+// Plugin Cvars
+ConVar	l4d_ready_disable_spawns, l4d_ready_survivor_freeze,
+		l4d_ready_cfg_name,
+		l4d_ready_max_players, l4d_ready_delay,
+		l4d_ready_enable_sound, l4d_ready_chuckle, l4d_ready_countdown_sound, l4d_ready_live_sound,
+		l4d_ready_secret;
+
+// Plugin Handles
+ConVar ServerNamer;
+Handle g_hVote;
+GlobalForward liveForward;
+Handle readyCountdownTimer;
+StringMap casterTrie;
+//StringMap allowedCastersTrie;
+
+// Ready Panel
+Panel menuPanel;
+bool hiddenPanel[MAXPLAYERS+1], hiddenManually[MAXPLAYERS+1];
+char sCmd[32], readyFooter[MAX_FOOTERS][MAX_FOOTER_LEN];
+int iCmd, footerCounter;
+float g_fTime;
+
+// Plugin Vars
+bool inLiveCountdown, inReadyUp, bSkipWarp, readySurvFreeze, isPlayerReady[MAXPLAYERS+1];
+char countdownSound[PLATFORM_MAX_PATH], liveSound[PLATFORM_MAX_PATH];
+int readyDelay;
+bool blockSecretSpam[MAXPLAYERS+1];
+
+//AFK?!
+float g_fButtonTime[MAXPLAYERS+1];
+int g_iLastMouse[MAXPLAYERS+1][2];
+
+// Spectate Fix
+Handle g_hChangeTeamTimer[MAXPLAYERS+1];
 
 enum disruptType
 {
 	readyStatus,
-	teamShuffle
+	teamShuffle,
+	playerDisconn
 }
-
-
-// Plugin Cvars
-//ConVar	l4d_ready_enabled;
-ConVar	l4d_ready_disable_spawns;
-ConVar	l4d_ready_cfg_name;
-ConVar	l4d_ready_survivor_freeze;
-ConVar	l4d_ready_max_players;
-ConVar	l4d_ready_delay;
-ConVar	l4d_ready_enable_sound;
-ConVar	l4d_ready_chuckle;
-ConVar	l4d_ready_countdown_sound;
-ConVar	l4d_ready_live_sound;
-ConVar	l4d_ready_secret;
-Handle	g_hVote;
-
-//AFK?!
-float	g_fButtonTime[MAXPLAYERS + 1];
-int		g_vecLastMouse[MAXPLAYERS + 1][2];
-
-// Game Cvars
-ConVar	director_no_specials;
-ConVar	god;
-ConVar	sb_stop;
-ConVar	survivor_limit;
-ConVar	z_max_player_zombies;
-ConVar	sv_infinite_primary_ammo;
-ConVar	ServerNamer;
-
-// Plugin Stuff
-GlobalForward liveForward;
-StringMap	casterTrie;
-Panel		menuPanel;
-Handle		readyCountdownTimer;
-char	readyFooter[MAX_FOOTERS][MAX_FOOTER_LEN];
-int		footerCounter = 0;
-bool	hiddenPanel[MAXPLAYERS + 1];
-bool	hiddenManually[MAXPLAYERS + 1];
-bool	isPlayerReady[MAXPLAYERS + 1];
-bool	inLiveCountdown = false;
-bool	inReadyUp;
-int		readyDelay;
-char	countdownSound[PLATFORM_MAX_PATH];
-char	liveSound[PLATFORM_MAX_PATH];
-bool	bSkipWarp;
-bool	blockSecretSpam[MAXPLAYERS + 1];
-
-bool	readySurvFreeze;
-
-int		iCmd;
-char	sCmd[32];
-
-//StringMap allowedCastersTrie;
-float g_fTime;
 
 static const char chuckleSound[MAX_SOUNDS][] =
 {
@@ -154,11 +136,13 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_unready",		Unready_Cmd, "Mark yourself as not ready if you have set yourself as ready");
 	RegConsoleCmd("sm_nr",			Unready_Cmd, "Mark yourself as not ready if you have set yourself as ready");
 	
-	// Caster Commands
+	// Caster System
 	RegAdminCmd("sm_caster",		Caster_Cmd, ADMFLAG_BAN, "Registers a player as a caster so the round will not go live unless they are ready");
 	RegConsoleCmd("sm_cast",		Cast_Cmd, "Registers the calling player as a caster so the round will not go live unless they are ready");
 	RegConsoleCmd("sm_notcasting",	NotCasting_Cmd, "Deregister yourself as a caster or allow admins to deregister other players");
 	RegConsoleCmd("sm_uncast",		NotCasting_Cmd, "Deregister yourself as a caster or allow admins to deregister other players");
+	//RegServerCmd("sm_resetcasters", ResetCaster_Cmd, "Used to reset casters between matches.  This should be in confogl_off.cfg or equivalent for your system");
+	//RegServerCmd("sm_add_caster_id", AddCasterSteamID_Cmd, "Used for adding casters to the whitelist -- i.e. who's allowed to self-register as a caster");
 	
 	// Player Commands
 	RegConsoleCmd("sm_hide",		Hide_Cmd, "Hides the ready-up panel so other menus can be seen");
@@ -168,10 +152,6 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_fs",			ForceStart_Cmd, "Forces the round to start regardless of player ready status.  Players can unready to stop a force");
 	RegConsoleCmd("sm_kickspecs",	KickSpecs_Cmd, "Let's vote to kick those Spectators!");
 	
-	// Server Commands
-	//RegServerCmd("sm_resetcasters", ResetCaster_Cmd, "Used to reset casters between matches.  This should be in confogl_off.cfg or equivalent for your system");
-	//RegServerCmd("sm_add_caster_id", AddCasterSteamID_Cmd, "Used for adding casters to the whitelist -- i.e. who's allowed to self-register as a caster");
-
 #if DEBUG
 	RegAdminCmd("sm_initready", InitReady_Cmd, ADMFLAG_ROOT);
 	RegAdminCmd("sm_initlive", InitLive_Cmd, ADMFLAG_ROOT);
@@ -218,13 +198,32 @@ public void PlayerTeam_Event(Event event, const char[] name, bool dontBroadcast)
 	
 	isPlayerReady[client] = false;
 	SetEngineTime(client);
-	RequestFrame(RFClback_PlayerTeam, client);
+	
+	if (!g_hChangeTeamTimer[client])
+	{
+		ArrayStack stack = new ArrayStack();
+		stack.Push(client);
+		stack.Push(event.GetInt("oldteam"));
+		g_hChangeTeamTimer[client] = CreateTimer(0.1, Timer_PlayerTeam, stack, TIMER_FLAG_NO_MAPCHANGE);
+	}
 }
 
-public void RFClback_PlayerTeam(int client)
+public Action Timer_PlayerTeam(Handle timer, ArrayStack stack)
 {
-	if (IsClientInGame(client) && inLiveCountdown && !CheckFullReady())
-		CancelFullReady(client, teamShuffle);
+	int oldteam = stack.Pop();
+	int client = stack.Pop();
+	
+	if (IsClientInGame(client) && inLiveCountdown)
+	{
+		int team = GetClientTeam(client);
+		if (team != oldteam)
+		{
+			CancelFullReady(client, teamShuffle);
+		}
+	}
+	
+	delete stack;
+	g_hChangeTeamTimer[client] = null;
 }
 
 
@@ -261,6 +260,7 @@ public void OnMapStart()
 	for (int client = 1; client <= MAXPLAYERS; client++)
 	{
 		blockSecretSpam[client] = false;
+		g_hChangeTeamTimer[client] = null;
 	}
 	readyCountdownTimer = null;
 }
@@ -277,8 +277,12 @@ public void OnClientDisconnect(int client)
 	hiddenManually[client] = false;
 	isPlayerReady[client] = false;
 	g_fButtonTime[client] = 0.0;
-	g_vecLastMouse[client][0] = 0;
-	g_vecLastMouse[client][1] = 0;
+	g_iLastMouse[client][0] = 0;
+	g_iLastMouse[client][1] = 0;
+	g_hChangeTeamTimer[client] = null;
+	if (!IsFakeClient(client) && IsPlayer(client)) {
+		CancelFullReady(client, playerDisconn);
+	}
 }
 
 /* No need to do any other checks since it seems like this is required no matter what since the intros unfreezes players after the animation completes */
@@ -291,21 +295,20 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 			if (buttons || impulse) SetEngineTime(client);
 			
 			// Mouse Movement Check
-			if (mouse[0] != g_vecLastMouse[client][0]
-				|| mouse[1] != g_vecLastMouse[client][1])
+			if (mouse[0] != g_iLastMouse[client][0] || mouse[1] != g_iLastMouse[client][1])
 			{
+				g_iLastMouse[client][0] = mouse[0];
+				g_iLastMouse[client][1] = mouse[1];
 				SetEngineTime(client);
-				
-				g_vecLastMouse[client][0] = mouse[0];
-				g_vecLastMouse[client][1] = mouse[1];
 			}
 		}
 		
-		if (IsClientInGame(client) && view_as<L4D2_Team>(GetClientTeam(client)) == L4D2Team_Survivor)
+		if (IsClientInGame(client) && GetClientTeam(client) == L4D2Team_Survivor)
 		{
 			if (readySurvFreeze)
 			{
-				if (!(GetEntityMoveType(client) == MOVETYPE_NONE || GetEntityMoveType(client) == MOVETYPE_NOCLIP))
+				MoveType iMoveType = GetEntityMoveType(client);
+				if (!(iMoveType == MOVETYPE_NONE || iMoveType == MOVETYPE_NOCLIP))
 				{
 					SetClientFrozen(client, true);
 				}
@@ -337,25 +340,24 @@ public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 //  Command Listener
 // ========================
 
-public Action Say_Callback(int client, char[] command, int args)
+public Action Say_Callback(int client, char[] command, int argc)
 {
 	SetEngineTime(client);
 }
 
-public Action Vote_Callback(int client, char[] command, int args)
+public Action Vote_Callback(int client, char[] command, int argc)
 {
 	// Used to fast ready/unready through default keybinds for voting
 	if (!inReadyUp) return;
 	if (IsBuiltinVoteInProgress()) return;
-	if (!client || IsClientObserver(client)) return;
+	if (!client) return;
 	
-	static char sArg[8];
+	char sArg[8];
 	GetCmdArg(1, sArg, sizeof(sArg));
-	if (strcmp(sArg, "Yes", false) == 0) {
+	if (strcmp(sArg, "Yes", false) == 0)
 		Ready_Cmd(client, 0);
-	} else if (strcmp(sArg, "No", false) == 0) {
+	else if (strcmp(sArg, "No", false) == 0)
 		Unready_Cmd(client, 0);
-	}
 }
 
 
@@ -368,10 +370,11 @@ public void SurvFreezeChange(ConVar convar, const char[] oldValue, const char[] 
 {
 	readySurvFreeze = convar.BoolValue;
 	
-	if (!inReadyUp) return;
-	
-	ReturnTeamToSaferoom(L4D2Team_Survivor);
-	SetTeamFrozen(L4D2Team_Survivor, readySurvFreeze);
+	if (inReadyUp)
+	{
+		ReturnTeamToSaferoom(L4D2Team_Survivor);
+		SetTeamFrozen(L4D2Team_Survivor, readySurvFreeze);
+	}
 }
 
 
@@ -389,14 +392,13 @@ public Action Ready_Cmd(int client, int args)
 			DoSecrets(client);
 		if (CheckFullReady())
 			InitiateLiveCountdown();
+		return Plugin_Handled;
 	}
+	return Plugin_Continue;
 }
 
 public Action Unready_Cmd(int client, int args)
 {
-	AdminId id = GetUserAdmin(client);
-	bool hasflag = (id != INVALID_ADMIN_ID && GetAdminFlag(id, Admin_Ban));
-	
 	if (inReadyUp)
 	{
 		if (IsPlayer(client))
@@ -404,37 +406,49 @@ public Action Unready_Cmd(int client, int args)
 			SetEngineTime(client);
 			isPlayerReady[client] = false;
 		}
-		else if (!hasflag) { return; }
+		else if (!(GetUserFlagBits(client) & ADMFLAG_BAN)) { return Plugin_Handled; }
 		
+		// Client must be a player or an admin with ban flag to request.
 		CancelFullReady(client, readyStatus);
+		
+		return Plugin_Handled;
 	}
+	return Plugin_Continue;
 }
 
 public Action ToggleReady_Cmd(int client, int args)
 {
 	if (inReadyUp && IsPlayer(client))
 	{
-		isPlayerReady[client] ? Unready_Cmd(client, 0) : Ready_Cmd(client, 0);
+		return isPlayerReady[client] ? Unready_Cmd(client, 0) : Ready_Cmd(client, 0);
 	}
+	return Plugin_Continue;
 }
 
 
 
 // ========================
-//  Caster Commands
+//  Caster System
 // ========================
 
 public Action Cast_Cmd(int client, int args)
 {	
  	char buffer[64];
 	GetClientAuthId(client, AuthId_Steam2, buffer, sizeof(buffer));
-	if (GetClientTeam(client) != 1)
+	
+	bool temp;
+	if (!casterTrie.GetValue(buffer, temp))
 	{
-		ChangeClientTeam(client, 1);
+		if (GetClientTeam(client) != L4D2Team_Spectator)
+		{
+			ChangeClientTeam(client, L4D2Team_Spectator);
+		}
+		casterTrie.SetValue(buffer, true);
+		CPrintToChat(client, "{blue}[{default}Cast{blue}] {default}You have registered yourself as a caster");
+		CPrintToChat(client, "{blue}[{default}Cast{blue}] {default}Reconnect to make your Addons work.");
 	}
-	casterTrie.SetValue(buffer, 1);
-	CPrintToChat(client, "{blue}[{default}Cast{blue}] {default}You have registered yourself as a caster");
-	CPrintToChat(client, "{blue}[{default}Cast{blue}] {default}Reconnect to make your Addons work.");
+	
+	return Plugin_Handled;
 }
 
 public Action Caster_Cmd(int client, int args)
@@ -442,7 +456,7 @@ public Action Caster_Cmd(int client, int args)
 	if (args < 1)
 	{
 		ReplyToCommand(client, "[SM] Usage: sm_caster <player>");
-		return;
+		return Plugin_Handled;
 	}
 	
 	char buffer[64];
@@ -453,15 +467,18 @@ public Action Caster_Cmd(int client, int args)
 	{
 		if (GetClientAuthId(target, AuthId_Steam2, buffer, sizeof(buffer)))
 		{
-			casterTrie.SetValue(buffer, 1);
+			casterTrie.SetValue(buffer, true);
 			ReplyToCommand(client, "Registered %N as a caster", target);
-			CPrintToChat(target, "{blue}[{olive}!{blue}] {default}An Admin has registered you as a caster");
+			CPrintToChat(target, "{blue}[{olive}!{blue}] {blue}Admin {default}({olive}%N{default}) has registered you as a caster", client);
+			CPrintToChat(target, "{blue}[{default}Cast{blue}] {default}Reconnect to make your Addons work.");
 		}
 		else
 		{
 			ReplyToCommand(client, "Couldn't find Steam ID.  Check for typos and let the player get fully connected.");
 		}
 	}
+	
+	return Plugin_Handled;
 }
 
 public Action NotCasting_Cmd(int client, int args)
@@ -471,12 +488,14 @@ public Action NotCasting_Cmd(int client, int args)
 	if (args < 1) // If no target is specified, assumes self-uncasting
 	{
 		GetClientAuthId(client, AuthId_Steam2, buffer, sizeof(buffer));
-		casterTrie.Remove(buffer);
-		CPrintToChat(client, "{blue}[{default}Reconnect{blue}] {default}You will be reconnected to the server..");
-		CPrintToChat(client, "{blue}[{default}Reconnect{blue}] {default}There's a black screen instead of a loading bar!");
-		
-		// Reconnection to disable their addons
-		CreateTimer(3.0, Reconnect, client);
+		if (casterTrie.Remove(buffer))
+		{
+			CPrintToChat(client, "{blue}[{default}Reconnect{blue}] {default}You will be reconnected to the server..");
+			CPrintToChat(client, "{blue}[{default}Reconnect{blue}] {default}There's a black screen instead of a loading bar!");
+			
+			// Reconnection to disable their addons
+			CreateTimer(3.0, Reconnect, client);
+		}
 	}
 	else // If a target is specified
 	{
@@ -484,17 +503,21 @@ public Action NotCasting_Cmd(int client, int args)
 		if (id != INVALID_ADMIN_ID && GetAdminFlag(id, Admin_Ban)) // Check for specific admin flag
 		{
 			ReplyToCommand(client, "Only admins can remove other casters. Use sm_notcasting without arguments if you wish to remove yourself.");
-			return;
+			return Plugin_Handled;
 		}
 		
 		GetCmdArg(1, buffer, sizeof(buffer));
 		
-		int target = FindTarget(client, buffer, true, false);
+		int target = FindTarget(client, buffer, true, true);
 		if (target > 0) // If FindTarget fails we don't need to print anything as it prints it for us!
 		{
 			if (GetClientAuthId(target, AuthId_Steam2, buffer, sizeof(buffer)))
 			{
-				casterTrie.Remove(buffer);
+				if (casterTrie.Remove(buffer))
+				{
+					CPrintToChat(target, "{blue}[{olive}!{blue}] {default}You are unregistered as a caster by {blue}Admin {default}({olive}%N{default})", client);
+					NotCasting_Cmd(target, 0);
+				}
 				ReplyToCommand(client, "%N is no longer a caster", target);
 			}
 			else
@@ -503,122 +526,13 @@ public Action NotCasting_Cmd(int client, int args)
 			}
 		}
 	}
+	return Plugin_Handled;
 }
 
 public Action Reconnect(Handle timer, int client)
 {
-	if (IsClientInGame(client)) ReconnectClient(client);
+	if (IsClientConnected(client)) ReconnectClient(client);
 }
-
-
-
-// ========================
-//  Player Commands
-// ========================
-
-public Action Hide_Cmd(int client, int args)
-{
-	if (inReadyUp)
-	{
-		hiddenPanel[client] = true;
-		hiddenManually[client] = true;
-		CPrintToChat(client, "[{olive}Readyup{default}] Panel is now {red}off{default}");
-	}
-}
-
-public Action Show_Cmd(int client, int args)
-{
-	if (inReadyUp)
-	{
-		hiddenPanel[client] = false;
-		hiddenManually[client] = false;
-		CPrintToChat(client, "[{olive}Readyup{default}] Panel is now {blue}on{default}");
-	}
-}
-
-public Action Return_Cmd(int client, int args)
-{
-	if (inReadyUp
-			&& client > 0
-			&& view_as<L4D2_Team>(GetClientTeam(client)) == L4D2Team_Survivor)
-	{
-		ReturnPlayerToSaferoom(client, false);
-	}
-}
-
-public Action ForceStart_Cmd(int client, int args)
-{
-	if (inReadyUp)
-	{
-		// Check if admin always allowed to do so
-		AdminId id = GetUserAdmin(client);
-		if (id != INVALID_ADMIN_ID && GetAdminFlag(id, Admin_Ban)) // Check for specific admin flag
-		{
-			InitiateLiveCountdown();
-			CPrintToChatAll("[{green}!{default}] {blue}Game {default}is enforced to {green}Live {default}by {blue}Admin {default}({olive}%N{default})", client);
-			return;
-		}
-		
-		// ----------------------------------------------
-		// * Additional voting function, prepared for PUG
-		// ----------------------------------------------
-		
-		// Filter spectator
-		if (!IsPlayer(client))
-		{
-			CPrintToChat(client, "[{olive}Readyup{default}] {blue}Spectator {default}is not allowed to call for {green}force start{default}.");
-			return;
-		}
-		
-		// No reason to call this when players are full
-		int playercount = GetTeamHumanCount(L4D2Team_Survivor) + GetTeamHumanCount(L4D2Team_Infected);
-		if (playercount == survivor_limit.IntValue + z_max_player_zombies.IntValue)
-		{
-			CPrintToChat(client, "[{olive}Readyup{default}] You are {red}not allowed {default}to call this due to {green}full players{default}.");
-			return;
-		}
-		
-		// Vote section
-		StartForceStartVote(client);
-	}
-}
-
-public Action KickSpecs_Cmd(int client, int args)
-{
-	if (inReadyUp)
-	{
-		AdminId id;
-		id = GetUserAdmin(client);
-		bool hasFlag = false;
-		
-		if (id != INVALID_ADMIN_ID)
-		{
-			hasFlag = GetAdminFlag(id, Admin_Ban); // Check for specific admin flag
-		}
-		
-		if (hasFlag)
-		{
-			CreateTimer(2.0, Timer_KickSpecs);
-			CPrintToChatAll("[{green}!{default}] {blue}Spectators {default}are kicked by {blue}Admin {default}({olive}%N{default})", client);
-			return;
-		}
-		
-		// Filter spectator
-		if (!IsPlayer(client))
-		{
-			CPrintToChat(client, "[{olive}Readyup{default}] {blue}Spectator {default}is not allowed to call for {green}kick specs{default}.");
-			return;
-		}
-		
-		StartKickSpecsVote(client);
-	}
-}
-
-
-
-// ========================
-//  Server Commands
-// ========================
 
 /*public Action ResetCaster_Cmd(int args)
 {
@@ -641,6 +555,120 @@ public Action AddCasterSteamID_Cmd(int args)
 	}
 	else PrintToServer("[casters_database] No args specified / empty buffer");
 }*/
+
+
+
+// ========================
+//  Player Commands
+// ========================
+
+public Action Hide_Cmd(int client, int args)
+{
+	if (inReadyUp)
+	{
+		hiddenPanel[client] = true;
+		hiddenManually[client] = true;
+		CPrintToChat(client, "[{olive}Readyup{default}] Panel is now {red}off{default}");
+		return Plugin_Handled;
+	}
+	return Plugin_Continue;
+}
+
+public Action Show_Cmd(int client, int args)
+{
+	if (inReadyUp)
+	{
+		hiddenPanel[client] = false;
+		hiddenManually[client] = false;
+		CPrintToChat(client, "[{olive}Readyup{default}] Panel is now {blue}on{default}");
+		return Plugin_Handled;
+	}
+	return Plugin_Continue;
+}
+
+public Action Return_Cmd(int client, int args)
+{
+	if (inReadyUp
+			&& client > 0
+			&& GetClientTeam(client) == L4D2Team_Survivor)
+	{
+		ReturnPlayerToSaferoom(client, false);
+		return Plugin_Handled;
+	}
+	return Plugin_Continue;
+}
+
+public Action ForceStart_Cmd(int client, int args)
+{
+	if (inReadyUp)
+	{
+		// Check if admin always allowed to do so
+		AdminId id = GetUserAdmin(client);
+		if (id != INVALID_ADMIN_ID && GetAdminFlag(id, Admin_Ban)) // Check for specific admin flag
+		{
+			InitiateLiveCountdown();
+			CPrintToChatAll("[{green}!{default}] {blue}Game {default}is enforced to {green}Live {default}by {blue}Admin {default}({olive}%N{default})", client);
+			return Plugin_Handled;
+		}
+		
+		// ----------------------------------------------
+		// * Additional voting function, prepared for PUG
+		// ----------------------------------------------
+		
+		// Filter spectator
+		if (!IsPlayer(client))
+		{
+			CPrintToChat(client, "[{olive}Readyup{default}] {blue}Spectator {default}is not allowed to call for {green}force start{default}.");
+			return Plugin_Handled;
+		}
+		
+		// No reason to call this when players are full
+		int playercount = GetTeamHumanCount(L4D2Team_Survivor) + GetTeamHumanCount(L4D2Team_Infected);
+		if (playercount == survivor_limit.IntValue + z_max_player_zombies.IntValue)
+		{
+			CPrintToChat(client, "[{olive}Readyup{default}] You are {red}not allowed {default}to call a vote for force start due to {green}full players{default}.");
+			return Plugin_Handled;
+		}
+		
+		// Vote section
+		StartForceStartVote(client);
+		return Plugin_Handled;
+	}
+	return Plugin_Continue;
+}
+
+public Action KickSpecs_Cmd(int client, int args)
+{
+	if (inReadyUp)
+	{
+		AdminId id;
+		id = GetUserAdmin(client);
+		bool hasFlag = false;
+		
+		if (id != INVALID_ADMIN_ID)
+		{
+			hasFlag = GetAdminFlag(id, Admin_Ban); // Check for specific admin flag
+		}
+		
+		if (hasFlag)
+		{
+			CreateTimer(2.0, Timer_KickSpecs);
+			CPrintToChatAll("[{green}!{default}] {blue}Spectators {default}are kicked by {blue}Admin {default}({olive}%N{default})", client);
+			return Plugin_Handled;
+		}
+		
+		// Filter spectator
+		if (!IsPlayer(client))
+		{
+			CPrintToChat(client, "[{olive}Readyup{default}] {blue}Spectator {default}is not allowed to call a vote for {green}kicking specs{default}.");
+			return Plugin_Handled;
+		}
+		
+		StartKickSpecsVote(client);
+		return Plugin_Handled;
+	}
+	return Plugin_Continue;
+}
 
 
 
@@ -912,7 +940,7 @@ void UpdatePanel()
 	char nameBuf[64];
 	char authBuffer[64];
 	bool caster;
-	any dummy;
+	bool dummy;
 	
 	for (int client = 1; client <= MaxClients; client++)
 	{
@@ -929,16 +957,16 @@ void UpdatePanel()
 				{
 					if (!inLiveCountdown) PrintHintText(client, "You are ready.\nSay !unready / Press F2 to unready.");
 					Format(nameBuf, sizeof(nameBuf), "☑ %s\n", nameBuf);
-					GetClientTeam(client) == 2 ? StrCat(survivorBuffer, sizeof(survivorBuffer), nameBuf) : StrCat(infectedBuffer, sizeof(infectedBuffer), nameBuf);
+					GetClientTeam(client) == L4D2Team_Survivor ? StrCat(survivorBuffer, sizeof(survivorBuffer), nameBuf) : StrCat(infectedBuffer, sizeof(infectedBuffer), nameBuf);
 				}
 				else 
 				{
-					if (view_as<L4D2_Team>(GetClientTeam(client)) != L4D2Team_Spectator)
+					if (GetClientTeam(client) != L4D2Team_Spectator)
 						if (!inLiveCountdown)
 							PrintHintText(client, "You are not ready.\nSay !ready / Press F1 to ready up.");
 							
 					Format(nameBuf, sizeof(nameBuf), "☐ %s%s\n", nameBuf, ( IsPlayerAfk(client, fTime) ? " [AFK]" : "" ));
-					GetClientTeam(client) == 2 ? StrCat(survivorBuffer, sizeof(survivorBuffer), nameBuf) : StrCat(infectedBuffer, sizeof(infectedBuffer), nameBuf);
+					GetClientTeam(client) == L4D2Team_Survivor ? StrCat(survivorBuffer, sizeof(survivorBuffer), nameBuf) : StrCat(infectedBuffer, sizeof(infectedBuffer), nameBuf);
 				}
 			}
 			else
@@ -1191,7 +1219,6 @@ void CancelFullReady(int client, disruptType type)
 		else
 		{
 			SetTeamFrozen(L4D2Team_Survivor, GetConVarBool(l4d_ready_survivor_freeze));
-			
 			if (type == teamShuffle) SetClientFrozen(client, false);
 		}
 		inLiveCountdown = false;
@@ -1202,7 +1229,8 @@ void CancelFullReady(int client, disruptType type)
 		switch (type)
 		{
 			case readyStatus: CPrintToChatAllEx(client, "{default}[{green}!{default}] {green}Countdown Cancelled! {default}({teamcolor}%N {green}marked unready{default})", client);
-			case teamShuffle: CPrintToChatAllEx(client, "{default}[{green}!{default}] {green}Countdown Cancelled! {default}({teamcolor}%N {green}switched team{default})", client);
+			case teamShuffle: CPrintToChatAllEx(client, "{default}[{green}!{default}] {green}Countdown Cancelled! {default}({teamcolor}%N {olive}switched team{default})", client);
+			case playerDisconn: CPrintToChatAllEx(client, "{default}[{green}!{default}] {green}Countdown Cancelled! {default}({teamcolor}%N {green}disconnected{default})", client);
 		}
 	}
 }
@@ -1235,7 +1263,7 @@ void ReturnPlayerToSaferoom(int client, bool flagsSet = true)
 	TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, NULL_VELOCITY);
 }
 
-void ReturnTeamToSaferoom(L4D2_Team team)
+void ReturnTeamToSaferoom(int team)
 {
 	int warp_flags = GetCommandFlags("warp_to_start_area");
 	SetCommandFlags("warp_to_start_area", warp_flags & ~FCVAR_CHEAT);
@@ -1244,7 +1272,7 @@ void ReturnTeamToSaferoom(L4D2_Team team)
 
 	for (int client = 1; client <= MaxClients; client++)
 	{
-		if (IsClientInGame(client) && view_as<L4D2_Team>(GetClientTeam(client)) == team)
+		if (IsClientInGame(client) && GetClientTeam(client) == team)
 		{
 			ReturnPlayerToSaferoom(client, true);
 		}
@@ -1254,11 +1282,11 @@ void ReturnTeamToSaferoom(L4D2_Team team)
 	SetCommandFlags("give", give_flags);
 }
 
-void SetTeamFrozen(L4D2_Team team, bool freezeStatus)
+void SetTeamFrozen(int team, bool freezeStatus)
 {
 	for (int client = 1; client <= MaxClients; client++)
 	{
-		if (IsClientInGame(client) && view_as<L4D2_Team>(GetClientTeam(client)) == team)
+		if (IsClientInGame(client) && GetClientTeam(client) == team)
 		{
 			SetClientFrozen(client, freezeStatus);
 		}
@@ -1330,7 +1358,7 @@ void SetEngineTime(int client)
 
 void DoSecrets(int client)
 {
-	if (view_as<L4D2_Team>(GetClientTeam(client)) == L4D2Team_Survivor && !blockSecretSpam[client])
+	if (GetClientTeam(client) == L4D2Team_Survivor && !blockSecretSpam[client])
 	{
 		int particle = CreateEntityByName("info_particle_system");
 		float pos[3];
@@ -1464,15 +1492,15 @@ public int Native_IsIDCaster(Handle plugin, int numParams)
 //  Stocks
 // ========================
 
-stock bool IsClientCaster(int client)
+bool IsClientCaster(int client)
 {
 	char buffer[64];
 	return GetClientAuthId(client, AuthId_Steam2, buffer, sizeof(buffer)) && IsIDCaster(buffer);
 }
 
-stock bool IsIDCaster(const char[] AuthID)
+bool IsIDCaster(const char[] AuthID)
 {
-	any dummy;
+	bool dummy;
 	return GetTrieValue(casterTrie, AuthID, dummy);
 }
 
@@ -1493,7 +1521,7 @@ stock int GetSeriousClientCount()
 
 stock int SetClientFrozen(int client, bool freeze)
 {
-	SetEntityMoveType(client, freeze ? MOVETYPE_NONE : MOVETYPE_WALK);
+	SetEntityMoveType(client, freeze ? MOVETYPE_NONE : (GetClientTeam(client) == L4D2Team_Spectator ? MOVETYPE_NOCLIP : MOVETYPE_WALK));
 }
 
 stock bool IsPlayerAfk(int client, float fTime)
@@ -1503,17 +1531,17 @@ stock bool IsPlayerAfk(int client, float fTime)
 
 stock bool IsPlayer(int client)
 {
-	L4D2_Team team = view_as<L4D2_Team>(GetClientTeam(client));
+	int team = GetClientTeam(client);
 	return (team == L4D2Team_Survivor || team == L4D2Team_Infected);
 }
 
-stock int GetTeamHumanCount(L4D2_Team team)
+stock int GetTeamHumanCount(int team)
 {
 	int humans = 0;
 	
 	for (int client = 1; client <= MaxClients; client++)
 	{
-		if (IsClientInGame(client) && !IsFakeClient(client) && view_as<L4D2_Team>(GetClientTeam(client)) == team)
+		if (IsClientInGame(client) && !IsFakeClient(client) && GetClientTeam(client) == team)
 		{
 			humans++;
 		}
