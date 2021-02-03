@@ -403,10 +403,9 @@ public Action Unready_Cmd(int client, int args)
 		{
 			SetEngineTime(client);
 			isPlayerReady[client] = false;
+			CancelFullReady(client, readyStatus);
 		}
 		else if (!hasflag) { return; }
-		
-		CancelFullReady(client, readyStatus);
 	}
 }
 
