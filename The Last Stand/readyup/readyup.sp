@@ -432,7 +432,9 @@ public Action ToggleReady_Cmd(int client, int args)
 // ========================
 
 public Action Cast_Cmd(int client, int args)
-{	
+{
+	if (!client) return Plugin_Continue;
+	
  	char buffer[64];
 	GetClientAuthId(client, AuthId_Steam2, buffer, sizeof(buffer));
 	

@@ -505,7 +505,7 @@ public int getInfectedPlayerBySteamId(const char[] steamId)
    
     for (int i = 1; i <= MaxClients; i++) 
     {
-        if (!IsClientConnected(i) || GetClientTeam(i) != 3)
+        if (!IsClientInGame(i) || GetClientTeam(i) != 3)
             continue;
         
         GetClientAuthId(i, AuthId_Steam2, tmpSteamId, sizeof(tmpSteamId));     

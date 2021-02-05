@@ -1153,7 +1153,19 @@ float GetClientFlow(int client)
 
 float GetHighestSurvivorFlow()
 {
-	return GetClientFlow(L4D_GetHighestFlowSurvivor());
+	int client = L4D_GetHighestFlowSurvivor();
+	if (client > 0) return GetClientFlow(client);
+	
+	float flow;
+	for (int i = 1, survCount = 0; i <= MaxClients && survCount < iSurvivorLimit; ++i) 
+	{
+		if (IsSurvivor(i))
+		{
+			flow = MAX(flow, GetClientFlow(i));
+			++survCount;
+		}
+	}
+	return flow;
 }
 
 bool RoundHasFlowTank()
