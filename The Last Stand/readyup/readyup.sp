@@ -11,6 +11,7 @@
 
 #define NULL_VELOCITY view_as<float>({0.0, 0.0, 0.0})
 
+#define L4D2Team_None		0
 #define L4D2Team_Spectator	1
 #define L4D2Team_Survivor	2
 #define L4D2Team_Infected	3
@@ -19,7 +20,7 @@
 #define MAX_FOOTER_LEN 65
 #define MAX_SOUNDS 5
 
-#define SOUND "/level/gnomeftw.wav"
+#define SECRET_SOUND "/level/gnomeftw.wav"
 #define DEFAULT_COUNTDOWN_SOUND "weapons/hegrenade/beep.wav"
 #define DEFAULT_LIVE_SOUND "ui/survival_medal.wav"
 
@@ -51,6 +52,7 @@ GlobalForward liveForward;
 Handle readyCountdownTimer;
 StringMap casterTrie;
 //StringMap allowedCastersTrie;
+Handle blockSecretSpam[MAXPLAYERS+1];
 
 // Ready Panel
 Panel menuPanel;
@@ -63,7 +65,6 @@ float g_fTime;
 bool inLiveCountdown, inReadyUp, bSkipWarp, readySurvFreeze, isPlayerReady[MAXPLAYERS+1];
 char countdownSound[PLATFORM_MAX_PATH], liveSound[PLATFORM_MAX_PATH];
 int readyDelay;
-bool blockSecretSpam[MAXPLAYERS+1];
 
 //AFK?!
 float g_fButtonTime[MAXPLAYERS+1];
@@ -111,13 +112,13 @@ public void OnPluginStart()
 	l4d_ready_max_players		= CreateConVar("l4d_ready_max_players", "12", "Maximum number of players to show on the ready-up panel.", FCVAR_NOTIFY, true, 0.0, true, MAXPLAYERS+1.0);
 	l4d_ready_delay				= CreateConVar("l4d_ready_delay", "5", "Number of seconds to count down before the round goes live.", FCVAR_NOTIFY, true, 0.0);
 	l4d_ready_enable_sound		= CreateConVar("l4d_ready_enable_sound", "1", "Enable sound during countdown & on live");
-	l4d_ready_countdown_sound	= CreateConVar("l4d_ready_countdown_sound", "weapons/hegrenade/beep.wav", "The sound that plays when a round goes on countdown");	
-	l4d_ready_live_sound		= CreateConVar("l4d_ready_live_sound", "ui/survival_medal.wav", "The sound that plays when a round goes live");
+	l4d_ready_countdown_sound	= CreateConVar("l4d_ready_countdown_sound", DEFAULT_COUNTDOWN_SOUND, "The sound that plays when a round goes on countdown");	
+	l4d_ready_live_sound		= CreateConVar("l4d_ready_live_sound", DEFAULT_LIVE_SOUND, "The sound that plays when a round goes live");
 	l4d_ready_chuckle			= CreateConVar("l4d_ready_chuckle", "0", "Enable random moustachio chuckle during countdown");
 	l4d_ready_secret			= CreateConVar("l4d_ready_secret", "1", "Play something suck", _, true, 0.0, true, 1.0);
 
-	HookEvent("round_start", RoundStart_Event);
-	HookEvent("player_team", PlayerTeam_Event);
+	HookEvent("round_start", RoundStart_Event, EventHookMode_PostNoCopy);
+	HookEvent("player_team", PlayerTeam_Event, EventHookMode_Pre);
 
 	casterTrie = new StringMap();
 	//allowedCastersTrie = new StringMap();
@@ -193,17 +194,24 @@ public void PlayerTeam_Event(Event event, const char[] name, bool dontBroadcast)
 {
 	if (!inReadyUp) return;
 	
-	int client = GetClientOfUserId(GetEventInt(event, "userid"));
+	int client = GetClientOfUserId(event.GetInt("userid"));
 	if (!client || IsFakeClient(client)) return;
 	
 	isPlayerReady[client] = false;
 	SetEngineTime(client);
 	
-	if (!g_hChangeTeamTimer[client])
+	int team = event.GetInt("team");
+	int oldteam = event.GetInt("oldteam");
+	if (team == L4D2Team_None && oldteam != L4D2Team_Spectator) // Player disconnecting
+	{
+		CancelFullReady(client, playerDisconn);
+	}
+	
+	else if (!g_hChangeTeamTimer[client]) // Player in-game swapping team
 	{
 		ArrayStack stack = new ArrayStack();
 		stack.Push(client);
-		stack.Push(event.GetInt("oldteam"));
+		stack.Push(oldteam);
 		g_hChangeTeamTimer[client] = CreateTimer(0.1, Timer_PlayerTeam, stack, TIMER_FLAG_NO_MAPCHANGE);
 	}
 }
@@ -213,12 +221,15 @@ public Action Timer_PlayerTeam(Handle timer, ArrayStack stack)
 	int oldteam = stack.Pop();
 	int client = stack.Pop();
 	
-	if (IsClientInGame(client) && inLiveCountdown)
+	if (inLiveCountdown)
 	{
-		int team = GetClientTeam(client);
-		if (team != oldteam)
+		if (IsClientInGame(client))
 		{
-			CancelFullReady(client, teamShuffle);
+			int team = GetClientTeam(client);
+			if (team != oldteam)
+			{
+				CancelFullReady(client, teamShuffle);
+			}
 		}
 	}
 	
@@ -235,7 +246,7 @@ public Action Timer_PlayerTeam(Handle timer, ArrayStack stack)
 public void OnMapStart()
 {
 	/* OnMapEnd needs this to work */
-	static char szPath[PLATFORM_MAX_PATH];
+	char szPath[PLATFORM_MAX_PATH];
 	
 	l4d_ready_countdown_sound.GetString(countdownSound, sizeof(countdownSound));
 	l4d_ready_live_sound.GetString(liveSound, sizeof(liveSound));
@@ -250,7 +261,7 @@ public void OnMapStart()
 		strcopy(liveSound, sizeof(liveSound), DEFAULT_LIVE_SOUND);
 	}
 	
-	PrecacheSound(SOUND);
+	PrecacheSound(SECRET_SOUND);
 	PrecacheSound(countdownSound);
 	PrecacheSound(liveSound);
 	for (int i = 0; i < MAX_SOUNDS; i++)
@@ -259,7 +270,7 @@ public void OnMapStart()
 	}
 	for (int client = 1; client <= MAXPLAYERS; client++)
 	{
-		blockSecretSpam[client] = false;
+		blockSecretSpam[client] = null;
 		g_hChangeTeamTimer[client] = null;
 	}
 	readyCountdownTimer = null;
@@ -280,9 +291,6 @@ public void OnClientDisconnect(int client)
 	g_iLastMouse[client][0] = 0;
 	g_iLastMouse[client][1] = 0;
 	g_hChangeTeamTimer[client] = null;
-	if (!IsFakeClient(client) && IsPlayer(client)) {
-		CancelFullReady(client, playerDisconn);
-	}
 }
 
 /* No need to do any other checks since it seems like this is required no matter what since the intros unfreezes players after the animation completes */
@@ -1079,7 +1087,6 @@ void InitiateReadyUp()
 		director_no_specials.SetBool(true);
 	}
 
-	DisableEntities();
 	sv_infinite_primary_ammo.Flags &= ~FCVAR_NOTIFY;
 	sv_infinite_primary_ammo.SetBool(true);
 	sv_infinite_primary_ammo.Flags |= FCVAR_NOTIFY;
@@ -1114,7 +1121,6 @@ void InitiateLive(bool real = true)
 
 	SetTeamFrozen(L4D2Team_Survivor, false);
 
-	EnableEntities();
 	sv_infinite_primary_ammo.Flags &= ~FCVAR_NOTIFY;
 	sv_infinite_primary_ammo.SetBool(false);
 	sv_infinite_primary_ammo.Flags |= FCVAR_NOTIFY;
@@ -1295,58 +1301,6 @@ void SetTeamFrozen(int team, bool freezeStatus)
 	}
 }
 
-void DisableEntities()
-{
-	ActivateEntities("prop_door_rotating", "SetUnbreakable");
-	MakePropsUnbreakable();
-}
-
-void EnableEntities()
-{
-	ActivateEntities("prop_door_rotating", "SetBreakable");
-	MakePropsBreakable();
-}
-
-void ActivateEntities(const char[] className, const char[] inputName)
-{ 
-	int iEntity = MaxClients+1;
-
-	while ((iEntity = FindEntityByClassname(iEntity, className)) != -1)
-	{
-		if (!IsValidEdict(iEntity) || !IsValidEntity(iEntity)) {
-			continue;
-		}
-		
-		AcceptEntityInput(iEntity, inputName);
-	}
-}
-
-void MakePropsUnbreakable()
-{
-	int iEntity = MaxClients+1;
-	
-	while ((iEntity = FindEntityByClassname(iEntity, "prop_physics")) != -1)
-	{
-		if (!IsValidEdict(iEntity) || !IsValidEntity(iEntity)) {
-			continue;
-		}
-		DispatchKeyValueFloat(iEntity, "minhealthdmg", 10000.0);
-	}
-}
-
-void MakePropsBreakable()
-{
-	int iEntity = MaxClients+1;
-    
-	while ((iEntity = FindEntityByClassname(iEntity, "prop_physics")) != -1)
-	{
-		if (!IsValidEdict(iEntity) ||  !IsValidEntity(iEntity)) {
-			continue;
-		}
-		DispatchKeyValueFloat(iEntity, "minhealthdmg", 0.0);
-	}
-}
-
 void SetEngineTime(int client)
 {
 	g_fButtonTime[client] = GetEngineTime();
@@ -1375,15 +1329,14 @@ void DoSecrets(int client)
 		CreateTimer(5.0, killParticle, particle, TIMER_FLAG_NO_MAPCHANGE);
 		EmitSoundToAll("/level/gnomeftw.wav", client, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
 		CreateTimer(2.5, killSound);
-		CreateTimer(5.0, SecretSpamDelay, client);
-		blockSecretSpam[client] = true;
+		blockSecretSpam[client] = CreateTimer(5.0, SecretSpamDelay, client);
 	}
 	PrintCenterTextAll("\x42\x4f\x4e\x45\x53\x41\x57\x20\x49\x53\x20\x52\x45\x41\x44\x59\x21");
 }
 
 public Action SecretSpamDelay(Handle timer, int client)
 {
-	blockSecretSpam[client] = false;
+	blockSecretSpam[client] = null;
 }
 
 public Action killParticle(Handle timer, int entity)
@@ -1398,7 +1351,7 @@ public Action killSound(Handle timer)
 {
 	for (int i = 1; i <= MaxClients; i++)
 	if (IsClientInGame(i) && !IsFakeClient(i))
-	StopSound(i, SNDCHAN_AUTO, SOUND);
+	StopSound(i, SNDCHAN_AUTO, SECRET_SOUND);
 }
 
 
