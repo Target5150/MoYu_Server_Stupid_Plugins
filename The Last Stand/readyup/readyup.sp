@@ -36,7 +36,7 @@ public Plugin myinfo =
 };
 
 // Game Cvars
-ConVar	director_no_specials, god, sb_stop, survivor_limit, z_max_player_zombies, sv_infinite_primary_ammo;
+ConVar	director_no_specials, god, sb_stop, survivor_limit, z_max_player_zombies, sv_infinite_primary_ammo, scavenge_round_setup_time;
 
 // Plugin Cvars
 ConVar	l4d_ready_disable_spawns, l4d_ready_survivor_freeze,
@@ -78,7 +78,7 @@ enum disruptType
 	readyStatus,
 	teamShuffle,
 	playerDisconn
-}
+};
 
 static const char chuckleSound[MAX_SOUNDS][] =
 {
@@ -129,6 +129,7 @@ public void OnPluginStart()
 	survivor_limit = FindConVar("survivor_limit");
 	z_max_player_zombies = FindConVar("z_max_player_zombies");
 	sv_infinite_primary_ammo = FindConVar("sv_infinite_primary_ammo");
+	scavenge_round_setup_time = FindConVar("scavenge_round_setup_time");
 
 	// Ready Commands
 	RegConsoleCmd("sm_ready",		Ready_Cmd, "Mark yourself as ready for the round to go live");
@@ -221,9 +222,9 @@ public Action Timer_PlayerTeam(Handle timer, ArrayStack stack)
 	int oldteam = stack.Pop();
 	int client = stack.Pop();
 	
-	if (inLiveCountdown)
+	if (IsClientInGame(client))
 	{
-		if (IsClientInGame(client))
+		if (inLiveCountdown)
 		{
 			int team = GetClientTeam(client);
 			if (team != oldteam)
@@ -231,10 +232,18 @@ public Action Timer_PlayerTeam(Handle timer, ArrayStack stack)
 				CancelFullReady(client, teamShuffle);
 			}
 		}
+		
+		if (IsScavenge()) CreateTimer(0.3, Timer_HideCountdown, GetClientUserId(client));
 	}
 	
 	delete stack;
 	g_hChangeTeamTimer[client] = null;
+}
+
+public Action Timer_HideCountdown(Handle timer, int userid)
+{
+	int client = GetClientOfUserId(userid);
+	if (client > 0) HideCountdown(client);
 }
 
 
@@ -1095,7 +1104,11 @@ void InitiateReadyUp()
 	god.Flags |= FCVAR_NOTIFY;
 	sb_stop.SetBool(true);
 
-	L4D2_CTimerStart(L4D2CT_VersusStartTimer, 99999.9);
+	if (IsScavenge()) {
+		scavenge_round_setup_time.FloatValue = 99999.9;
+		HideCountdown();
+	}
+	else L4D2_CTimerStart(L4D2CT_VersusStartTimer, 99999.9);
 }
 
 void PrintCmd()
@@ -1130,7 +1143,11 @@ void InitiateLive(bool real = true)
 	god.Flags |= FCVAR_NOTIFY;
 	sb_stop.SetBool(false);
 	
-	L4D2_CTimerStart(L4D2CT_VersusStartTimer, 60.0);
+	if (IsScavenge()) {
+		scavenge_round_setup_time.FloatValue = 45.0;
+		InitiateCountdown();
+	}
+	else L4D2_CTimerStart(L4D2CT_VersusStartTimer, 60.0);
 
 	for (int i = 0; i < 4; i++)
 	{
@@ -1152,8 +1169,8 @@ void InitiateLive(bool real = true)
 	else if (readyCountdownTimer != null)
 	{
 		// TIMER_FLAG_NO_MAPCHANGE doesn't free the timer handle.
-		// So here manually close it to prevent issues and handle leak.
-		delete readyCountdownTimer;
+		// So here manually clear it to prevent issues.
+		readyCountdownTimer = null;
 	}
 }
 
@@ -1306,6 +1323,53 @@ void SetEngineTime(int client)
 	g_fButtonTime[client] = GetEngineTime();
 }
 
+bool IsScavenge()
+{
+	static ConVar mp_gamemode;
+	
+	if (mp_gamemode == null)
+	{
+		mp_gamemode = FindConVar("mp_gamemode");
+	}
+	
+	char sGamemode[16];
+	mp_gamemode.GetString(sGamemode, sizeof(sGamemode));
+	
+	return strcmp(sGamemode, "scavenge") == 0;
+}
+
+void InitiateCountdown()
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && !IsFakeClient(i))
+		{
+			ShowVGUIPanel(i, "ready_countdown", _, true);
+		}
+	}
+
+	//CTimer_Start(L4D2Direct_GetScavengeRoundSetupTimer(), duration);
+}
+
+//void StopCountdown()
+//{
+//	CTimer_Start(L4D2Direct_GetScavengeRoundSetupTimer(), 9999.9);
+//}
+
+void HideCountdown(int client = 0)
+{
+	if (client > 0 && IsClientInGame(client)) ShowVGUIPanel(client, "ready_countdown", _, false);
+	else
+	{
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			if (IsClientInGame(i) && !IsFakeClient(i))
+			{
+				ShowVGUIPanel(i, "ready_countdown", _, false);
+			}
+		}
+	}
+}
 
 
 // ========================

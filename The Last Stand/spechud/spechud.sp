@@ -17,7 +17,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION	"3.4.0"
+#define PLUGIN_VERSION	"3.4.2"
 
 public Plugin myinfo = 
 {
@@ -117,7 +117,7 @@ int iFirstHalfScore;
 bool bScoremod, bHybridScoremod, bNextScoremod;
 
 // Hud Toggle & Hint Message
-bool bSpecHudActive[MAXPLAYERS+1], bTankHudActive[MAXPLAYERS+1];
+bool bSpecHudActive[MAXPLAYERS+1], bTankHudActive[MAXPLAYERS+1], bDebugActive[MAXPLAYERS+1];
 bool bSpecHudHintShown[MAXPLAYERS+1], bTankHudHintShown[MAXPLAYERS+1];
 
 public void OnPluginStart()
@@ -157,7 +157,7 @@ public void OnPluginStart()
 	survivor_limit.AddChangeHook(OnGameConVarChanged);
 	z_max_player_zombies.AddChangeHook(OnGameConVarChanged);
 	versus_boss_buffer.AddChangeHook(OnGameConVarChanged);
-	mp_gamemode.AddChangeHook(view_as<ConVarChanged>(GetCurrentGameMode));
+	mp_gamemode.AddChangeHook(OnGameConVarChanged);
 	sv_maxplayers.AddChangeHook(OnGameConVarChanged);
 
 	fMinUpdateRate		= cVarMinUpdateRate.FloatValue;
@@ -184,6 +184,8 @@ public void OnPluginStart()
 	RegServerCmd("tank_map_only_first_event",		SetMapSecondTankSpawningScheme);
 	RegServerCmd("finale_tank_default",				SetFinaleExceptionMap);
 	
+	RegAdminCmd("sm_debugspechud", DebugSpecHudCmd, ADMFLAG_CHEATS);
+	
 	HookEvent("round_end",		view_as<EventHook>(Event_RoundEnd), EventHookMode_PostNoCopy);
 	HookEvent("player_death",	Event_PlayerDeath);
 	HookEvent("witch_killed",	Event_WitchDeath);
@@ -205,6 +207,7 @@ public void OnGameConVarChanged(ConVar convar, const char[] oldValue, const char
 	iSurvivorLimit		= survivor_limit.IntValue;
 	iMaxPlayerZombies	= z_max_player_zombies.IntValue;
 	fVersusBossBuffer	= versus_boss_buffer.FloatValue;
+	GetCurrentGameMode();
 	iMaxPlayers			= sv_maxplayers.IntValue;
 	fTankBurnDuration	= tank_burn_duration.FloatValue;
 	fPainPillsDecayRate	= pain_pills_decay_rate.FloatValue;
@@ -291,30 +294,35 @@ public void OnRoundIsLive()
 	
 	bIsLive = true;
 	
+	GetCurrentGameMode();
+	
 	//for (int i = 1; i <= MaxClients; ++i) storedClass[i] = ZC_None;
 	
-	bRoundHasFlowTank = RoundHasFlowTank();
-	bRoundHasFlowWitch = RoundHasFlowWitch();
-	
-	iTankCount = 0;
-	iWitchCount = GetConVarBool(l4d_witch_percent) ? 1 : 0;
-	
-	if (GetConVarBool(l4d_tank_percent))
+	if (g_Gamemode == L4D2Gamemode_Versus)
 	{
-		iTankCount = 1;
-		bFlowTankActive = bRoundHasFlowTank;
+		bRoundHasFlowTank = RoundHasFlowTank();
+		bRoundHasFlowWitch = RoundHasFlowWitch();
 		
-		static char mapname[64], dummy;
-		GetCurrentMap(mapname, sizeof(mapname));
+		iTankCount = 0;
+		iWitchCount = GetConVarBool(l4d_witch_percent) ? 1 : 0;
 		
-		if (strcmp(mapname, "hf03_themansion") == 0) iTankCount += 1;
-		else if (!IsDarkCarniRemix() && L4D_IsMissionFinalMap())
+		if (GetConVarBool(l4d_tank_percent))
 		{
-			iTankCount = 3
-						- view_as<int>(hFirstTankSpawningScheme.GetValue(mapname, dummy))
-						- view_as<int>(hSecondTankSpawningScheme.GetValue(mapname, dummy))
-						- view_as<int>(hFinaleExceptionMaps.Size > 0 && !hFinaleExceptionMaps.GetValue(mapname, dummy))
-						- view_as<int>(IsStaticTankMap());
+			iTankCount = 1;
+			bFlowTankActive = bRoundHasFlowTank;
+			
+			static char mapname[64], dummy;
+			GetCurrentMap(mapname, sizeof(mapname));
+			
+			if (strcmp(mapname, "hf03_themansion") == 0) iTankCount += 1;
+			else if (!IsDarkCarniRemix() && L4D_IsMissionFinalMap())
+			{
+				iTankCount = 3
+							- view_as<int>(hFirstTankSpawningScheme.GetValue(mapname, dummy))
+							- view_as<int>(hSecondTankSpawningScheme.GetValue(mapname, dummy))
+							- view_as<int>(hFinaleExceptionMaps.Size > 0 && !hFinaleExceptionMaps.GetValue(mapname, dummy))
+							- view_as<int>(IsStaticTankMap());
+			}
 		}
 	}
 }
@@ -363,6 +371,12 @@ public Action ToggleTankHudCmd(int client, int args)
 	CPrintToChat(client, "<{olive}HUD{default}> Tank HUD is now %s.", (bTankHudActive[client] ? "{blue}on{default}" : "{red}off{default}"));
 }
 
+public Action DebugSpecHudCmd(int client, int args)
+{
+	bDebugActive[client] = !bDebugActive[client];
+	CPrintToChat(client, "<{olive}HUD{default}> Spectator HUD debugging is now %s.", (bDebugActive[client] ? "{blue}on{default}" : "{red}off{default}"));
+}
+
 public Action HudDrawTimer(Handle hTimer)
 {
 	if (IsInReady() || IsInPause())
@@ -371,7 +385,7 @@ public Action HudDrawTimer(Handle hTimer)
 	bool bSpecsOnServer = false;
 	for (int i = 1; i <= MaxClients; ++i)
 	{
-		if (IsSpectator(i) && (bSpecHudActive[i] || IsClientSourceTV(i)))
+		if( bDebugActive[i] || ( IsSpectator(i) && (bSpecHudActive[i] || IsClientSourceTV(i)) ) )
 		{
 			bSpecsOnServer = true;
 			break;
@@ -391,7 +405,7 @@ public Action HudDrawTimer(Handle hTimer)
 
 		for (int i = 1; i <= MaxClients; ++i)
 		{
-			if (!IsSpectator(i) || (IsFakeClient(i) && !IsClientSourceTV(i)) || !bSpecHudActive[i])
+			if( !IsClientInGame(i) || ( !bDebugActive[i] && ( GetClientTeam(i) != 1 || (IsFakeClient(i) && !IsClientSourceTV(i)) || !bSpecHudActive[i] ) ) )
 				continue;
 
 			SendPanelToClient(specHud, i, DummySpecHudHandler, 3);
@@ -679,13 +693,7 @@ void FillInfectedInfo(Panel hSpecHud)
 		GetClientFixedName(client, name, sizeof(name));
 		if (!IsPlayerAlive(client)) 
 		{
-			CountdownTimer spawnTimer = L4D2Direct_GetSpawnTimer(client);
-			float timeLeft = -1.0;
-			if (spawnTimer != CTimer_Null)
-			{
-				timeLeft = CTimer_GetRemainingTime(spawnTimer);
-			}
-
+			float timeLeft = L4D_GetPlayerSpawnTime(client) - GetGameTime();
 			if (timeLeft < 0.0)
 			{
 				FormatEx(info, sizeof(info), "%s: Dead", name);
@@ -1240,9 +1248,9 @@ int GetSurvivorTemporaryHealth(int client)
 	return (temphp > 0 ? temphp : 0);
 }
 
-public void GetCurrentGameMode()
+void GetCurrentGameMode()
 {
-	static char sGameMode[32];
+	char sGameMode[32];
 	GetConVarString(mp_gamemode, sGameMode, sizeof(sGameMode));
 	
 	if (strcmp(sGameMode, "scavenge") == 0)

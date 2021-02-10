@@ -112,26 +112,7 @@ public void OnClientDisconnect(int client)
 	bIgnoreJockeyed[client] = false;
 	SDKUnhook(client, SDKHook_OnTakeDamage, OnTakeDamage);
 	SDKUnhook(client, SDKHook_OnTakeDamagePost, OnTakeDamagePost);
-	
-	if (!GetConVarBool(cvar_longChargeGetUpFixEnabled)) return;
-	if (!IsClientInGame(client)) return;
-	
-	if (GetClientTeam(client) == TEAM_INFECTED)
-	{
-		ChargerTarget[client] = -1;
-	}
-	else if (GetClientTeam(client) == TEAM_SURVIVOR)
-	{
-		for (int i = 0; i <= MaxClients; i++)
-		{
-			if (ChargerTarget[i] == client)
-			{
-				int newChargerTarget = GetEntDataEnt2(i, 15972);
-				ChargerTarget[i] = newChargerTarget;
-			}
-		}
-	}
-} 
+}
 
 public void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
 { // Wall Slam Charge Checks
@@ -148,18 +129,15 @@ public void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
 	}
 	else if (oldTeam == TEAM_SURVIVOR)
 	{
+		bWallSlamed[client] = false;
+		bInForcedGetUp[client] = false;
+		bIgnoreJockeyed[client] = false;
 		for (int i = 0; i <= MaxClients; i++)
 		{
 			if (ChargerTarget[i] == client)
 			{
 				int newChargerTarget = GetEntDataEnt2(i, 15972);
 				ChargerTarget[i] = newChargerTarget;
-				
-				if (bInForcedGetUp[client])
-				{
-					bInForcedGetUp[client] = false;
-					bInForcedGetUp[newChargerTarget] = true;
-				}
 			}
 		}
 	}
@@ -178,27 +156,33 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 	{
 		// CHARGE IMPACT
 		bWallSlamed[victim] = true;
+		
+		// In case this damage is blocked
+		// (barely happen since charger cannot impact one godframed)
+		CreateTimer(0.1, Timer_Uncheck, victim);
 	}
+}
+
+public Action Timer_Uncheck(Handle timer, int victim)
+{
+	bWallSlamed[victim] = false;
 }
 
 public void OnTakeDamagePost(int victim, int attacker, int inflictor, float damage, int damagetype)
 {
-	if (IsSurvivor(victim))
+	if (victim <= MaxClients && bWallSlamed[victim])
 	{
-		if (bWallSlamed[victim])
+		bWallSlamed[victim] = false;
+		if (IsSurvivor(victim) && IsPlayerAlive(victim) && !IsPlayerIncap(victim))
 		{
-			bWallSlamed[victim] = false;
-			if (IsPlayerAlive(victim) && !IsPlayerIncap(victim))
-			{
-				//int jockeyAttacker = GetJockeyAttacker(victim);
-				//if (IsJockey(jockeyAttacker)) {
-				//	PrintToChatAll("\x01 - \x03Checked being Jockeyed");
-				//	ForceJockeyDismount(jockeyAttacker);
-				//}
-				ChargerTarget[attacker] = victim;
-				bInForcedGetUp[victim] = true;
-				PlayClientGetUpAnimation(victim);
-			}
+			//int jockeyAttacker = GetJockeyAttacker(victim);
+			//if (IsJockey(jockeyAttacker)) {
+			//	PrintToChatAll("\x01 - \x03Checked being Jockeyed");
+			//	ForceJockeyDismount(jockeyAttacker);
+			//}
+			ChargerTarget[attacker] = victim;
+			bInForcedGetUp[victim] = true;
+			PlayClientGetUpAnimation(victim);
 		}
 	}
 }

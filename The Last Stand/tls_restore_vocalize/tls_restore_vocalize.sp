@@ -5,7 +5,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.2.3"
+#define PLUGIN_VERSION "1.2.4"
 
 public Plugin myinfo = 
 {
@@ -496,7 +496,7 @@ static const char g_szFrancisScreams[][] =
 };
 
 ConVar g_cvGamemode;
-bool g_bCompetitive;
+bool g_bVersus;
 
 StringMap g_hSurvMdlTrie;
 
@@ -512,91 +512,91 @@ public void OnMapStart()
 {
 	int i;
 	for (i = 0; i < MAX_NICK_LAUGH; ++i) {
-		PrecacheGeneric(g_szNickLaughs[i], true);
+		PrecacheSceneEx(g_szNickLaughs[i]);
 	}
 	for (i = 0; i < MAX_NICK_TAUNT; ++i) {
-		PrecacheGeneric(g_szNickTaunts[i], true);
+		PrecacheSceneEx(g_szNickTaunts[i]);
 	}
 	for (i = 0; i < MAX_NICK_SCREAM; ++i) {
-		PrecacheGeneric(g_szNickScreams[i], true);
+		PrecacheSceneEx(g_szNickScreams[i]);
 	}
 	for (i = 0; i < MAX_ROCHELLE_LAUGH; ++i) {
-		PrecacheGeneric(g_szRochelleLaughs[i], true);
+		PrecacheSceneEx(g_szRochelleLaughs[i]);
 	}
 	for (i = 0; i < MAX_ROCHELLE_TAUNT; ++i) {
-		PrecacheGeneric(g_szRochelleTaunts[i], true);
+		PrecacheSceneEx(g_szRochelleTaunts[i]);
 	}
 	for (i = 0; i < MAX_ROCHELLE_SCREAM; ++i) {
-		PrecacheGeneric(g_szRochelleScreams[i], true);
+		PrecacheSceneEx(g_szRochelleScreams[i]);
 	}
 	for (i = 0; i < MAX_COACH_LAUGH; ++i) {
-		PrecacheGeneric(g_szCoachLaughs[i], true);
+		PrecacheSceneEx(g_szCoachLaughs[i]);
 	}
 	for (i = 0; i < MAX_COACH_TAUNT; ++i) {
-		PrecacheGeneric(g_szCoachTaunts[i], true);
+		PrecacheSceneEx(g_szCoachTaunts[i]);
 	}
 	for (i = 0; i < MAX_COACH_SCREAM; ++i) {
-		PrecacheGeneric(g_szCoachScreams[i], true);
+		PrecacheSceneEx(g_szCoachScreams[i]);
 	}
 	for (i = 0; i < MAX_ELLIS_LAUGH; ++i) {
-		PrecacheGeneric(g_szEllisLaughs[i], true);
+		PrecacheSceneEx(g_szEllisLaughs[i]);
 	}
 	for (i = 0; i < MAX_ELLIS_TAUNT; ++i) {
-		PrecacheGeneric(g_szEllisTaunts[i], true);
+		PrecacheSceneEx(g_szEllisTaunts[i]);
 	}
 	for (i = 0; i < MAX_ELLIS_SCREAM; ++i) {
-		PrecacheGeneric(g_szEllisScreams[i], true);
+		PrecacheSceneEx(g_szEllisScreams[i]);
 	}
 	for (i = 0; i < MAX_BILL_LAUGH; ++i) {
-		PrecacheGeneric(g_szBillLaughs[i], true);
+		PrecacheSceneEx(g_szBillLaughs[i]);
 	}
 	for (i = 0; i < MAX_BILL_TAUNT; ++i) {
-		PrecacheGeneric(g_szBillTaunts[i], true);
+		PrecacheSceneEx(g_szBillTaunts[i]);
 	}
 	for (i = 0; i < MAX_BILL_SCREAM; ++i) {
-		PrecacheGeneric(g_szBillScreams[i], true);
+		PrecacheSceneEx(g_szBillScreams[i]);
 	}
 	for (i = 0; i < MAX_ZOEY_LAUGH; ++i) {
-		PrecacheGeneric(g_szZoeyLaughs[i], true);
+		PrecacheSceneEx(g_szZoeyLaughs[i]);
 	}
 	for (i = 0; i < MAX_ZOEY_TAUNT; ++i) {
-		PrecacheGeneric(g_szZoeyTaunts[i], true);
+		PrecacheSceneEx(g_szZoeyTaunts[i]);
 	}
 	for (i = 0; i < MAX_ZOEY_SCREAM; ++i) {
-		PrecacheGeneric(g_szZoeyScreams[i], true);
+		PrecacheSceneEx(g_szZoeyScreams[i]);
 	}
 	for (i = 0; i < MAX_LOUIS_LAUGH; ++i) {
-		PrecacheGeneric(g_szLouisLaughs[i], true);
+		PrecacheSceneEx(g_szLouisLaughs[i]);
 	}
 	for (i = 0; i < MAX_LOUIS_TAUNT; ++i) {
-		PrecacheGeneric(g_szLouisTaunts[i], true);
+		PrecacheSceneEx(g_szLouisTaunts[i]);
 	}
 	for (i = 0; i < MAX_LOUIS_SCREAM; ++i) {
-		PrecacheGeneric(g_szLouisScreams[i], true);
+		PrecacheSceneEx(g_szLouisScreams[i]);
 	}
 	for (i = 0; i < MAX_FRANCIS_LAUGH; ++i) {
-		PrecacheGeneric(g_szFrancisLaughs[i], true);
+		PrecacheSceneEx(g_szFrancisLaughs[i]);
 	}
 	for (i = 0; i < MAX_FRANCIS_TAUNT; ++i) {
-		PrecacheGeneric(g_szFrancisTaunts[i], true);
+		PrecacheSceneEx(g_szFrancisTaunts[i]);
 	}
 	for (i = 0; i < MAX_FRANCIS_SCREAM; ++i) {
-		PrecacheGeneric(g_szFrancisScreams[i], true);
+		PrecacheSceneEx(g_szFrancisScreams[i]);
 	}
 }
 
 public void OnConfigsExecuted()
 {
-	CheckCompetitive();
+	CheckVersus();
 }
 
 public void OnGamemodeChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	CheckCompetitive();
+	CheckVersus();
 }
 
 // credit to SilverShot
-void CheckCompetitive()
+void CheckVersus()
 {
 	int entity = CreateEntityByName("info_gamemode");
 	if( IsValidEntity(entity) )
@@ -615,15 +615,15 @@ void CheckCompetitive()
 
 public void OnGamemode(const char[] output, int caller, int activator, float delay)
 {
-	if( strcmp(output, "OnCoop") == 0 || strcmp(output, "OnSurvival") == 0 )
-		g_bCompetitive = false;
-	else if( strcmp(output, "OnVersus") == 0 || strcmp(output, "OnScavenge") == 0 )
-		g_bCompetitive = true;
+	if( strcmp(output, "OnCoop") == 0 || strcmp(output, "OnSurvival") == 0 || strcmp(output, "OnScavenge") == 0 )
+		g_bVersus = false;
+	else if( strcmp(output, "OnVersus") == 0 )
+		g_bVersus = true;
 }
 
 public Action OnVocalizeCommand(int client, const char[] vocalize, int initiator)
 {
-	if (!g_bCompetitive) return;
+	if (!g_bVersus) return;
 	
 	if (!IsSurvivor(client) || !IsPlayerAlive(client)) return;
 	
@@ -637,14 +637,7 @@ public Action OnVocalizeCommand(int client, const char[] vocalize, int initiator
 
 	char szVoiceFile[PLATFORM_MAX_PATH];
 	PickVoice(szVoiceFile, sizeof(szVoiceFile), emVocalize, emCharacter);
-	if (FileExists(szVoiceFile, true))
-	{
-		PerformScene(client, g_szVocalizeNames[emVocalize], szVoiceFile);
-	}
-	else
-	{
-		LogError("[VocalRestore] Unable to open scene file (%s)", szVoiceFile);
-	}
+	PerformScene(client, g_szVocalizeNames[emVocalize], szVoiceFile);
 }
 
 void PickVoice(char[] szFile, int maxlength, Vocalize emVocalize, SurvivorCharacter emCharacter)
@@ -701,14 +694,63 @@ void PickVoice(char[] szFile, int maxlength, Vocalize emVocalize, SurvivorCharac
 
 Vocalize IdentifyVocalize(const char[] szVocalize)
 {
-	if (strcmp(szVocalize, g_szVocalizeNames[Vocal_PlayerLaugh]) == 0) {
-		return Vocal_PlayerLaugh;
-	} else if (strcmp(szVocalize, g_szVocalizeNames[Vocal_PlayerTaunt]) == 0) {
-		return Vocal_PlayerTaunt;
-	} else if (strcmp(szVocalize, g_szVocalizeNames[Vocal_Playerdeath]) == 0) {
-		return Vocal_Playerdeath;
-	}
+	for (Vocalize i; i < Vocalize; i++)
+		if (strcmp(szVocalize, g_szVocalizeNames[i]) == 0)
+			return i;
+			
 	return NULL_VOCALIZE;
+}
+
+void PrecacheSceneEx(const char[] scene)
+{
+	static int sceneNames = INVALID_STRING_TABLE;
+
+	if (sceneNames == INVALID_STRING_TABLE)
+	{
+		sceneNames = FindStringTable("Scenes");
+		if (sceneNames == INVALID_STRING_TABLE)
+		{
+			LogError("[VocalRestore] Unable to find string table \"Scenes\" when precaching (%s).", scene);
+		}
+	}
+	
+	if (FindStringIndex(sceneNames, scene) == INVALID_STRING_INDEX)
+	{
+		if (GetStringTableNumStrings(sceneNames) < GetStringTableMaxStrings(sceneNames))
+		{
+			AddToStringTable(sceneNames, scene);
+			return;
+		}
+		else
+		{
+			LogError("[VocalRestore] Unable to precache scene (%s) due to exceeding string table limits.", scene);
+		}
+	}
+}
+
+/*
+ * Rewrite of FindStringIndex, because in my tests
+ * FindStringIndex failed to work correctly.
+ * Searches for the index of a given string in a string table.
+ *
+ * @param tableidx		A string table index.
+ * @param str			String to find.
+ * @return				String index if found, INVALID_STRING_INDEX otherwise.
+ */
+stock int FindStringIndex2(int tableidx, const char[] str)
+{
+	char buf[1024];
+
+	int numStrings = GetStringTableNumStrings(tableidx);
+	for (int i=0; i < numStrings; i++) {
+		ReadStringTable(tableidx, i, buf, sizeof(buf));
+
+		if (strcmp(buf, str) == 0) {
+			return i;
+		}
+	}
+
+	return INVALID_STRING_INDEX;
 }
 
 /**

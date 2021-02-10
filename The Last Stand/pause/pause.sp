@@ -190,8 +190,8 @@ public void OnClientDisconnect_Post(int client)
 
 public void OnMapEnd()
 {
-	if (readyCountdownTimer != null) delete readyCountdownTimer;
-	if (deferredPauseTimer != null) delete deferredPauseTimer;
+	readyCountdownTimer = null;
+	deferredPauseTimer = null;
 }
 
 public void RoundEnd_Event(Event event, const char[] name, bool dontBroadcast)
