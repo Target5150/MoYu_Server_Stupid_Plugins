@@ -17,7 +17,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION	"3.4.2"
+#define PLUGIN_VERSION	"3.4.3"
 
 public Plugin myinfo = 
 {
@@ -872,7 +872,7 @@ void FillGameInfo(Panel hSpecHud)
 {
 	// Turns out too much info actually CAN be bad, funny ikr
 	static char info[512];
-	static char buffer[16];
+	static char buffer[32];
 
 	if (g_Gamemode == L4D2Gamemode_Scavenge)
 	{
@@ -1217,7 +1217,7 @@ int GetHighestSurvivorFlow()
 	
 	int client = L4D_GetHighestFlowSurvivor();
 	if (client > 0) {
-		flow = L4D2_GetVersusCompletionPlayer(client) + RoundToNearest(100.0 * fVersusBossBuffer / L4D2Direct_GetMapMaxFlowDistance());
+		flow = RoundToNearest(100.0 * (L4D2Direct_GetFlowDistance(client) + fVersusBossBuffer) / L4D2Direct_GetMapMaxFlowDistance());
 	}
 	
 	return MIN(flow, 100);
