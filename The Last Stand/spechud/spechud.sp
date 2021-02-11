@@ -902,8 +902,9 @@ void FillGameInfo(Panel hSpecHud)
 
 		int tankPercent = GetStoredTankPercent();
 		int witchPercent = GetStoredWitchPercent();
-		int highestFlow = GetHighestSurvivorFlow();
-		int furthestFlow = GetFurthestSurvivorFlow();
+		int survivorFlow = GetHighestSurvivorFlow();
+		if (survivorFlow == -1)
+			survivorFlow = GetFurthestSurvivorFlow();
 		
 		bool bDivide = false;
 				
@@ -929,17 +930,10 @@ void FillGameInfo(Panel hSpecHud)
 		}
 		
 		// current
-		if (highestFlow == -1) {
-			FormatEx(buffer, sizeof(buffer), "Ultimate Progress: %i%%", furthestFlow);
-		} else {
-			FormatEx(buffer, sizeof(buffer), "Cur: %i%%", highestFlow);
-		}
-		
 		if (bDivide) {
-			StrCat(info, sizeof(info), " | ");
-			StrCat(info, sizeof(info), buffer);
+			Format(info, sizeof(info), "%s | Cur: %i%%", info, survivorFlow);
 		} else {
-			strcopy(info, sizeof(info), buffer);
+			FormatEx(info, sizeof(info), "Cur: %i%%", survivorFlow);
 		}
 		
 		DrawPanelText(hSpecHud, info);
