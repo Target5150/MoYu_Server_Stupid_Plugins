@@ -161,7 +161,7 @@ public int Native_IsStaticTankMap(Handle plugin, int numParams){
 
 // Used for other plugins to check if the current map is Dark Carnival: Remix (It tends to break things when it comes to bosses)
 public int Native_IsDarkCarniRemix(Handle plugin, int numParams){
-	return IsDKR();
+	return g_bIsRemix;
 }
 
 // Other plugins can use this to set the witch as "disabled" on the ready up, and when the !boss command is used
