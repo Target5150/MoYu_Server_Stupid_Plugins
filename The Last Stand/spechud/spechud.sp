@@ -339,7 +339,7 @@ public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast
 	if (GetInfectedClass(client) == ZC_Tank)
 	{
 		if (iTankCount > 0) iTankCount--;
-		if (!RoundHasFlowTank()) bFlowTankActive = false;
+		if (!bRoundHasFlowTank) bFlowTankActive = false;
 	}
 }
 
@@ -380,8 +380,8 @@ public Action DebugSpecHudCmd(int client, int args)
 	
 	if (bDebugActive[client])
 	{
-		ShowActivity2(client, "[SM] ", "\x01Admin (\x05%N\x01) enabled \x04Debug Spectator HUD\x01.", client);
-		ShowActivity2(client, "[SM] ", "\x01Suspect \x05%N for \x04cheating \x01according to the situation.", client);
+		ShowActivity2(client, "\x01[SM] ", "\x01Admin (\x05%N\x01) enabled \x04Debug Spectator HUD\x01.", client);
+		ShowActivity2(client, "\x01[SM] ", "\x01Suspect \x05%N for \x04cheating \x01according to the situation.", client);
 	}
 }
 
@@ -393,6 +393,9 @@ public Action HudDrawTimer(Handle hTimer)
 	bool bSpecsOnServer = false;
 	for (int i = 1; i <= MaxClients; ++i)
 	{
+		// 1. Debug active.
+		// 2. Human spectator with spechud active. 
+		// 3. SourceTV active.
 		if( bDebugActive[i] || ( IsSpectator(i) && (bSpecHudActive[i] || IsClientSourceTV(i)) ) )
 		{
 			bSpecsOnServer = true;
@@ -413,6 +416,11 @@ public Action HudDrawTimer(Handle hTimer)
 
 		for (int i = 1; i <= MaxClients; ++i)
 		{
+			// Client is in game and non-bot.
+			//   1. Client is debug active.
+			//   2. Client is spectator with spechud active.
+			// Client is in game and bot.
+			//   3. Client is SourceTV.
 			if( !IsClientInGame(i) || ( !bDebugActive[i] && ( GetClientTeam(i) != 1 || (IsFakeClient(i) && !IsClientSourceTV(i)) || !bSpecHudActive[i] ) ) )
 				continue;
 
@@ -435,6 +443,8 @@ public Action HudDrawTimer(Handle hTimer)
 
 	for (int i = 1; i <= MaxClients; ++i)
 	{
+		// Client is in game and non-bot
+		//   1. Client is in infected team or spectator team with tankhud active, spechud inactive.
 		if (!IsClientInGame(i) || IsFakeClient(i) || GetClientTeam(i) == 2 || bDebugActive[i] || !bTankHudActive[i] || (bSpecHudActive[i] && IsSpectator(i)))
 			continue;
 		
@@ -709,7 +719,7 @@ void FillInfectedInfo(Panel hSpecHud)
 		GetClientFixedName(client, name, sizeof(name));
 		if (!IsPlayerAlive(client)) 
 		{
-			float timeLeft = GetPlayerSpawnTime(client);
+			float timeLeft = L4D_GetPlayerSpawnTime(client);
 			if (timeLeft < 0.0)
 			{
 				FormatEx(info, sizeof(info), "%s: Dead", name);
@@ -975,11 +985,6 @@ public Action SetFinaleExceptionMap(int args)
 /**
  *	Stocks
 **/
-float GetPlayerSpawnTime(int player)
-{
-	return L4D_GetPlayerSpawnTime(player) - GetGameTime();
-}
-
 float GetAbilityCooldownDuration(int client)
 {
 	int ability = GetInfectedCustomAbility(client);
