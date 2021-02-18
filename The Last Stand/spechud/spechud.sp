@@ -380,8 +380,8 @@ public Action DebugSpecHudCmd(int client, int args)
 	
 	if (bDebugActive[client])
 	{
-		ShowActivity2(client, "\x01[SM] ", "\x01Admin (\x05%N\x01) enabled \x04Debug Spectator HUD\x01.", client);
-		ShowActivity2(client, "\x01[SM] ", "\x01Suspect \x05%N for \x04cheating \x01according to the situation.", client);
+		ShowActivity2(client, "\x04[SM] ", "\x01Admin (\x05%N\x01) enabled \x04Debug Spectator HUD\x01.", client);
+		ShowActivity2(client, "\x04[SM] ", "\x01Suspect \x05%N \x01for \x04cheating \x01according to the situation.", client);
 	}
 }
 
@@ -719,15 +719,15 @@ void FillInfectedInfo(Panel hSpecHud)
 		GetClientFixedName(client, name, sizeof(name));
 		if (!IsPlayerAlive(client)) 
 		{
-			float timeLeft = L4D_GetPlayerSpawnTime(client);
-			if (timeLeft < 0.0)
+			int timeLeft = RoundToFloor(L4D_GetPlayerSpawnTime(client));
+			if (timeLeft < 0)
 			{
 				FormatEx(info, sizeof(info), "%s: Dead", name);
 			}
 			else
 			{
-				FormatEx(buffer, sizeof(buffer), "%is", RoundToNearest(timeLeft));
-				FormatEx(info, sizeof(info), "%s: Dead (%s)", name, (RoundToNearest(timeLeft) ? buffer : "Spawning..."));
+				FormatEx(buffer, sizeof(buffer), "%is", timeLeft);
+				FormatEx(info, sizeof(info), "%s: Dead (%s)", name, (timeLeft ? buffer : "Spawning..."));
 				//if (storedClass[client] > ZC_None) {
 				//	FormatEx(info, sizeof(info), "%s: Dead (%s) [%s]", name, ZOMBIECLASS_NAME(storedClass[client]), (RoundToNearest(timeLeft) ? buffer : "Spawning..."));
 				//} else {
@@ -756,11 +756,11 @@ void FillInfectedInfo(Panel hSpecHud)
 			}
 			else
 			{
-				float fCooldown = GetAbilityCooldown(client);
+				int iCooldown = RoundToNearest(GetAbilityCooldown(client));
 				float fDuration = GetAbilityCooldownDuration(client);
-				if (fCooldown > 0.0 && fDuration > 1.0 && !HasAbilityVictim(client, zClass))
+				if (iCooldown > 0 && fDuration > 1.0 && !HasAbilityVictim(client, zClass))
 				{
-					FormatEx(buffer, sizeof(buffer), "[%.0fs]", fCooldown);
+					FormatEx(buffer, sizeof(buffer), "[%is]", iCooldown);
 				}
 				else { buffer[0] = '\0'; }
 				
