@@ -17,7 +17,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION	"3.4.3"
+#define PLUGIN_VERSION	"3.4.4a"
 
 public Plugin myinfo = 
 {
@@ -25,7 +25,7 @@ public Plugin myinfo =
 	author = "Visor, Forgetest",
 	description = "Provides different HUDs for spectators",
 	version = PLUGIN_VERSION,
-	url = "https://github.com/Attano/smplugins"
+	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 };
 
 #define SPECHUD_DRAW_INTERVAL   0.5
@@ -35,6 +35,11 @@ public Plugin myinfo =
 #define CLAMP(%0,%1,%2) (((%0) > (%2)) ? (%2) : (((%0) < (%1)) ? (%1) : (%0)))
 #define MAX(%0,%1) (((%0) > (%1)) ? (%0) : (%1))
 #define MIN(%0,%1) (((%0) < (%1)) ? (%0) : (%1))
+
+#define TEAM_NONE 0
+#define TEAM_SPECTATOR 1
+#define TEAM_SURVIVOR 2
+#define TEAM_INFECTED 3
 
 enum L4D2Gamemode
 {
@@ -98,11 +103,11 @@ ConVar l4d_tank_percent, l4d_witch_percent, hServerNamer, l4d_ready_cfg_name;
 
 // Plugin Var
 char sReadyCfgName[64], sHostname[64];
-bool bPendingArrayRefresh, bIsLive;
-int ammoOffset;
+bool bPendingArrayRefresh, bRoundLive;
+int iSurvivorArray[MAXPLAYERS+1];
 
 // Plugin Handle
-ArrayList hSurvivorArray;
+//ArrayList hSurvivorArray;
 
 // Finale Tank Spawn Scheme
 StringMap hFirstTankSpawningScheme, hSecondTankSpawningScheme;		// eq_finale_tanks (Zonemod, Acemod, etc.)
@@ -115,6 +120,9 @@ bool bRoundHasFlowTank, bRoundHasFlowWitch, bFlowTankActive;
 // Score & Scoremod
 int iFirstHalfScore;
 bool bScoremod, bHybridScoremod, bNextScoremod;
+
+// Tank Control EQ
+bool bTankSelection;
 
 // Hud Toggle & Hint Message
 bool bSpecHudActive[MAXPLAYERS+1], bTankHudActive[MAXPLAYERS+1], bDebugActive[MAXPLAYERS+1];
@@ -141,6 +149,8 @@ public void OnPluginStart()
 	hServerNamer.GetString(sHostname, sizeof(sHostname));
 	hServerNamer.AddChangeHook(OnHostnameChanged);
 	
+	l4d_ready_cfg_name.GetString(sReadyCfgName, sizeof(sReadyCfgName));
+	
 	cVarMinUpdateRate		= FindConVar("sv_minupdaterate");
 	cVarMaxUpdateRate		= FindConVar("sv_maxupdaterate");
 	cVarMinInterpRatio		= FindConVar("sv_client_min_interp_ratio");
@@ -159,23 +169,20 @@ public void OnPluginStart()
 	versus_boss_buffer.AddChangeHook(OnGameConVarChanged);
 	mp_gamemode.AddChangeHook(OnGameConVarChanged);
 	sv_maxplayers.AddChangeHook(OnGameConVarChanged);
-
+	
 	fMinUpdateRate		= cVarMinUpdateRate.FloatValue;
 	fMaxUpdateRate		= cVarMaxUpdateRate.FloatValue;
 	fMinInterpRatio		= cVarMinInterpRatio.FloatValue;
 	fMaxInterpRatio		= cVarMaxInterpRatio.FloatValue;
-
+	
 	cVarMinUpdateRate.AddChangeHook(OnNetworkConVarChanged);
 	cVarMaxUpdateRate.AddChangeHook(OnNetworkConVarChanged);
 	cVarMinInterpRatio.AddChangeHook(OnNetworkConVarChanged);
 	cVarMaxInterpRatio.AddChangeHook(OnNetworkConVarChanged);
-		
-	hSurvivorArray				= new ArrayList();
+	
 	hFirstTankSpawningScheme	= new StringMap();
 	hSecondTankSpawningScheme	= new StringMap();
 	hFinaleExceptionMaps		= new StringMap();
-	
-	ammoOffset = FindSendPropInfo("CCSPlayer", "m_iAmmo");
 	
 	RegConsoleCmd("sm_spechud", ToggleSpecHudCmd);
 	RegConsoleCmd("sm_tankhud", ToggleTankHudCmd);
@@ -198,8 +205,6 @@ public void OnPluginStart()
 		bTankHudActive[i] = true;
 		bTankHudHintShown[i] = false;
 	}
-	
-	PushSerialSurvivors();
 	
 	CreateTimer(SPECHUD_DRAW_INTERVAL, HudDrawTimer, _, TIMER_REPEAT);
 }
@@ -241,6 +246,8 @@ public void OnAllPluginsLoaded()
 		hServerNamer.AddChangeHook(OnHostnameChanged);
 	}
 	if (l4d_ready_cfg_name == null) l4d_ready_cfg_name = FindConVar("l4d_ready_cfg_name");
+	
+	bTankSelection = (GetFeatureStatus(FeatureType_Native, "GetTankSelection") != FeatureStatus_Unknown);
 }
 public void OnLibraryAdded(const char[] name)
 {
@@ -255,46 +262,26 @@ public void OnLibraryRemoved(const char[] name)
 	if (StrEqual(name, "l4d2_health_temp_bonus"))bNextScoremod = false;
 }
 
-public void OnClientPostAdminCheck(int client)
-{
-	if (IsClientInGame(client) && IsClientSourceTV(client)) // someday
-	{
-		bSpecHudActive[client] = true;
-		bTankHudActive[client] = true;
-	}
-}
-
 public void OnClientDisconnect(int client)
 {
-	if (IsClientSourceTV(client)) // whatever
-	{
-		bSpecHudActive[client] = false;
-		bTankHudActive[client] = true;
-		return;
-	}
-	
 	bSpecHudHintShown[client] = false;
 	bTankHudHintShown[client] = false;
 	
-	CreateTimer(5.0, Timer_CheckDisconnect, client, TIMER_FLAG_NO_MAPCHANGE);
-}
-
-public Action Timer_CheckDisconnect(Handle timer, int client)
-{
-	if (!IsClientConnected(client)) // reset to default
+	if (bDebugActive[client])
 	{
+		bDebugActive[client] = false;
 		bSpecHudActive[client] = false;
 		bTankHudActive[client] = true;
 	}
 }
 
-public void OnMapStart() { bIsLive = false; }
-public void Event_RoundEnd() { bIsLive = false; }
+public void OnMapStart() { bRoundLive = false; }
+public void Event_RoundEnd() { bRoundLive = false; }
 public void OnRoundIsLive()
 {
 	l4d_ready_cfg_name.GetString(sReadyCfgName, sizeof(sReadyCfgName));
 	
-	bIsLive = true;
+	bRoundLive = true;
 	
 	GetCurrentGameMode();
 	
@@ -306,7 +293,7 @@ public void OnRoundIsLive()
 		bRoundHasFlowWitch = RoundHasFlowWitch();
 		
 		iTankCount = 0;
-		iWitchCount = GetConVarBool(l4d_witch_percent) ? 1 : 0;
+		iWitchCount = (GetConVarBool(l4d_witch_percent) ? 1 : 0);
 		
 		if (GetConVarBool(l4d_tank_percent))
 		{
@@ -334,7 +321,7 @@ public void L4D2_OnEndVersusModeRound_Post() { if (!InSecondHalfOfRound()) iFirs
 public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
-	if (!client || client > MaxClients || !IsClientInGame(client) || !IsInfected(client)) return;
+	if (!client || !IsInfected(client)) return;
 	
 	if (GetInfectedClass(client) == ZC_Tank)
 	{
@@ -350,15 +337,20 @@ public void Event_WitchDeath(Event event, const char[] name, bool dontBroadcast)
 
 public void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
 {
-	int client = GetClientOfUserId(GetEventInt(event, "userid"));
-	if (client > 0 && client <= MaxClients && IsClientInGame(client))
-	{
-		int team = GetEventInt(event, "team"), oldteam = GetEventInt(event, "oldteam");
-		
-		if (team == 2 || oldteam == 2) bPendingArrayRefresh = true;
-		
-		//if (team == 3) storedClass[client] = ZC_None;
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	if (!client) return;
+	
+	int team = event.GetInt("team");
+	int oldteam = event.GetInt("oldteam");
+	
+	if (team == TEAM_NONE) { // Player disconnecting
+		bSpecHudActive[client] = false;
+		bTankHudActive[client] = true;
 	}
+	
+	if (team == TEAM_SURVIVOR || oldteam == TEAM_SURVIVOR) bPendingArrayRefresh = true;
+	
+	//if (team == 3) storedClass[client] = ZC_None;
 }
 
 public Action ToggleSpecHudCmd(int client, int args) 
@@ -416,12 +408,13 @@ public Action HudDrawTimer(Handle hTimer)
 
 		for (int i = 1; i <= MaxClients; ++i)
 		{
-			// Client is in game and non-bot.
-			//   1. Client is debug active.
-			//   2. Client is spectator with spechud active.
-			// Client is in game and bot.
-			//   3. Client is SourceTV.
-			if( !IsClientInGame(i) || ( !bDebugActive[i] && ( GetClientTeam(i) != 1 || (IsFakeClient(i) && !IsClientSourceTV(i)) || !bSpecHudActive[i] ) ) )
+			// - Client is in game.
+			//    1. Client is debug active.
+			//    2. Client is non-bot and spectator with spechud active.
+			//    3. Client is bot as SourceTV.
+			if( !IsClientInGame(i) || ( !bDebugActive[i]
+										&& (GetClientTeam(i) != 1 || !bSpecHudActive[i])
+										&& (IsFakeClient(i) && !IsClientSourceTV(i)) ) )
 				continue;
 
 			if (IsBuiltinVoteInProgress() && IsClientInBuiltinVotePool(i))
@@ -478,7 +471,7 @@ void GetMeleePrefix(int client, char[] prefix, int length)
 	int secondary = GetPlayerWeaponSlot(client, view_as<int>(L4D2WeaponSlot_Secondary));
 	WeaponId secondaryWep = IdentifyWeapon(secondary);
 
-	char buf[4];
+	static char buf[4];
 	switch (secondaryWep)
 	{
 		case WEPID_NONE: buf = "N";
@@ -491,39 +484,102 @@ void GetMeleePrefix(int client, char[] prefix, int length)
 	strcopy(prefix, length, buf);
 }
 
+void GetWeaponInfo(int client, char[] info, int length)
+{
+	static char buffer[32];
+	
+	int activeWep = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+	int primaryWep = GetPlayerWeaponSlot(client, view_as<int>(L4D2WeaponSlot_Primary));
+	WeaponId activeWepId = IdentifyWeapon(activeWep);
+	WeaponId primaryWepId = IdentifyWeapon(primaryWep);
+	
+	// Let's begin with what player is holding,
+	// but cares only pistols if holding secondary.
+	switch (activeWepId)
+	{
+		case WEPID_PISTOL, WEPID_PISTOL_MAGNUM:
+		{
+			if (activeWepId == WEPID_PISTOL && !!GetEntProp(activeWep, Prop_Send, "m_isDualWielding"))
+			{
+				// Dual Pistols Scene
+				// Straight use the prefix since full name is a bit long.
+				Format(buffer, sizeof(buffer), "DP");
+			}
+			else GetLongWeaponName(activeWepId, buffer, sizeof(buffer));
+			
+			FormatEx(info, length, "%s %i", buffer, GetWeaponClip(activeWep));
+		}
+		default:
+		{
+			GetLongWeaponName(primaryWepId, buffer, sizeof(buffer));
+			FormatEx(info, length, "%s %i/%i", buffer, GetWeaponClip(primaryWep), GetWeaponAmmo(client, primaryWepId));
+		}
+	}
+	
+	// Format our result info
+	if (primaryWep == -1)
+	{
+		// In case with no primary,
+		// show the melee full name.
+		if (activeWepId == WEPID_MELEE || activeWepId == WEPID_CHAINSAW)
+		{
+			MeleeWeaponId meleeWepId = IdentifyMeleeWeapon(activeWep);
+			GetLongMeleeWeaponName(meleeWepId, info, length);
+		}
+	}
+	else
+	{
+		// Default display -> [Primary <In Detail> | Secondary <Prefix>]
+		// Holding melee included in this way
+		// i.e. [Chrome 8/56 | M]
+		if (GetSlotFromWeaponId(activeWepId) != 1 || activeWepId == WEPID_MELEE || activeWepId == WEPID_CHAINSAW)
+		{
+			GetMeleePrefix(client, buffer, sizeof(buffer));
+			Format(info, length, "%s | %s", info, buffer);
+		}
+
+		// Secondary active -> [Secondary <In Detail> | Primary <Ammo Sum>]
+		// i.e. [Deagle 8 | Mac 700]
+		else
+		{
+			GetLongWeaponName(primaryWepId, buffer, sizeof(buffer));
+			Format(info, length, "%s | %s %i", info, buffer, GetWeaponClip(primaryWep) + GetWeaponAmmo(client, primaryWepId));
+		}
+	}
+}
+
 void FillSurvivorInfo(Panel hSpecHud)
 {
-	static char info[512];
-	static char buffer[64];
+	static char info[100];
 	static char name[MAX_NAME_LENGTH];
 
 	int SurvivorTeamIndex = L4D2_AreTeamsFlipped();
 	
-	int distance = 0;
-	for (int i = 0; i < 4; ++i)
-		distance += GameRules_GetProp("m_iVersusDistancePerSurvivor", _, i + 4 * SurvivorTeamIndex);
+	if (bRoundLive) {
+		int distance = 0;
+		for (int i = 0; i < 4; ++i) {
+			distance += GameRules_GetProp("m_iVersusDistancePerSurvivor", _, i + 4 * SurvivorTeamIndex);
+		}
+		FormatEx(info, sizeof(info), "->1. Survivors [%d]",
+					L4D2Direct_GetVSCampaignScore(SurvivorTeamIndex) + (bRoundLive ? distance : 0));
+	} else {
+		FormatEx(info, sizeof(info), "->1. Survivors [%d]",
+					L4D2Direct_GetVSCampaignScore(SurvivorTeamIndex));
+	}
 	
-	FormatEx(info, sizeof(info), "->1. Survivors [%d]",
-				L4D2Direct_GetVSCampaignScore(SurvivorTeamIndex) + (bIsLive ? distance : 0));
-				
 	DrawPanelText(hSpecHud, " ");
 	DrawPanelText(hSpecHud, info);
-	
-	int survivorCount;
 	
 	if (bPendingArrayRefresh)
 	{
 		bPendingArrayRefresh = false;
-		survivorCount = PushSerialSurvivors();
-	}
-	else
-	{
-		survivorCount = hSurvivorArray.Length;
+		PushSerialSurvivors();
 	}
 	
-	for (int i = 0; i < survivorCount; ++i)
+	for (int i = 0; i < iSurvivorLimit; ++i)
 	{
-		int client = hSurvivorArray.Get(i);
+		int client = iSurvivorArray[i];
+		if (!client) continue;
 		
 		GetClientFixedName(client, name, sizeof(name));
 		if (!IsPlayerAlive(client))
@@ -532,84 +588,32 @@ void FillSurvivorInfo(Panel hSpecHud)
 		}
 		else
 		{
-			int primaryWep = GetPlayerWeaponSlot(client, view_as<int>(L4D2WeaponSlot_Primary));
-			
-			int activeWep = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
-			WeaponId activeWepId = IdentifyWeapon(activeWep);
-
-			switch (activeWepId)
-			{
-				case WEPID_PISTOL, WEPID_PISTOL_MAGNUM:
-				{
-					if (activeWepId == WEPID_PISTOL && !!GetEntProp(activeWep, Prop_Send, "m_isDualWielding"))
-					{
-						Format(buffer, sizeof(buffer), "DP");
-					}
-					else GetLongWeaponName(activeWepId, buffer, sizeof(buffer));
-					
-					FormatEx(info, sizeof(info), "%s %i", buffer, GetWeaponClip(activeWep));
-				}
-				default:
-				{
-					GetLongWeaponName(IdentifyWeapon(primaryWep), buffer, sizeof(buffer));
-					FormatEx(info, sizeof(info), "%s %i/%i", buffer, GetWeaponClip(primaryWep), GetWeaponAmmo(client, primaryWep));
-				}
-			}
-			
-			// In case with no primary
-			if (primaryWep == -1)
-			{
-				// Shows melee fullname (having melee active with no primary)
-				if (activeWepId == WEPID_MELEE || activeWepId == view_as<WeaponId>(WEPID_CHAINSAW))
-				{
-					MeleeWeaponId meleeWepId = IdentifyMeleeWeapon(activeWep);
-					GetLongMeleeWeaponName(meleeWepId, info, sizeof(info));
-				}
-				Format(info, sizeof(info), "[%s]", info);
-			}
-			else
-			{
-				// Default display -> [Primary details | Secondary prefix]
-				// Having melee active is also included in this way
-				// i.e. [Chrome 8/56 | M]
-				if (GetSlotFromWeaponId(activeWepId) != 1 || activeWepId == WEPID_MELEE || activeWepId == view_as<WeaponId>(WEPID_CHAINSAW))
-				{
-					GetMeleePrefix(client, buffer, sizeof(buffer));
-					Format(info, sizeof(info), "[%s | %s]", info, buffer);
-				}
-
-				// Secondary active -> [Secondary details | Primary]
-				// i.e. [Deagle 8 | Mac 700]
-				else
-				{
-					GetLongWeaponName(IdentifyWeapon(primaryWep), buffer, sizeof(buffer));
-					Format(info, sizeof(info), "[%s | %s %i]", info, buffer, GetWeaponClip(primaryWep) + GetWeaponAmmo(client, primaryWep));
-				}
-			}
-			
 			if (IsSurvivorHanging(client))
 			{
-				FormatEx(info, sizeof(info), "%s: %iHP <Hanging>", name, GetClientHealth(client));
+				FormatEx(info, sizeof(info), "%s: <%iHP@Hanging>", name, GetClientHealth(client));
 			}
 			else if (IsIncapacitated(client))
 			{
-				GetLongWeaponName(activeWepId, buffer, sizeof(buffer));
-				FormatEx(info, sizeof(info), "%s: %iHP <#%i> [%s %i]", name, GetClientHealth(client), (GetSurvivorIncapCount(client) + 1), buffer, GetWeaponClip(activeWep));
+				int activeWep = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+				GetLongWeaponName(IdentifyWeapon(activeWep), info, sizeof(info));
+				Format(info, sizeof(info), "%s: <%iHP@%s> [%s %i]", name, GetClientHealth(client), (GetSurvivorIncapCount(client) == 1 ? "2nd" : "1st"), info, GetWeaponClip(activeWep));
 			}
 			else
 			{
+				GetWeaponInfo(client, info, sizeof(info));
+				
 				int tempHealth = GetSurvivorTemporaryHealth(client);
 				int health = GetClientHealth(client) + tempHealth;
 				int incapCount = GetSurvivorIncapCount(client);
 				if (incapCount == 0)
 				{
 					//FormatEx(buffer, sizeof(buffer), "#%iT", tempHealth);
-					Format(info, sizeof(info), "%s: %iHP%s %s", name, health, (tempHealth > 0 ? "#" : ""), info);
+					Format(info, sizeof(info), "%s: %iHP%s [%s]", name, health, (tempHealth > 0 ? "#" : ""), info);
 				}
 				else
 				{
 					//FormatEx(buffer, sizeof(buffer), "%i incap%s", incapCount, (incapCount > 1 ? "s" : ""));
-					Format(info, sizeof(info), "%s: %iHP (#%i) %s", name, health, incapCount, info);
+					Format(info, sizeof(info), "%s: %iHP (#%s) [%s]", name, health, (incapCount == 2 ? "2nd" : "1st"), info);
 				}
 			}
 		}
@@ -620,7 +624,7 @@ void FillSurvivorInfo(Panel hSpecHud)
 
 void FillScoreInfo(Panel hSpecHud)
 {
-	static char info[512];
+	static char info[64];
 
 	if (bHybridScoremod)
 	{
@@ -700,8 +704,8 @@ void FillScoreInfo(Panel hSpecHud)
 
 void FillInfectedInfo(Panel hSpecHud)
 {
-	static char info[512];
-	static char buffer[64];
+	static char info[80];
+	static char buffer[16];
 	static char name[MAX_NAME_LENGTH];
 
 	int InfectedTeamIndex = !L4D2_AreTeamsFlipped();
@@ -791,7 +795,7 @@ bool FillTankInfo(Panel hSpecHud, bool bTankHUD = false)
 	if (tank == -1)
 		return false;
 
-	static char info[512];
+	static char info[64];
 	static char name[MAX_NAME_LENGTH];
 
 	if (bTankHUD)
@@ -881,8 +885,8 @@ bool FillTankInfo(Panel hSpecHud, bool bTankHUD = false)
 void FillGameInfo(Panel hSpecHud)
 {
 	// Turns out too much info actually CAN be bad, funny ikr
-	static char info[512];
-	static char buffer[32];
+	static char info[64];
+	static char buffer[8];
 
 	if (g_Gamemode == L4D2Gamemode_Scavenge)
 	{
@@ -923,7 +927,15 @@ void FillGameInfo(Panel hSpecHud)
 		{
 			bDivide = true;
 			FormatEx(buffer, sizeof(buffer), "%i%%", tankPercent);
-			FormatEx(info, sizeof(info), "Tank: %s", (((bFlowTankActive && bRoundHasFlowTank) || IsDarkCarniRemix()) ? buffer : (IsStaticTankMap() ? "Static" : "Event")));
+			
+			if ((bFlowTankActive && bRoundHasFlowTank) || IsDarkCarniRemix())
+			{
+				FormatEx(info, sizeof(info), "Tank: %s", buffer);
+			}
+			else
+			{
+				FormatEx(info, sizeof(info), "Tank: %s", (IsStaticTankMap() ? "Static" : "Event"));
+			}
 		}
 		
 		// witch percent
@@ -949,7 +961,7 @@ void FillGameInfo(Panel hSpecHud)
 		DrawPanelText(hSpecHud, info);
 		
 		// tank selection
-		if (iTankCount > 0)
+		if (bTankSelection && iTankCount > 0)
 		{
 			int tankClient = GetTankSelection();
 			if (tankClient > 0 && IsClientInGame(tankClient))
@@ -1027,7 +1039,7 @@ int GetInfectedCustomAbility(int client)
 
 int GetRealTeam(int team)
 {
-	return !!team != (!!InSecondHalfOfRound() != L4D2_AreTeamsFlipped());
+	return team ^ view_as<int>(!!InSecondHalfOfRound() != L4D2_AreTeamsFlipped());
 }
 
 bool HasAbilityVictim(int client, L4D2SI zClass)
@@ -1063,10 +1075,13 @@ bool HasAbilityVictim(int client, L4D2SI zClass)
 #define	MILITARY_SNIPER_OFFSET_IAMMO	40;
 #define	GRENADE_LAUNCHER_OFFSET_IAMMO	68;
 
-stock int GetWeaponAmmo(int client, int weapon)
+stock int GetWeaponAmmo(int client, WeaponId wepid)
 {
+	static int ammoOffset;
+	if (!ammoOffset) ammoOffset = FindSendPropInfo("CCSPlayer", "m_iAmmo");
+	
 	int offset;
-	switch (IdentifyWeapon(weapon))
+	switch (wepid)
 	{
 		case WEPID_RIFLE, WEPID_RIFLE_AK47, WEPID_RIFLE_DESERT, WEPID_RIFLE_SG552:
 			offset = ASSAULT_RIFLE_OFFSET_IAMMO
@@ -1090,31 +1105,28 @@ stock int GetWeaponAmmo(int client, int weapon)
 
 stock int GetWeaponClip(int weapon)
 {
-	return weapon > 0 ? GetEntProp(weapon, Prop_Send, "m_iClip1") : -1;
+	return (weapon > 0 ? GetEntProp(weapon, Prop_Send, "m_iClip1") : -1);
 }
 
-int PushSerialSurvivors()
+void PushSerialSurvivors()
 {
-	hSurvivorArray.Clear();
-	
 	int survivorCount = 0;
 	for (int client = 1; client <= MaxClients && survivorCount < iSurvivorLimit; ++client) 
 	{
 		if (IsSurvivor(client))
 		{
-			hSurvivorArray.Push(client);
-			++survivorCount;
+			iSurvivorArray[survivorCount++] = client;
 		}
 	}
-	hSurvivorArray.SortCustom(ArraySort);
+	iSurvivorArray[survivorCount] = 0;
 	
-	return survivorCount;
+	SortCustom1D(iSurvivorArray, survivorCount, SortSurvArray);
 }
 
-public int ArraySort(int index1, int index2, Handle array, Handle hndl)
+public int SortSurvArray(int elem1, int elem2, const int[] array, Handle hndl)
 {
-	SurvivorCharacter sc1 = GetFixedSurvivorCharacter(GetArrayCell(array, index1));
-	SurvivorCharacter sc2 = GetFixedSurvivorCharacter(GetArrayCell(array, index2));
+	SurvivorCharacter sc1 = GetFixedSurvivorCharacter(elem1);
+	SurvivorCharacter sc2 = GetFixedSurvivorCharacter(elem2);
 	
 	if (sc1 > sc2) { return 1; }
 	else if (sc1 < sc2) { return -1; }
@@ -1240,17 +1252,17 @@ bool RoundHasFlowWitch()
 
 bool IsSpectator(int client)
 {
-	return IsClientInGame(client) && GetClientTeam(client) == 1;
+	return IsClientInGame(client) && GetClientTeam(client) == TEAM_SPECTATOR;
 }
 
 bool IsSurvivor(int client)
 {
-	return IsClientInGame(client) && GetClientTeam(client) == 2;
+	return IsClientInGame(client) && GetClientTeam(client) == TEAM_SURVIVOR;
 }
 
 bool IsInfected(int client)
 {
-	return IsClientInGame(client) && GetClientTeam(client) == 3;
+	return IsClientInGame(client) && GetClientTeam(client) == TEAM_INFECTED;
 }
 
 bool IsInfectedGhost(int client) 
@@ -1286,7 +1298,7 @@ bool IsIncapacitated(int client)
 
 bool IsSurvivorHanging(int client)
 {
-	return !!GetEntProp(client, Prop_Send, "m_isHangingFromLedge") || !!GetEntProp(client, Prop_Send, "m_isFallingFromLedge");
+	return !!(GetEntProp(client, Prop_Send, "m_isHangingFromLedge") | GetEntProp(client, Prop_Send, "m_isFallingFromLedge"));
 }
 
 int GetSurvivorIncapCount(int client)
