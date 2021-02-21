@@ -200,7 +200,7 @@ void CS_SetClientName(int client, const char[] name)
 		event.Fire();
 	}
 	
-	BfWrite msg = view_as<BfWrite>(StartMessageAll("SayText2"));
+	BfWrite msg = UserMessageToBfWrite(StartMessageAll("SayText2"));
 	
 	if (msg != null)
 	{

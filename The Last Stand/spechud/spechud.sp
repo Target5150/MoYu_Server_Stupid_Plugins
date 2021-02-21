@@ -17,7 +17,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION	"3.4.4a"
+#define PLUGIN_VERSION	"3.4.4b"
 
 public Plugin myinfo = 
 {
@@ -412,9 +412,8 @@ public Action HudDrawTimer(Handle hTimer)
 			//    1. Client is debug active.
 			//    2. Client is non-bot and spectator with spechud active.
 			//    3. Client is bot as SourceTV.
-			if( !IsClientInGame(i) || ( !bDebugActive[i]
-										&& (GetClientTeam(i) != 1 || !bSpecHudActive[i])
-										&& (IsFakeClient(i) && !IsClientSourceTV(i)) ) )
+			if (!IsClientInGame(i) || (!bDebugActive[i] 
+										&& (GetClientTeam(i) != TEAM_SPECTATOR || !bSpecHudActive[i] || (IsFakeClient(i) && !IsClientSourceTV(i)))))
 				continue;
 
 			if (IsBuiltinVoteInProgress() && IsClientInBuiltinVotePool(i))
@@ -462,7 +461,7 @@ public int DummyTankHudHandler(Menu hMenu, MenuAction action, int param1, int pa
 void FillHeaderInfo(Panel hSpecHud)
 {
 	static char buf[64];
-	Format(buf, sizeof(buf), "☂ %s [Slots %i/%i | %iT]", sHostname, GetRealClientCount(), iMaxPlayers, RoundToNearest(1.0 / GetTickInterval()));
+	Format(buf, sizeof(buf), "☂ %s [Slots %i/%i | %iT]", sHostname, GetClientCount(false), iMaxPlayers, RoundToNearest(1.0 / GetTickInterval()));
 	DrawPanelText(hSpecHud, buf);
 }
 
@@ -1195,16 +1194,6 @@ void GetClientFixedName(int client, char[] name, int length)
 		name[15] = name[16] = name[17] = '.';
 		name[18] = 0;
 	}
-}
-
-int GetRealClientCount() 
-{
-	int clients = 0;
-	for (int i = 1; i <= MaxClients; ++i) 
-	{
-		if (IsClientConnected(i) && !IsFakeClient(i)) ++clients;
-	}
-	return clients;
 }
 
 int InSecondHalfOfRound()

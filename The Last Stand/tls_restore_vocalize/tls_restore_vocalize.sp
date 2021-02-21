@@ -1,11 +1,14 @@
 #include <sourcemod>
 #include <sdktools>
 #include <sceneprocessor>
+#define L4D2UTIL_STOCKS_ONLY
+#include <l4d2util>
+#undef L4D2UTIL_STOCKS_ONLY
 
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.2.4"
+#define PLUGIN_VERSION "1.2.5"
 
 public Plugin myinfo = 
 {
@@ -27,32 +30,6 @@ enum Vocalize
 static const char g_szVocalizeNames[Vocalize][] = 
 {
 	"PlayerLaugh", "PlayerTaunt", "Playerdeath"
-};
-
-#define SC_NONE (view_as<SurvivorCharacter>(-1))
-enum SurvivorCharacter
-{
-	SC_NICK,
-	SC_ROCHELLE,
-	SC_COACH,
-	SC_ELLIS,
-	SC_BILL,
-	SC_ZOEY,
-	SC_LOUIS,
-	SC_FRANCIS
-};
-
-// Models for each of the characters
-static const char g_szSurvivorModels[SurvivorCharacter][] =
-{
-	"models/survivors/survivor_gambler.mdl",
-	"models/survivors/survivor_producer.mdl",
-	"models/survivors/survivor_coach.mdl",
-	"models/survivors/survivor_mechanic.mdl",
-	"models/survivors/survivor_namvet.mdl",
-	"models/survivors/survivor_teenangst.mdl",
-	"models/survivors/survivor_manager.mdl",
-	"models/survivors/survivor_biker.mdl"
 };
 
 /**
@@ -498,91 +475,15 @@ static const char g_szFrancisScreams[][] =
 ConVar g_cvGamemode;
 bool g_bVersus;
 
-StringMap g_hSurvMdlTrie;
-
 public void OnPluginStart()
 {
 	g_cvGamemode = FindConVar("mp_gamemode");
 	g_cvGamemode.AddChangeHook(OnGamemodeChanged);
-	
-	InitSurvivorModelTrie();
 }
 
 public void OnMapStart()
 {
-	int i;
-	for (i = 0; i < MAX_NICK_LAUGH; ++i) {
-		PrecacheSceneEx(g_szNickLaughs[i]);
-	}
-	for (i = 0; i < MAX_NICK_TAUNT; ++i) {
-		PrecacheSceneEx(g_szNickTaunts[i]);
-	}
-	for (i = 0; i < MAX_NICK_SCREAM; ++i) {
-		PrecacheSceneEx(g_szNickScreams[i]);
-	}
-	for (i = 0; i < MAX_ROCHELLE_LAUGH; ++i) {
-		PrecacheSceneEx(g_szRochelleLaughs[i]);
-	}
-	for (i = 0; i < MAX_ROCHELLE_TAUNT; ++i) {
-		PrecacheSceneEx(g_szRochelleTaunts[i]);
-	}
-	for (i = 0; i < MAX_ROCHELLE_SCREAM; ++i) {
-		PrecacheSceneEx(g_szRochelleScreams[i]);
-	}
-	for (i = 0; i < MAX_COACH_LAUGH; ++i) {
-		PrecacheSceneEx(g_szCoachLaughs[i]);
-	}
-	for (i = 0; i < MAX_COACH_TAUNT; ++i) {
-		PrecacheSceneEx(g_szCoachTaunts[i]);
-	}
-	for (i = 0; i < MAX_COACH_SCREAM; ++i) {
-		PrecacheSceneEx(g_szCoachScreams[i]);
-	}
-	for (i = 0; i < MAX_ELLIS_LAUGH; ++i) {
-		PrecacheSceneEx(g_szEllisLaughs[i]);
-	}
-	for (i = 0; i < MAX_ELLIS_TAUNT; ++i) {
-		PrecacheSceneEx(g_szEllisTaunts[i]);
-	}
-	for (i = 0; i < MAX_ELLIS_SCREAM; ++i) {
-		PrecacheSceneEx(g_szEllisScreams[i]);
-	}
-	for (i = 0; i < MAX_BILL_LAUGH; ++i) {
-		PrecacheSceneEx(g_szBillLaughs[i]);
-	}
-	for (i = 0; i < MAX_BILL_TAUNT; ++i) {
-		PrecacheSceneEx(g_szBillTaunts[i]);
-	}
-	for (i = 0; i < MAX_BILL_SCREAM; ++i) {
-		PrecacheSceneEx(g_szBillScreams[i]);
-	}
-	for (i = 0; i < MAX_ZOEY_LAUGH; ++i) {
-		PrecacheSceneEx(g_szZoeyLaughs[i]);
-	}
-	for (i = 0; i < MAX_ZOEY_TAUNT; ++i) {
-		PrecacheSceneEx(g_szZoeyTaunts[i]);
-	}
-	for (i = 0; i < MAX_ZOEY_SCREAM; ++i) {
-		PrecacheSceneEx(g_szZoeyScreams[i]);
-	}
-	for (i = 0; i < MAX_LOUIS_LAUGH; ++i) {
-		PrecacheSceneEx(g_szLouisLaughs[i]);
-	}
-	for (i = 0; i < MAX_LOUIS_TAUNT; ++i) {
-		PrecacheSceneEx(g_szLouisTaunts[i]);
-	}
-	for (i = 0; i < MAX_LOUIS_SCREAM; ++i) {
-		PrecacheSceneEx(g_szLouisScreams[i]);
-	}
-	for (i = 0; i < MAX_FRANCIS_LAUGH; ++i) {
-		PrecacheSceneEx(g_szFrancisLaughs[i]);
-	}
-	for (i = 0; i < MAX_FRANCIS_TAUNT; ++i) {
-		PrecacheSceneEx(g_szFrancisTaunts[i]);
-	}
-	for (i = 0; i < MAX_FRANCIS_SCREAM; ++i) {
-		PrecacheSceneEx(g_szFrancisScreams[i]);
-	}
+	PrecacheScenes();
 }
 
 public void OnConfigsExecuted()
@@ -701,110 +602,111 @@ Vocalize IdentifyVocalize(const char[] szVocalize)
 	return NULL_VOCALIZE;
 }
 
-void PrecacheSceneEx(const char[] scene)
+void PrecacheScenes()
 {
-	static int sceneNames = INVALID_STRING_TABLE;
+	bool save = LockStringTables(false);
+	
+	int i;
+	for (i = 0; i < MAX_NICK_LAUGH; ++i) {
+		AddSceneToTable(g_szNickLaughs[i]);
+	}
+	for (i = 0; i < MAX_NICK_TAUNT; ++i) {
+		AddSceneToTable(g_szNickTaunts[i]);
+	}
+	for (i = 0; i < MAX_NICK_SCREAM; ++i) {
+		AddSceneToTable(g_szNickScreams[i]);
+	}
+	for (i = 0; i < MAX_ROCHELLE_LAUGH; ++i) {
+		AddSceneToTable(g_szRochelleLaughs[i]);
+	}
+	for (i = 0; i < MAX_ROCHELLE_TAUNT; ++i) {
+		AddSceneToTable(g_szRochelleTaunts[i]);
+	}
+	for (i = 0; i < MAX_ROCHELLE_SCREAM; ++i) {
+		AddSceneToTable(g_szRochelleScreams[i]);
+	}
+	for (i = 0; i < MAX_COACH_LAUGH; ++i) {
+		AddSceneToTable(g_szCoachLaughs[i]);
+	}
+	for (i = 0; i < MAX_COACH_TAUNT; ++i) {
+		AddSceneToTable(g_szCoachTaunts[i]);
+	}
+	for (i = 0; i < MAX_COACH_SCREAM; ++i) {
+		AddSceneToTable(g_szCoachScreams[i]);
+	}
+	for (i = 0; i < MAX_ELLIS_LAUGH; ++i) {
+		AddSceneToTable(g_szEllisLaughs[i]);
+	}
+	for (i = 0; i < MAX_ELLIS_TAUNT; ++i) {
+		AddSceneToTable(g_szEllisTaunts[i]);
+	}
+	for (i = 0; i < MAX_ELLIS_SCREAM; ++i) {
+		AddSceneToTable(g_szEllisScreams[i]);
+	}
+	for (i = 0; i < MAX_BILL_LAUGH; ++i) {
+		AddSceneToTable(g_szBillLaughs[i]);
+	}
+	for (i = 0; i < MAX_BILL_TAUNT; ++i) {
+		AddSceneToTable(g_szBillTaunts[i]);
+	}
+	for (i = 0; i < MAX_BILL_SCREAM; ++i) {
+		AddSceneToTable(g_szBillScreams[i]);
+	}
+	for (i = 0; i < MAX_ZOEY_LAUGH; ++i) {
+		AddSceneToTable(g_szZoeyLaughs[i]);
+	}
+	for (i = 0; i < MAX_ZOEY_TAUNT; ++i) {
+		AddSceneToTable(g_szZoeyTaunts[i]);
+	}
+	for (i = 0; i < MAX_ZOEY_SCREAM; ++i) {
+		AddSceneToTable(g_szZoeyScreams[i]);
+	}
+	for (i = 0; i < MAX_LOUIS_LAUGH; ++i) {
+		AddSceneToTable(g_szLouisLaughs[i]);
+	}
+	for (i = 0; i < MAX_LOUIS_TAUNT; ++i) {
+		AddSceneToTable(g_szLouisTaunts[i]);
+	}
+	for (i = 0; i < MAX_LOUIS_SCREAM; ++i) {
+		AddSceneToTable(g_szLouisScreams[i]);
+	}
+	for (i = 0; i < MAX_FRANCIS_LAUGH; ++i) {
+		AddSceneToTable(g_szFrancisLaughs[i]);
+	}
+	for (i = 0; i < MAX_FRANCIS_TAUNT; ++i) {
+		AddSceneToTable(g_szFrancisTaunts[i]);
+	}
+	for (i = 0; i < MAX_FRANCIS_SCREAM; ++i) {
+		AddSceneToTable(g_szFrancisScreams[i]);
+	}
+	
+	LockStringTables(save);
+}
 
-	if (sceneNames == INVALID_STRING_TABLE)
+void AddSceneToTable(const char[] scene)
+{
+	static int sceneTable = INVALID_STRING_TABLE;
+
+	if (sceneTable == INVALID_STRING_TABLE)
 	{
-		sceneNames = FindStringTable("Scenes");
-		if (sceneNames == INVALID_STRING_TABLE)
+		sceneTable = FindStringTable("Scenes");
+		if (sceneTable == INVALID_STRING_TABLE)
 		{
-			LogError("[VocalRestore] Unable to find string table \"Scenes\" when precaching (%s).", scene);
+			SetFailState("[VocalRestore] Unable to find string table \"Scenes\" when precaching.");
 		}
 	}
 	
-	if (FindStringIndex(sceneNames, scene) == INVALID_STRING_INDEX)
+	if (FindStringIndex(sceneTable, scene) == INVALID_STRING_INDEX)
 	{
-		if (GetStringTableNumStrings(sceneNames) < GetStringTableMaxStrings(sceneNames))
+		if (GetStringTableNumStrings(sceneTable) < GetStringTableMaxStrings(sceneTable))
 		{
-			AddToStringTable(sceneNames, scene);
-			return;
+			AddToStringTable(sceneTable, scene);
 		}
 		else
 		{
 			LogError("[VocalRestore] Unable to precache scene (%s) due to exceeding string table limits.", scene);
 		}
 	}
-}
-
-/*
- * Rewrite of FindStringIndex, because in my tests
- * FindStringIndex failed to work correctly.
- * Searches for the index of a given string in a string table.
- *
- * @param tableidx		A string table index.
- * @param str			String to find.
- * @return				String index if found, INVALID_STRING_INDEX otherwise.
- */
-stock int FindStringIndex2(int tableidx, const char[] str)
-{
-	char buf[1024];
-
-	int numStrings = GetStringTableNumStrings(tableidx);
-	for (int i=0; i < numStrings; i++) {
-		ReadStringTable(tableidx, i, buf, sizeof(buf));
-
-		if (strcmp(buf, str) == 0) {
-			return i;
-		}
-	}
-
-	return INVALID_STRING_INDEX;
-}
-
-/**
- * Initializes internal structure necessary for IdentifySurvivor() function
- * @remark It is recommended that you run this function on plugin start, but not necessary
- *
- * @noreturn
- */
-stock void InitSurvivorModelTrie()
-{
-    g_hSurvMdlTrie = new StringMap();
-    for(int i = 0; i < view_as<int>(SurvivorCharacter); i++)
-    {
-        g_hSurvMdlTrie.SetValue(g_szSurvivorModels[view_as<SurvivorCharacter>(i)], i);
-    }
-}
-
-/**
- * Identifies a client's survivor character based on their current model.
- * @remark SC_NONE on errors
- *
- * @param client                Survivor client to identify
- * @return SurvivorCharacter    index identifying the survivor, or SC_NONE if not identified.
- */
-stock SurvivorCharacter IdentifySurvivor(int client)
-{
-    if (!client || !IsClientInGame(client) || !IsSurvivor(client))
-    {
-        return SC_NONE;
-    }
-    static char clientModel[42];
-    GetClientModel(client, clientModel, sizeof(clientModel));
-    return ClientModelToSC(clientModel);
-}
-
-/**
- * Identifies the survivor character corresponding to a player model.
- * @remark SC_NONE on errors, uses SurvivorModelTrie
- *
- * @param model                 Player model to identify
- * @return SurvivorCharacter    index identifying the model, or SC_NONE if not identified.
- */
-stock SurvivorCharacter ClientModelToSC(const char[] model)
-{
-    if (g_hSurvMdlTrie == null)
-    {
-        InitSurvivorModelTrie();
-    }
-    SurvivorCharacter sc;
-    if (GetTrieValue(g_hSurvMdlTrie, model, sc))
-    {
-        return sc;
-    }
-    return SC_NONE;
 }
 
 /**
@@ -827,15 +729,4 @@ stock int Math_GetRandomInt(int min, int max)
 	}
 		
 	return RoundToCeil(float(random) / (float(SIZE_OF_INT) / float(max - min + 1))) + min - 1;
-}
-
-/**
- * Returns true if the player is currently on the survivor team. 
- *
- * @param client client ID
- * @return bool
- */
-stock bool IsSurvivor(int client)
-{
-	return GetClientTeam(client) == 2;
 }
