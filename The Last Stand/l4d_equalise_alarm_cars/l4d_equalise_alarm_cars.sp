@@ -24,14 +24,14 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.4"
+#define PLUGIN_VERSION "1.5"
 
 public Plugin myinfo =
 {
     name        = "L4D2 Equalise Alarm Cars",
     author      = "Jahze, Forgetest",
     version     = PLUGIN_VERSION,
-    description = "Make the alarmed car spawns the same for each team in versus (include the color)"
+    description = "Make the alarmed car and its color spawns the same for each team in versus"
 };
 
 bool bHooked = false;
@@ -41,13 +41,9 @@ bool bPatched = false;
 
 ArrayList hFirstRoundCars;
 ArrayList hSecondRoundCars;
+StringMap hCarColorsTrie;
 
 ConVar hCvarEqAlarmCars;
-ConVar hCvarEqAlarmCarsDebug;
-
-char sCurrentMap[64];
-
-StringMap hCarColorsTrie;
 
 #define RGBA_BLOCK 4
 #define MAX_OFF_COLOR 6
@@ -64,7 +60,6 @@ int iOffColors[6][RGBA_BLOCK] =
 
 public void OnPluginStart() {
 	hCvarEqAlarmCars = CreateConVar("l4d_equalise_alarm_cars", "1", "Makes alarmed cars spawn in the same way for both teams", FCVAR_NONE);
-	hCvarEqAlarmCarsDebug = CreateConVar("l4d_equalise_alarm_cars_debug", "0", "Debug toggle. Information is stored in \"sourcemod/logs/eqalarmcars.log\"");
 	HookConVarChange(hCvarEqAlarmCars, EqAlarmCarsChange);
 	
 	hFirstRoundCars = CreateArray(128);
@@ -82,8 +77,6 @@ public void OnMapStart() {
 	ClearArray(hFirstRoundCars);
 	ClearArray(hSecondRoundCars);
 	hCarColorsTrie.Clear();
-	
-	GetCurrentMap(sCurrentMap, sizeof(sCurrentMap));
 }
 
 void HookEvents() {
@@ -125,9 +118,7 @@ public void RoundEnd( Event event, const char[] name, bool dontBroadcast ) {
 			GetEntityName(iEntity, szEntName, sizeof(szEntName));
 			GetEntityRenderColorEx(iEntity, iColor);
 			hCarColorsTrie.SetArray(szEntName, iColor, RGBA_BLOCK);
-			LogDebug("<%s R#%i:End> Record (%s#%i) [%i %i %i / %i]", sCurrentMap,1+view_as<int>(bSecondRound), szEntName, iEntity, iColor[0],iColor[1],iColor[2],iColor[3]);
 		}
-		LogDebug(" ");
 		bSecondRound = true;
     }
 }
@@ -141,7 +132,6 @@ public Action RoundStartDelay( Handle timer ) {
         return;
     }
     
-    LogDebug("------------------------------------------------------");
     while ( (iEntity = FindEntityByClassname(iEntity, "logic_relay")) != -1 ) {
         GetEntityName(iEntity, sTargetName, sizeof(sTargetName));
         
@@ -159,20 +149,19 @@ public void CarAlarmLogicRelayTriggered( const char[] output, int caller, int ac
 	char sTargetName[128];
 	GetEntityName(caller, sTargetName, sizeof(sTargetName));
 	
-	if (IsValidEntity(activator)) {
-		char sBuffer[128];		
+	if (activator && IsValidEntity(activator)) {
+		char sBuffer[128];
 		GetEntityClassname(activator, sBuffer, sizeof(sBuffer));
 		
 		// If a car is turned off because of a tank punch or because it was
 		// triggered the activator is the car itself. When the cars get
 		// randomised the activator is the player who entered the trigger area.
-		if ( StrEqual(sBuffer, "prop_car_alarm") ) {
+		if ( strcmp(sBuffer, "prop_car_alarm") == 0 ) {
 			if (!bSecondRound) {
 				int iColor[RGBA_BLOCK];
 				GetEntityName(activator, sBuffer, sizeof(sBuffer));
 				GetEntityRenderColorEx(activator, iColor);
 				hCarColorsTrie.SetArray(sBuffer, iColor, RGBA_BLOCK);
-				LogDebug("<%s R#%i:Off> Record (%s#%i) [%i %i %i / %i]", sCurrentMap, 1+view_as<int>(bSecondRound), sBuffer, activator, iColor[0],iColor[1],iColor[2],iColor[3]);
 			}
 			return;
 		}
@@ -181,13 +170,11 @@ public void CarAlarmLogicRelayTriggered( const char[] output, int caller, int ac
 	if ( !bSecondRound ) {
 		bActivated = true;
 		PushArrayString(hFirstRoundCars, sTargetName);
-		LogDebug("<%s R#%i:Car> Stored (%s#%i)", sCurrentMap, 1+view_as<int>(bSecondRound), sTargetName, caller);
 		int rndPick = Math_GetRandomInt(0, MAX_OFF_COLOR-1);
 		ApplyCarColor(sTargetName, iOffColors[rndPick]);
 	}
 	else {
 		PushArrayString(hSecondRoundCars, sTargetName);
-		LogDebug("<%s R#%i:Car> Stored (%s#%i)", sCurrentMap, 1+view_as<int>(bSecondRound), sTargetName, caller);
 		if ( !bPatched ) {
 			CreateTimer(1.0, PatchAlarmedCars);
 			CreateTimer(12.0, PatchAlarmCarColors); // A bit lengthy. Can be shortened but not now.
@@ -203,10 +190,8 @@ public void CarAlarmStarted(const char[] output, int caller, int activator, floa
 		GetEntityName(caller, sTargetName, sizeof(sTargetName));
 		
 		int iColor[RGBA_BLOCK];
-		GetEntityName(caller, sTargetName, sizeof(sTargetName));
 		GetEntityRenderColorEx(caller, iColor);
 		hCarColorsTrie.SetArray(sTargetName, iColor, RGBA_BLOCK);
-		LogDebug("<%s R#%i:Alarm> Record (%s#%i) [%i %i %i / %i]", sCurrentMap, 1+view_as<int>(bSecondRound), sTargetName, caller, iColor[0],iColor[1],iColor[2],iColor[3]);
 	}
 }
 
@@ -234,6 +219,8 @@ public Action PatchAlarmedCars( Handle timer ) {
 
 public Action PatchAlarmCarColors(Handle timer)
 {
+	if (!hCarColorsTrie.Size) return;
+	
 	int iEntity = MaxClients+1;
 	char szEntName[128];
 	
@@ -243,7 +230,6 @@ public Action PatchAlarmCarColors(Handle timer)
 		int iColor[RGBA_BLOCK];
 		if (hCarColorsTrie.GetArray(szEntName, iColor, RGBA_BLOCK)) {
 			SetEntityRenderColorEx(iEntity, iColor);
-			LogDebug("<%s R#%i:Color> Applied (%s#%i) [%i %i %i / %i]", sCurrentMap, 1+view_as<int>(bSecondRound), szEntName, iEntity, iColor[0],iColor[1],iColor[2],iColor[3]);
 		}
 	}
 }
@@ -317,7 +303,6 @@ void ApplyCarColor(const char[] sName, int iColor[RGBA_BLOCK])
 	
 	if (iEntity != -1) {
 		SetEntityRenderColorEx(iEntity, iColor);
-		LogDebug("<%s R#%i:Color> Applied (%s#%i) [%i %i %i / %i]", sCurrentMap, 1+view_as<int>(bSecondRound), szCarName, iEntity, iColor[0],iColor[1],iColor[2],iColor[3]);
 	}
 }
 
@@ -352,17 +337,6 @@ void GetEntityRenderColorEx(int entity, int color[RGBA_BLOCK])
 void SetEntityRenderColorEx(int entity, int color[RGBA_BLOCK])
 {
 	SetEntityRenderColor(entity, color[0], color[1], color[2], color[3]);
-}
-
-void LogDebug(const char[] format, any ...)
-{
-	if (!GetConVarBool(hCvarEqAlarmCarsDebug)) return;
-	
-	static char sPath[PLATFORM_MAX_PATH], sBuffer[512];
-	if (sPath[0] == '\0') BuildPath(Path_SM, sPath, sizeof(sPath), "logs/eqalarmcars.log");
-	
-	VFormat(sBuffer, sizeof(sBuffer), format, 2);
-	LogToFileEx(sPath, sBuffer);
 }
 
 /**

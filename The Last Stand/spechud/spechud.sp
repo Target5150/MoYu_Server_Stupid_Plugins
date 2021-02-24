@@ -248,18 +248,34 @@ public void OnAllPluginsLoaded()
 	if (l4d_ready_cfg_name == null) l4d_ready_cfg_name = FindConVar("l4d_ready_cfg_name");
 	
 	bTankSelection = (GetFeatureStatus(FeatureType_Native, "GetTankSelection") != FeatureStatus_Unknown);
+	
+	if (LibraryExists("l4d_boss_percent"))
+	{
+		if (!l4d_tank_percent) l4d_tank_percent = FindConVar("l4d_tank_percent");
+		if (!l4d_witch_percent) l4d_witch_percent = FindConVar("l4d_witch_percent");
+	}
 }
 public void OnLibraryAdded(const char[] name)
 {
-	if (StrEqual(name, "l4d2_scoremod"))bScoremod = true;
-	if (StrEqual(name, "l4d2_hybrid_scoremod") || StrEqual(name, "l4d2_hybrid_scoremod_zone"))bHybridScoremod = true;
-	if (StrEqual(name, "l4d2_health_temp_bonus"))bNextScoremod = true;
+	if (!strcmp(name, "l4d2_scoremod"))bScoremod = true;
+	if (!strcmp(name, "l4d2_hybrid_scoremod") || !strcmp(name, "l4d2_hybrid_scoremod_zone"))bHybridScoremod = true;
+	if (!strcmp(name, "l4d2_health_temp_bonus"))bNextScoremod = true;
+	if (!strcmp(name, "l4d_boss_percent"))
+	{
+		l4d_tank_percent = FindConVar("l4d_tank_percent");
+		l4d_witch_percent = FindConVar("l4d_witch_percent");
+	}
 }
 public void OnLibraryRemoved(const char[] name)
 {
-	if (StrEqual(name, "l4d2_scoremod"))bScoremod = false;
-	if (StrEqual(name, "l4d2_hybrid_scoremod") || StrEqual(name, "l4d2_hybrid_scoremod_zone"))bHybridScoremod = false;
-	if (StrEqual(name, "l4d2_health_temp_bonus"))bNextScoremod = false;
+	if (!strcmp(name, "l4d2_scoremod"))bScoremod = false;
+	if (!strcmp(name, "l4d2_hybrid_scoremod") || !strcmp(name, "l4d2_hybrid_scoremod_zone"))bHybridScoremod = false;
+	if (!strcmp(name, "l4d2_health_temp_bonus"))bNextScoremod = false;
+	if (!strcmp(name, "l4d_boss_percent"))
+	{
+		l4d_tank_percent = null;
+		l4d_witch_percent = null;
+	}
 }
 
 public void OnClientDisconnect(int client)
@@ -388,7 +404,7 @@ public Action HudDrawTimer(Handle hTimer)
 		// 1. Debug active.
 		// 2. Human spectator with spechud active. 
 		// 3. SourceTV active.
-		if( bDebugActive[i] || ( IsSpectator(i) && (bSpecHudActive[i] || IsClientSourceTV(i)) ) )
+		if( IsClientInGame(i) && (bDebugActive[i] || IsClientSourceTV(i) || (IsClientObserver(i) && bSpecHudActive[i])) )
 		{
 			bSpecsOnServer = true;
 			break;
@@ -413,7 +429,7 @@ public Action HudDrawTimer(Handle hTimer)
 			//    2. Client is non-bot and spectator with spechud active.
 			//    3. Client is bot as SourceTV.
 			if (!IsClientInGame(i) || (!bDebugActive[i] 
-										&& (GetClientTeam(i) != TEAM_SPECTATOR || !bSpecHudActive[i] || (IsFakeClient(i) && !IsClientSourceTV(i)))))
+										&& (!IsClientObserver(i) || !bSpecHudActive[i] || (IsFakeClient(i) && !IsClientSourceTV(i)))))
 				continue;
 
 			if (IsBuiltinVoteInProgress() && IsClientInBuiltinVotePool(i))
@@ -430,27 +446,27 @@ public Action HudDrawTimer(Handle hTimer)
 	}
 	
 	Panel tankHud = new Panel();
-	if (!FillTankInfo(tankHud, true)) // No tank -- no HUD
-		return Plugin_Continue;
-
-	for (int i = 1; i <= MaxClients; ++i)
+	if (FillTankInfo(tankHud, true)) // No tank -- no HUD
 	{
-		// Client is in game and non-bot
-		//   1. Client is in infected team or spectator team with tankhud active, spechud inactive.
-		if (!IsClientInGame(i) || IsFakeClient(i) || GetClientTeam(i) == 2 || bDebugActive[i] || !bTankHudActive[i] || (bSpecHudActive[i] && IsSpectator(i)))
-			continue;
-		
-		if (IsBuiltinVoteInProgress() && IsClientInBuiltinVotePool(i))
-			continue;
-
-		SendPanelToClient(tankHud, i, DummyTankHudHandler, 3);
-		if (!bTankHudHintShown[i])
+		for (int i = 1; i <= MaxClients; ++i)
 		{
-			bTankHudHintShown[i] = true;
-			CPrintToChat(i, "<{olive}HUD{default}> Type {green}!tankhud{default} into chat to toggle the {red}Tank HUD{default}.");
+			// Client is in game and non-bot
+			//   1. Client is in infected team or spectator team with tankhud active, spechud inactive.
+			if (!IsClientInGame(i) || IsFakeClient(i) || GetClientTeam(i) == TEAM_SURVIVOR || bDebugActive[i] || !bTankHudActive[i] || (bSpecHudActive[i] && IsClientObserver(i)))
+				continue;
+			
+			if (IsBuiltinVoteInProgress() && IsClientInBuiltinVotePool(i))
+				continue;
+	
+			SendPanelToClient(tankHud, i, DummyTankHudHandler, 3);
+			if (!bTankHudHintShown[i])
+			{
+				bTankHudHintShown[i] = true;
+				CPrintToChat(i, "<{olive}HUD{default}> Type {green}!tankhud{default} into chat to toggle the {red}Tank HUD{default}.");
+			}
 		}
 	}
-
+	
 	delete tankHud;
 	return Plugin_Continue;
 }
@@ -1239,10 +1255,10 @@ bool RoundHasFlowWitch()
 	return L4D2Direct_GetVSWitchToSpawnThisRound(InSecondHalfOfRound());
 }
 
-bool IsSpectator(int client)
-{
-	return IsClientInGame(client) && GetClientTeam(client) == TEAM_SPECTATOR;
-}
+//bool IsSpectator(int client)
+//{
+//	return IsClientInGame(client) && GetClientTeam(client) == TEAM_SPECTATOR;
+//}
 
 bool IsSurvivor(int client)
 {
