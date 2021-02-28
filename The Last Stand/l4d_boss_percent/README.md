@@ -1,11 +1,11 @@
 # l4d_boss_percent
 
-# Introduction
+### Introduction
 L4D2 Boss Percents basically from [spoon-l4d2/Plugins](https://github.com/spoon-l4d2/Plugins), to a bug-fixed version
 
 <hr>
 
-# Changelog
+### Changelog
 - (V3.2.0 2021/2/11) Optimized a native.
 
 - (V3.2.0 2021/2/3) Update natives and some clear works.

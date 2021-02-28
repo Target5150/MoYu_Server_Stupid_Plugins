@@ -1,11 +1,11 @@
 # l4d_equalise_alarm_cars
 
-# Introduction
+### Introduction
 - [Discussion](https://github.com/Derpduck/L4D2-Comp-Stripper-Rework/issues/12)
   - Alternative solution, by upgrading the plugin.
   - Globally applicable, as long as the name format of alarm cars are standard to be hooked.
 
-# ConVars
+### ConVars
 ```
 // Makes alarmed cars spawn in the same way for both teams.
 // -  
@@ -15,7 +15,7 @@ l4d_equalise_alarm_cars "1"
 
 <hr>
 
-# Changelog
+### Changelog
 - (V1.5 2021/2/25)
 	- Prevented possible waste when no alarm-off gets triggered.
 	- Removed more or less useless debug functionality.
