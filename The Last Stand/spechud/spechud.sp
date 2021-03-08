@@ -7,7 +7,7 @@
 #undef REQUIRE_PLUGIN
 #include <readyup>
 #include <pause>
-#include <l4d_boss_percent>
+#include <l4d2_boss_percents>
 #include <l4d2_hybrid_scoremod>
 #include <l4d2_scoremod>
 #include <l4d2_health_temp_bonus>
@@ -17,7 +17,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION	"3.4.4b"
+#define PLUGIN_VERSION	"3.4.5"
 
 public Plugin myinfo = 
 {
@@ -404,7 +404,7 @@ public Action HudDrawTimer(Handle hTimer)
 		// 1. Debug active.
 		// 2. Human spectator with spechud active. 
 		// 3. SourceTV active.
-		if( IsClientInGame(i) && (bDebugActive[i] || IsClientSourceTV(i) || (IsClientObserver(i) && bSpecHudActive[i])) )
+		if( IsClientInGame(i) && (bDebugActive[i] || IsClientSourceTV(i) || (GetClientTeam(i) == TEAM_SPECTATOR && bSpecHudActive[i])) )
 		{
 			bSpecsOnServer = true;
 			break;
@@ -429,7 +429,7 @@ public Action HudDrawTimer(Handle hTimer)
 			//    2. Client is non-bot and spectator with spechud active.
 			//    3. Client is bot as SourceTV.
 			if (!IsClientInGame(i) || (!bDebugActive[i] 
-										&& (!IsClientObserver(i) || !bSpecHudActive[i] || (IsFakeClient(i) && !IsClientSourceTV(i)))))
+										&& (GetClientTeam(i) != TEAM_SPECTATOR || !bSpecHudActive[i] || (IsFakeClient(i) && !IsClientSourceTV(i)))))
 				continue;
 
 			if (IsBuiltinVoteInProgress() && IsClientInBuiltinVotePool(i))
@@ -452,7 +452,7 @@ public Action HudDrawTimer(Handle hTimer)
 		{
 			// Client is in game and non-bot
 			//   1. Client is in infected team or spectator team with tankhud active, spechud inactive.
-			if (!IsClientInGame(i) || IsFakeClient(i) || GetClientTeam(i) == TEAM_SURVIVOR || bDebugActive[i] || !bTankHudActive[i] || (bSpecHudActive[i] && IsClientObserver(i)))
+			if (!IsClientInGame(i) || IsFakeClient(i) || GetClientTeam(i) == TEAM_SURVIVOR || bDebugActive[i] || !bTankHudActive[i] || (bSpecHudActive[i] && GetClientTeam(i) == TEAM_SPECTATOR))
 				continue;
 			
 			if (IsBuiltinVoteInProgress() && IsClientInBuiltinVotePool(i))
@@ -477,7 +477,7 @@ public int DummyTankHudHandler(Menu hMenu, MenuAction action, int param1, int pa
 void FillHeaderInfo(Panel hSpecHud)
 {
 	static char buf[64];
-	Format(buf, sizeof(buf), "☂ %s [Slots %i/%i | %iT]", sHostname, GetClientCount(false), iMaxPlayers, RoundToNearest(1.0 / GetTickInterval()));
+	Format(buf, sizeof(buf), "☂ %s [Slots %i/%i | %iT]", sHostname, GetRealClientCount(), iMaxPlayers, RoundToNearest(1.0 / GetTickInterval()));
 	DrawPanelText(hSpecHud, buf);
 }
 
@@ -1210,6 +1210,16 @@ void GetClientFixedName(int client, char[] name, int length)
 		name[15] = name[16] = name[17] = '.';
 		name[18] = 0;
 	}
+}
+
+int GetRealClientCount() 
+{
+	int clients = 0;
+	for (int i = 1; i <= MaxClients; ++i) 
+	{
+		if (IsClientConnected(i) && !IsFakeClient(i)) clients++;
+	}
+	return clients;
 }
 
 int InSecondHalfOfRound()
