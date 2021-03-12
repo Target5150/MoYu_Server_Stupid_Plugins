@@ -10,6 +10,8 @@
 <hr>
 
 ### Changelog
+- (V1.2.6 2021/2/22) Fixed wrong counted scene lists (:D).
+
 - (V1.2.5 2021/2/22) Code optimize.
 
 - (V1.2.4 2021/2/11) Altered method of scene files precache.

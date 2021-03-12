@@ -8,7 +8,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.2.5"
+#define PLUGIN_VERSION "1.2.6"
 
 public Plugin myinfo = 
 {
@@ -45,7 +45,7 @@ static const char g_szVocalizeNames[Vocalize][] =
 
 #define MAX_COACH_LAUGH 23
 #define MAX_COACH_TAUNT 8
-#define MAX_COACH_SCREAM 2
+#define MAX_COACH_SCREAM 9
 
 #define MAX_ELLIS_LAUGH 19
 #define MAX_ELLIS_TAUNT 8
@@ -59,9 +59,9 @@ static const char g_szVocalizeNames[Vocalize][] =
 #define MAX_ZOEY_TAUNT 16
 #define MAX_ZOEY_SCREAM 11
 
-#define MAX_LOUIS_LAUGH 19
-#define MAX_LOUIS_TAUNT 8
-#define MAX_LOUIS_SCREAM 6
+#define MAX_LOUIS_LAUGH 21
+#define MAX_LOUIS_TAUNT 10
+#define MAX_LOUIS_SCREAM 10
 
 #define MAX_FRANCIS_LAUGH 15
 #define MAX_FRANCIS_TAUNT 10
