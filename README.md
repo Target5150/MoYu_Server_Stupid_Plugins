@@ -15,3 +15,14 @@ If you find a bug or something strange when using this project, any report is ap
 # Requirement
 - **Sourcemod 1.10 (Since 6495)**
 - (Optional) **[Left4DHooks](https://forums.alliedmods.net/showthread.php?p=2684862)**
+
+# Credit
+> Plugin contributor
+- fbef0102 (Harry Potter)
+- IA-NanaNana
+
+> God reporters/helpers
+- J.
+- EMA
+- Hoongdou
+- SirPlease
