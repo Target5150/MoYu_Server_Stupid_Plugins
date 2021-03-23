@@ -212,28 +212,37 @@ public void PlayerTeam_Event(Event event, const char[] name, bool dontBroadcast)
 	{
 		ArrayStack stack = new ArrayStack();
 		stack.Push(client);
+		stack.Push(GetClientUserId(client));
 		stack.Push(oldteam);
-		g_hChangeTeamTimer[client] = CreateTimer(0.1, Timer_PlayerTeam, stack, TIMER_FLAG_NO_MAPCHANGE);
+		g_hChangeTeamTimer[client] = CreateTimer(0.1, Timer_PlayerTeam, stack, TIMER_FLAG_NO_MAPCHANGE | TIMER_DATA_HNDL_CLOSE);
 	}
 }
 
 public Action Timer_PlayerTeam(Handle timer, ArrayStack stack)
 {
 	int oldteam = stack.Pop();
-	int client = stack.Pop();
+	int userid = stack.Pop();
+	int client = GetClientOfUserId(userid);
 	
-	if (IsClientInGame(client))
+	if (client > 0 && IsClientInGame(client))
 	{
 		if (inLiveCountdown)
 		{
 			int team = GetClientTeam(client);
-			if (team != oldteam)
+			if (team != L4D2Team_None && oldteam != L4D2Team_None)
 			{
-				CancelFullReady(client, teamShuffle);
+				if (team != oldteam)
+				{
+					CancelFullReady(client, teamShuffle);
+				}
 			}
 		}
 		
-		if (IsScavenge()) CreateTimer(0.3, Timer_HideCountdown, GetClientUserId(client));
+		if (IsScavenge()) CreateTimer(0.3, Timer_HideCountdown, userid);
+	}
+	else
+	{
+		client = stack.Pop();
 	}
 	
 	delete stack;
@@ -1347,7 +1356,8 @@ void InitiateCountdown()
 			ShowVGUIPanel(i, "ready_countdown", _, true);
 		}
 	}
-
+	
+	L4D_ScavengeBeginRoundSetupTime();
 	//CTimer_Start(L4D2Direct_GetScavengeRoundSetupTimer(), duration);
 }
 
