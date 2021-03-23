@@ -229,9 +229,9 @@ public Action Timer_PlayerTeam(Handle timer, ArrayStack stack)
 		if (inLiveCountdown)
 		{
 			int team = GetClientTeam(client);
-			if (team != L4D2Team_None && oldteam != L4D2Team_None)
+			if (team != oldteam)
 			{
-				if (team != oldteam)
+				if (oldteam != L4D2Team_None || team != L4D2Team_Spectator) // Client joined but not player
 				{
 					CancelFullReady(client, teamShuffle);
 				}
