@@ -7,7 +7,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "9.1.0"
+#define PLUGIN_VERSION "9.1.1b"
 
 #define NULL_VELOCITY view_as<float>({0.0, 0.0, 0.0})
 
@@ -635,7 +635,7 @@ public Action ForceStart_Cmd(int client, int args)
 		if (id != INVALID_ADMIN_ID && GetAdminFlag(id, Admin_Ban)) // Check for specific admin flag
 		{
 			InitiateLiveCountdown();
-			CPrintToChatAll("[{green}!{default}] {blue}Game {default}is enforced to {green}Live {default}by {blue}Admin {default}({olive}%N{default})", client);
+			CPrintToChatAll("[{green}!{default}] {blue}Game {default}start is {green}forced {default}by {blue}Admin {default}({olive}%N{default})", client);
 			return Plugin_Handled;
 		}
 		
@@ -646,7 +646,7 @@ public Action ForceStart_Cmd(int client, int args)
 		// Filter spectator
 		if (!IsPlayer(client))
 		{
-			CPrintToChat(client, "[{olive}Readyup{default}] {blue}Spectator {default}is not allowed to call for {green}force start{default}.");
+			CPrintToChat(client, "[{olive}Readyup{default}] {blue}Spectators {default}are not allowed to {green}force start{default}.");
 			return Plugin_Handled;
 		}
 		
@@ -688,7 +688,7 @@ public Action KickSpecs_Cmd(int client, int args)
 		// Filter spectator
 		if (!IsPlayer(client))
 		{
-			CPrintToChat(client, "[{olive}Readyup{default}] {blue}Spectator {default}is not allowed to call a vote for {green}kicking specs{default}.");
+			CPrintToChat(client, "[{olive}Readyup{default}] {blue}Spectators {default}are not allowed to call a vote for {green}kicking specs{default}.");
 			return Plugin_Handled;
 		}
 		
@@ -708,7 +708,7 @@ void StartForceStartVote(int client)
 {
 	if (IsBuiltinVoteInProgress())
 	{
-		CPrintToChat(client, "[{olive}Readyup{default}] There has been {olive}a vote {green}in progress{default}.");
+		CPrintToChat(client, "[{olive}Readyup{default}] There's {olive}a vote {green}in progress{default}.");
 		return;
 	}
 	if (CheckBuiltinVoteDelay() > 0)
@@ -720,7 +720,7 @@ void StartForceStartVote(int client)
 	g_hVote = CreateBuiltinVote(VoteActionHandler, BuiltinVoteType_Custom_YesNo, BuiltinVoteAction_Cancel | BuiltinVoteAction_VoteEnd | BuiltinVoteAction_End);
 
 	char sBuffer[128];
-	FormatEx(sBuffer, sizeof(sBuffer), "Enforce the Game to Live? (100%%%%)"); // kinda format :D
+	FormatEx(sBuffer, sizeof(sBuffer), "Force start the Game? (100%%%%)"); // kinda format :D
 	SetBuiltinVoteArgument(g_hVote, sBuffer);
 	SetBuiltinVoteInitiator(g_hVote, client);
 	SetBuiltinVoteResultCallback(g_hVote, ForceStartVoteResultHandler);
