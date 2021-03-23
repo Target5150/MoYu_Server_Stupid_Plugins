@@ -26,3 +26,5 @@ If you find a bug or something strange when using this project, any report is ap
 - EMA
 - Hoongdou
 - SirPlease
+- Carry me plz
+- JoJo
