@@ -17,7 +17,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION	"3.4.5"
+#define PLUGIN_VERSION	"3.4.6"
 
 public Plugin myinfo = 
 {
