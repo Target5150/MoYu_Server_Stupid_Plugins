@@ -8,7 +8,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.2.6"
+#define PLUGIN_VERSION "1.2.7"
 
 public Plugin myinfo = 
 {
@@ -70,18 +70,18 @@ static const char g_szVocalizeNames[Vocalize][] =
 static const int g_iMaxVoices[Vocalize][SurvivorCharacter] = 
 {
 	{
-		MAX_NICK_LAUGH, MAX_ROCHELLE_LAUGH, MAX_COACH_LAUGH, MAX_ELLIS_LAUGH,
-		MAX_BILL_LAUGH, MAX_ZOEY_LAUGH, MAX_LOUIS_LAUGH, MAX_FRANCIS_LAUGH
+		MAX_COACH_LAUGH,	MAX_NICK_LAUGH,		MAX_ROCHELLE_LAUGH,		MAX_ELLIS_LAUGH,
+		MAX_LOUIS_LAUGH,	MAX_ZOEY_LAUGH,		MAX_BILL_LAUGH,			MAX_FRANCIS_LAUGH
 	},
 	
 	{
-		MAX_NICK_TAUNT, MAX_ROCHELLE_TAUNT, MAX_COACH_TAUNT, MAX_ELLIS_TAUNT,
-		MAX_BILL_TAUNT, MAX_ZOEY_TAUNT, MAX_LOUIS_TAUNT, MAX_FRANCIS_TAUNT
+		MAX_COACH_TAUNT,	MAX_NICK_TAUNT,		MAX_ROCHELLE_TAUNT,		MAX_ELLIS_TAUNT,
+		MAX_LOUIS_TAUNT,	MAX_ZOEY_TAUNT,		MAX_BILL_TAUNT,			MAX_FRANCIS_TAUNT
 	},
 	
 	{
-		MAX_NICK_SCREAM, MAX_ROCHELLE_SCREAM, MAX_COACH_SCREAM, MAX_ELLIS_SCREAM,
-		MAX_BILL_SCREAM, MAX_ZOEY_SCREAM, MAX_LOUIS_SCREAM, MAX_FRANCIS_SCREAM
+		MAX_COACH_SCREAM,	MAX_NICK_SCREAM,	MAX_ROCHELLE_SCREAM,	MAX_ELLIS_SCREAM,
+		MAX_LOUIS_SCREAM,	MAX_ZOEY_SCREAM,	MAX_BILL_SCREAM,		MAX_FRANCIS_SCREAM
 	}
 };
 
@@ -103,7 +103,7 @@ static const char g_szNickLaughs[][] =
 	"scenes/gambler/laughter14.vcd",
 	"scenes/gambler/laughter15.vcd",
 	"scenes/gambler/laughter16.vcd",
-	"scenes/gambler/laughter17.vcd"
+	"scenes/gambler/laughter17.vcd"		// 17
 };
 
 static const char g_szNickTaunts[][] =
@@ -116,7 +116,7 @@ static const char g_szNickTaunts[][] =
 	"scenes/gambler/taunt06.vcd",
 	"scenes/gambler/taunt07.vcd",
 	"scenes/gambler/taunt08.vcd",
-	"scenes/gambler/taunt09.vcd"
+	"scenes/gambler/taunt09.vcd"		// 9
 };
 
 static const char g_szNickScreams[][] =
@@ -127,9 +127,8 @@ static const char g_szNickScreams[][] =
 	"scenes/gambler/deathscream04.vcd",
 	"scenes/gambler/deathscream05.vcd",
 	"scenes/gambler/deathscream06.vcd",
-	"scenes/gambler/deathscream07.vcd"
+	"scenes/gambler/deathscream07.vcd"	// 7
 };
-
 
 static const char g_szRochelleLaughs[][] =
 {
@@ -149,7 +148,7 @@ static const char g_szRochelleLaughs[][] =
 	"scenes/producer/laughter14.vcd",
 	"scenes/producer/laughter15.vcd",
 	"scenes/producer/laughter16.vcd",
-	"scenes/producer/laughter17.vcd"
+	"scenes/producer/laughter17.vcd"	// 17
 };
 
 static const char g_szRochelleTaunts[][] =
@@ -161,15 +160,14 @@ static const char g_szRochelleTaunts[][] =
 	"scenes/producer/taunt05.vcd",
 	"scenes/producer/taunt06.vcd",
 	"scenes/producer/taunt07.vcd",
-	"scenes/producer/taunt08.vcd"
+	"scenes/producer/taunt08.vcd"		// 8
 };
 
 static const char g_szRochelleScreams[][] =
 {
 	"scenes/producer/deathscream01.vcd",
-	"scenes/producer/deathscream02.vcd"
+	"scenes/producer/deathscream02.vcd"	// 2
 };
-
 
 static const char g_szCoachLaughs[][] =
 {
@@ -195,7 +193,7 @@ static const char g_szCoachLaughs[][] =
 	"scenes/coach/laughter20.vcd",
 	"scenes/coach/laughter21.vcd",
 	"scenes/coach/laughter22.vcd",
-	"scenes/coach/laughter23.vcd"
+	"scenes/coach/laughter23.vcd"		// 23
 };
 
 static const char g_szCoachTaunts[][] =
@@ -207,7 +205,7 @@ static const char g_szCoachTaunts[][] =
 	"scenes/coach/taunt05.vcd",
 	"scenes/coach/taunt06.vcd",
 	"scenes/coach/taunt07.vcd",
-	"scenes/coach/taunt08.vcd"
+	"scenes/coach/taunt08.vcd"			// 8
 };
 
 static const char g_szCoachScreams[][] =
@@ -220,7 +218,7 @@ static const char g_szCoachScreams[][] =
 	"scenes/coach/deathscream06.vcd",
 	"scenes/coach/deathscream07.vcd",
 	"scenes/coach/deathscream08.vcd",
-	"scenes/coach/deathscream09.vcd"
+	"scenes/coach/deathscream09.vcd"	// 9
 };
 
 
@@ -244,7 +242,7 @@ static const char g_szEllisLaughs[][] =
 	"scenes/mechanic/laughter13c.vcd",
 	"scenes/mechanic/laughter13d.vcd",
 	"scenes/mechanic/laughter13e.vcd",
-	"scenes/mechanic/laughter14.vcd",
+	"scenes/mechanic/laughter14.vcd",	// 19
 };
 
 static const char g_szEllisTaunts[][] =
@@ -256,7 +254,7 @@ static const char g_szEllisTaunts[][] =
 	"scenes/mechanic/taunt05.vcd",
 	"scenes/mechanic/taunt06.vcd",
 	"scenes/mechanic/taunt07.vcd",
-	"scenes/mechanic/taunt08.vcd"
+	"scenes/mechanic/taunt08.vcd"		// 8
 };
 
 static const char g_szEllisScreams[][] =
@@ -266,7 +264,7 @@ static const char g_szEllisScreams[][] =
 	"scenes/mechanic/deathscream03.vcd",
 	"scenes/mechanic/deathscream04.vcd",
 	"scenes/mechanic/deathscream05.vcd",
-	"scenes/mechanic/deathscream06.vcd"
+	"scenes/mechanic/deathscream06.vcd"	// 6
 };
 
 
@@ -285,7 +283,7 @@ static const char g_szBillLaughs[][] =
 	"scenes/namvet/laughter11.vcd",
 	"scenes/namvet/laughter12.vcd",
 	"scenes/namvet/laughter13.vcd",
-	"scenes/namvet/laughter14.vcd"
+	"scenes/namvet/laughter14.vcd"		// 14
 };
 
 static const char g_szBillTaunts[][] =
@@ -294,7 +292,7 @@ static const char g_szBillTaunts[][] =
 	"scenes/namvet/taunt02.vcd",
 	"scenes/namvet/taunt07.vcd",
 	"scenes/namvet/taunt08.vcd",
-	"scenes/namvet/taunt09.vcd"
+	"scenes/namvet/taunt09.vcd"			// 5
 };
 
 static const char g_szBillScreams[][] =
@@ -306,7 +304,7 @@ static const char g_szBillScreams[][] =
 	"scenes/namvet/deathscream05.vcd",
 	"scenes/namvet/deathscream06.vcd",
 	"scenes/namvet/deathscream07.vcd",
-	"scenes/namvet/deathscream08.vcd"
+	"scenes/namvet/deathscream08.vcd"	// 8
 };
 
 
@@ -332,7 +330,7 @@ static const char g_szZoeyLaughs[][] =
 	"scenes/teengirl/laughter18.vcd",
 	"scenes/teengirl/laughter19.vcd",
 	"scenes/teengirl/laughter20.vcd",
-	"scenes/teengirl/laughter21.vcd"
+	"scenes/teengirl/laughter21.vcd"	// 21
 };
 
 static const char g_szZoeyTaunts[][] =
@@ -352,7 +350,7 @@ static const char g_szZoeyTaunts[][] =
 	"scenes/teengirl/taunt31.vcd",
 	"scenes/teengirl/taunt34.vcd",
 	"scenes/teengirl/taunt35.vcd",
-	"scenes/teengirl/taunt39.vcd"
+	"scenes/teengirl/taunt39.vcd"		// 16
 };
 
 static const char g_szZoeyScreams[][] =
@@ -367,7 +365,7 @@ static const char g_szZoeyScreams[][] =
 	"scenes/teengirl/deathscream08.vcd",
 	"scenes/teengirl/deathscream09.vcd",
 	"scenes/teengirl/deathscream10.vcd",
-	"scenes/teengirl/deathscream11.vcd"
+	"scenes/teengirl/deathscream11.vcd"	// 11
 };
 
 
@@ -393,7 +391,7 @@ static const char g_szLouisLaughs[][] =
 	"scenes/manager/laughter18.vcd",
 	"scenes/manager/laughter19.vcd",
 	"scenes/manager/laughter20.vcd",
-	"scenes/manager/laughter21.vcd"
+	"scenes/manager/laughter21.vcd"		// 21
 };
 
 static const char g_szLouisTaunts[][] =
@@ -407,7 +405,7 @@ static const char g_szLouisTaunts[][] =
 	"scenes/manager/taunt07.vcd",
 	"scenes/manager/taunt08.vcd",
 	"scenes/manager/taunt09.vcd",
-	"scenes/manager/taunt10.vcd"
+	"scenes/manager/taunt10.vcd"		// 10
 };
 
 static const char g_szLouisScreams[][] =
@@ -421,7 +419,7 @@ static const char g_szLouisScreams[][] =
 	"scenes/manager/deathscream07.vcd",
 	"scenes/manager/deathscream08.vcd",
 	"scenes/manager/deathscream09.vcd",
-	"scenes/manager/deathscream10.vcd"
+	"scenes/manager/deathscream10.vcd"	// 10
 };
 
 
@@ -441,7 +439,7 @@ static const char g_szFrancisLaughs[][] =
 	"scenes/biker/laughter12.vcd",
 	"scenes/biker/laughter13.vcd",
 	"scenes/biker/laughter14.vcd",
-	"scenes/biker/laughter15.vcd"
+	"scenes/biker/laughter15.vcd"		// 15
 };
 
 static const char g_szFrancisTaunts[][] =
@@ -455,7 +453,7 @@ static const char g_szFrancisTaunts[][] =
 	"scenes/biker/taunt07.vcd",
 	"scenes/biker/taunt08.vcd",
 	"scenes/biker/taunt09.vcd",
-	"scenes/biker/taunt10.vcd"
+	"scenes/biker/taunt10.vcd"			// 10
 };
 
 static const char g_szFrancisScreams[][] =
@@ -469,7 +467,7 @@ static const char g_szFrancisScreams[][] =
 	"scenes/biker/deathscream07.vcd",
 	"scenes/biker/deathscream08.vcd",
 	"scenes/biker/deathscream09.vcd",
-	"scenes/biker/deathscream10.vcd"
+	"scenes/biker/deathscream10.vcd"	// 10
 };
 
 ConVar g_cvGamemode;
@@ -552,42 +550,42 @@ void PickVoice(char[] szFile, int maxlength, Vocalize emVocalize, SurvivorCharac
 		{
 			switch (emCharacter)
 			{
-				case SC_NICK:		strcopy(szFile, maxlength, g_szNickLaughs[rndPick]);
-				case SC_ROCHELLE:	strcopy(szFile, maxlength, g_szRochelleLaughs[rndPick]);
-				case SC_COACH:		strcopy(szFile, maxlength, g_szCoachLaughs[rndPick]);
-				case SC_ELLIS:		strcopy(szFile, maxlength, g_szEllisLaughs[rndPick]);
-				case SC_BILL:		strcopy(szFile, maxlength, g_szBillLaughs[rndPick]);
-				case SC_ZOEY:		strcopy(szFile, maxlength, g_szZoeyLaughs[rndPick]);
-				case SC_LOUIS:		strcopy(szFile, maxlength, g_szLouisLaughs[rndPick]);
-				case SC_FRANCIS:	strcopy(szFile, maxlength, g_szFrancisLaughs[rndPick]);
+				case SC_NICK:		{strcopy(szFile, maxlength, g_szNickLaughs[rndPick]);}
+				case SC_ROCHELLE:	{strcopy(szFile, maxlength, g_szRochelleLaughs[rndPick]);}
+				case SC_COACH:		{strcopy(szFile, maxlength, g_szCoachLaughs[rndPick]);}
+				case SC_ELLIS:		{strcopy(szFile, maxlength, g_szEllisLaughs[rndPick]);}
+				case SC_BILL:		{strcopy(szFile, maxlength, g_szBillLaughs[rndPick]);}
+				case SC_ZOEY:		{strcopy(szFile, maxlength, g_szZoeyLaughs[rndPick]);}
+				case SC_LOUIS:		{strcopy(szFile, maxlength, g_szLouisLaughs[rndPick]);}
+				case SC_FRANCIS:	{strcopy(szFile, maxlength, g_szFrancisLaughs[rndPick]);}
 			}
 		}
 		case Vocal_PlayerTaunt:
 		{
 			switch (emCharacter)
 			{
-				case SC_NICK:		strcopy(szFile, maxlength, g_szNickTaunts[rndPick]);
-				case SC_ROCHELLE:	strcopy(szFile, maxlength, g_szRochelleTaunts[rndPick]);
-				case SC_COACH:		strcopy(szFile, maxlength, g_szCoachTaunts[rndPick]);
-				case SC_ELLIS:		strcopy(szFile, maxlength, g_szEllisTaunts[rndPick]);
-				case SC_BILL:		strcopy(szFile, maxlength, g_szBillTaunts[rndPick]);
-				case SC_ZOEY:		strcopy(szFile, maxlength, g_szZoeyTaunts[rndPick]);
-				case SC_LOUIS:		strcopy(szFile, maxlength, g_szLouisTaunts[rndPick]);
-				case SC_FRANCIS:	strcopy(szFile, maxlength, g_szFrancisTaunts[rndPick]);
+				case SC_NICK:		{strcopy(szFile, maxlength, g_szNickTaunts[rndPick]);}
+				case SC_ROCHELLE:	{strcopy(szFile, maxlength, g_szRochelleTaunts[rndPick]);}
+				case SC_COACH:		{strcopy(szFile, maxlength, g_szCoachTaunts[rndPick]);}
+				case SC_ELLIS:		{strcopy(szFile, maxlength, g_szEllisTaunts[rndPick]);}
+				case SC_BILL:		{strcopy(szFile, maxlength, g_szBillTaunts[rndPick]);}
+				case SC_ZOEY:		{strcopy(szFile, maxlength, g_szZoeyTaunts[rndPick]);}
+				case SC_LOUIS:		{strcopy(szFile, maxlength, g_szLouisTaunts[rndPick]);}
+				case SC_FRANCIS:	{strcopy(szFile, maxlength, g_szFrancisTaunts[rndPick]);}
 			}
 		}
 		case Vocal_Playerdeath:
 		{
 			switch (emCharacter)
 			{
-				case SC_NICK:		strcopy(szFile, maxlength, g_szNickScreams[rndPick]);
-				case SC_ROCHELLE:	strcopy(szFile, maxlength, g_szRochelleScreams[rndPick]);
-				case SC_COACH:		strcopy(szFile, maxlength, g_szCoachScreams[rndPick]);
-				case SC_ELLIS:		strcopy(szFile, maxlength, g_szEllisScreams[rndPick]);
-				case SC_BILL:		strcopy(szFile, maxlength, g_szBillScreams[rndPick]);
-				case SC_ZOEY:		strcopy(szFile, maxlength, g_szZoeyScreams[rndPick]);
-				case SC_LOUIS:		strcopy(szFile, maxlength, g_szLouisScreams[rndPick]);
-				case SC_FRANCIS:	strcopy(szFile, maxlength, g_szFrancisScreams[rndPick]);
+				case SC_NICK:		{strcopy(szFile, maxlength, g_szNickScreams[rndPick]);}
+				case SC_ROCHELLE:	{strcopy(szFile, maxlength, g_szRochelleScreams[rndPick]);}
+				case SC_COACH:		{strcopy(szFile, maxlength, g_szCoachScreams[rndPick]);}
+				case SC_ELLIS:		{strcopy(szFile, maxlength, g_szEllisScreams[rndPick]);}
+				case SC_BILL:		{strcopy(szFile, maxlength, g_szBillScreams[rndPick]);}
+				case SC_ZOEY:		{strcopy(szFile, maxlength, g_szZoeyScreams[rndPick]);}
+				case SC_LOUIS:		{strcopy(szFile, maxlength, g_szLouisScreams[rndPick]);}
+				case SC_FRANCIS:	{strcopy(szFile, maxlength, g_szFrancisScreams[rndPick]);}
 			}
 		}
 	}
@@ -719,14 +717,9 @@ void AddSceneToTable(const char[] scene)
  * @param max			Max value used as upper border
  * @return				Random Integer number between min and max
  */
-#define SIZE_OF_INT         2147483647 // without 0
 stock int Math_GetRandomInt(int min, int max)
 {
-	int random = GetURandomInt();
+	float random = GetURandomFloat();
 	
-	if (random == 0) {
-		random++;
-	}
-		
-	return RoundToCeil(float(random) / (float(SIZE_OF_INT) / float(max - min + 1))) + min - 1;
+	return RoundToCeil(random * float(max - min + 1)) + min - 1;
 }

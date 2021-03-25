@@ -1,0 +1,172 @@
+"Phrases"
+{
+// The following uses default color tags (\x01 - \x05)
+	"RegCasterReply"
+	{
+		"en"		"Registered \x05%N \x01as a caster"
+	}
+	
+	"CasterSteamIDError"
+	{
+		"en"		"Couldn't find \x04Steam ID\x01.  Check for typos and let the player get fully connected."
+	}
+
+	"UnregCasterNonAdmin"
+	{
+		"en"		"Only \x03admins \x01can remove other casters. Use \x04sm_notcasting \x01without arguments if you wish to remove yourself."
+	}
+
+	"UnregCasterSuccess"
+	{
+		"en"		"%N is no longer a caster"
+	}
+	
+	
+// The following uses bracket style color tags (see colors.inc)
+	"SelfCast1"
+	{
+		"en"		"You have registered yourself as a caster."
+	}
+
+	"SelfCast2"
+	{
+		"en"		"Reconnect to make your Addons work."
+	}
+
+	"RegCasterTarget"
+	{
+		"en"		"{blue}Admin {default}({olive}%N{default}) has registered you as a caster"
+	}
+
+	"Reconnect1"
+	{
+		"en"		"You will be reconnected to the server.."
+	}
+
+	"Reconnect2"
+	{
+		"en"		"There's a black screen instead of a loading bar!"
+	}
+
+	"UnregCasterTarget"
+	{
+		"en"		"You are unregistered as a caster by {blue}Admin {default}({olive}%N{default})"
+	}
+	
+	"PanelHide"
+	{
+		"en"		"Panel is now {red}off{default}"
+	}
+	
+	"PanelShow"
+	{
+		"en"		"Panel is now {blue}on{default}"
+	}
+	
+	"ForceStartAdmin"
+	{
+		"en"		"{blue}Game {default}start is {green}forced {default}by {blue}Admin {default}({olive}%N{default})"
+	}
+	
+	"ForceStartVoteSpec"
+	{
+		"en"		"{blue}Spectators {default}are not allowed to {green}force start{default}."
+	}
+	
+	"ForceStartFullPlayers"
+	{
+		"en"		"You are {red}not allowed {default}to call a vote for force start due to {green}full players{default}."
+	}
+	
+	"KickSpecsAdmin"
+	{
+		"en"		"{blue}Spectators {default}are kicked by {blue}Admin {default}({olive}%N{default})"
+	}
+	
+	"KickSpecsVoteSpec"
+	{
+		"en"		"{blue}Spectators {default}are not allowed to call a vote for {green}kicking specs{default}."
+	}
+	
+	"VoteInProgress"
+	{
+		"en"		"There's {olive}a vote {green}in progress{default}."
+	}
+	
+	"VoteDelay"
+	{
+		"en"		"Wait for another {blue}%is {default}to call a vote."
+	}
+
+	"DisruptReadyStatus"
+	{
+		"en"		"{green}Countdown Cancelled! {default}({teamcolor}%N {green}marked unready{default})"
+	}
+	
+	"DisruptTeamShuffle"
+	{
+		"en"		"{green}Countdown Cancelled! {default}({teamcolor}%N {olive}switched team{default})"
+	}
+	
+	"DisruptPlayerDisc"
+	{
+		"en"		"{green}Countdown Cancelled! {default}({teamcolor}%N {green}disconnected{default})"
+	}
+	
+	
+// The following are not allowed to use any color tag
+	"ForceStartVoteTitle"
+	{
+		"en"		"Force start the game?"
+	}
+	
+	"KickSpecsVoteTitle"
+	{
+		"en"		"Kick Non-Admin & Non-Casting Spectators?"
+	}
+	
+	"ForceStartVoteSuccess"
+	{
+		"en"		"Forcing start..."
+	}
+	
+	"KickSpecsVoteSuccess"
+	{
+		"en"		"Ciao Spectators!"
+	}
+	
+	"KickSpecsReason"
+	{
+		"en"		"No Spectators, please!"
+	}
+	
+	"HintReady"
+	{
+		"en"		"You are ready.\nSay !unready / Press F2 to unready."
+	}
+	
+	"HintUnready"
+	{
+		"en"		"You are not ready.\nSay !ready / Press F1 to ready up."
+	}
+	
+	"LiveCountdownBegin"
+	{
+		"en"		"Going live!\nSay !unready / Press F2 to cancel"
+	}
+	
+	"LiveCountdown"
+	{
+		"en"		"Live in: %d\nSay !unready / Press F2 to cancel"
+	}
+	
+	"LiveCountdownCancelled"
+	{
+		"en"		"Countdown Cancelled!"
+	}
+	
+	"RoundIsLive"
+	{
+		"en"		"Round is live!"
+	}
+}

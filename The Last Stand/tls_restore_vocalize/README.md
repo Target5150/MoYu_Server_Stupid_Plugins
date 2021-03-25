@@ -10,6 +10,8 @@
 <hr>
 
 ### Changelog
+- (V1.2.7 2021/3/25) Fixed spamming array out of bounds errors.
+
 - (V1.2.6 2021/2/22) Fixed wrong counted scene lists (:D).
 
 - (V1.2.5 2021/2/22) Code optimize.

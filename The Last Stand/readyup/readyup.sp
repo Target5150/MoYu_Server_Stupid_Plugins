@@ -111,12 +111,12 @@ public void OnPluginStart()
 	l4d_ready_survivor_freeze	= CreateConVar("l4d_ready_survivor_freeze", "1", "Freeze the survivors during ready-up.  When unfrozen they are unable to leave the saferoom but can move freely inside", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	l4d_ready_max_players		= CreateConVar("l4d_ready_max_players", "12", "Maximum number of players to show on the ready-up panel.", FCVAR_NOTIFY, true, 0.0, true, MAXPLAYERS+1.0);
 	l4d_ready_delay				= CreateConVar("l4d_ready_delay", "5", "Number of seconds to count down before the round goes live.", FCVAR_NOTIFY, true, 0.0);
-	l4d_ready_enable_sound		= CreateConVar("l4d_ready_enable_sound", "1", "Enable sound during countdown & on live");
+	l4d_ready_enable_sound		= CreateConVar("l4d_ready_enable_sound", "1", "Enable sound during countdown & on live", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	l4d_ready_countdown_sound	= CreateConVar("l4d_ready_countdown_sound", DEFAULT_COUNTDOWN_SOUND, "The sound that plays when a round goes on countdown");	
 	l4d_ready_live_sound		= CreateConVar("l4d_ready_live_sound", DEFAULT_LIVE_SOUND, "The sound that plays when a round goes live");
 	l4d_ready_chuckle			= CreateConVar("l4d_ready_chuckle", "0", "Enable random moustachio chuckle during countdown");
 	l4d_ready_secret			= CreateConVar("l4d_ready_secret", "1", "Play something suck", _, true, 0.0, true, 1.0);
-
+	
 	HookEvent("round_start", RoundStart_Event, EventHookMode_PostNoCopy);
 	HookEvent("player_team", PlayerTeam_Event, EventHookMode_Pre);
 
@@ -164,6 +164,7 @@ public void OnPluginStart()
 	AddCommandListener(Vote_Callback, "Vote");
 
 	LoadTranslations("common.phrases");
+	LoadTranslations("readyup.phrases");
 	
 	readySurvFreeze = l4d_ready_survivor_freeze.BoolValue;
 	l4d_ready_survivor_freeze.AddChangeHook(SurvFreezeChange);
@@ -365,12 +366,12 @@ public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 //  Command Listener
 // ========================
 
-public Action Say_Callback(int client, char[] command, int argc)
+public Action Say_Callback(int client, const char[] command, int argc)
 {
 	SetEngineTime(client);
 }
 
-public Action Vote_Callback(int client, char[] command, int argc)
+public Action Vote_Callback(int client, const char[] command, int argc)
 {
 	// Used to fast ready/unready through default keybinds for voting
 	if (!inReadyUp) return;
@@ -471,8 +472,8 @@ public Action Cast_Cmd(int client, int args)
 			ChangeClientTeam(client, L4D2Team_Spectator);
 		}
 		casterTrie.SetValue(buffer, true);
-		CPrintToChat(client, "{blue}[{default}Cast{blue}] {default}You have registered yourself as a caster");
-		CPrintToChat(client, "{blue}[{default}Cast{blue}] {default}Reconnect to make your Addons work.");
+		CPrintToChat(client, "{blue}[{default}Cast{blue}] {default}%t", "SelfCast1");
+		CPrintToChat(client, "{blue}[{default}Cast{blue}] {default}%t", "SelfCast2");
 	}
 	
 	return Plugin_Handled;
@@ -495,13 +496,13 @@ public Action Caster_Cmd(int client, int args)
 		if (GetClientAuthId(target, AuthId_Steam2, buffer, sizeof(buffer)))
 		{
 			casterTrie.SetValue(buffer, true);
-			ReplyToCommand(client, "Registered %N as a caster", target);
-			CPrintToChat(target, "{blue}[{olive}!{blue}] {blue}Admin {default}({olive}%N{default}) has registered you as a caster", client);
-			CPrintToChat(target, "{blue}[{default}Cast{blue}] {default}Reconnect to make your Addons work.");
+			ReplyToCommand(client, "\x01%t", "RegCasterReply", target);
+			CPrintToChat(target, "{blue}[{olive}!{blue}] %t", "RegCasterTarget", client);
+			CPrintToChat(target, "{blue}[{default}Cast{blue}] {default}%t", "SelfCast2");
 		}
 		else
 		{
-			ReplyToCommand(client, "Couldn't find Steam ID.  Check for typos and let the player get fully connected.");
+			ReplyToCommand(client, "\x01%t", "CasterSteamIDError");
 		}
 	}
 	
@@ -517,8 +518,8 @@ public Action NotCasting_Cmd(int client, int args)
 		GetClientAuthId(client, AuthId_Steam2, buffer, sizeof(buffer));
 		if (casterTrie.Remove(buffer))
 		{
-			CPrintToChat(client, "{blue}[{default}Reconnect{blue}] {default}You will be reconnected to the server..");
-			CPrintToChat(client, "{blue}[{default}Reconnect{blue}] {default}There's a black screen instead of a loading bar!");
+			CPrintToChat(client, "{blue}[{default}Reconnect{blue}] {default}%t", "Reconnect1");
+			CPrintToChat(client, "{blue}[{default}Reconnect{blue}] {default}%t", "Reconnect2");
 			
 			// Reconnection to disable their addons
 			CreateTimer(3.0, Reconnect, client);
@@ -526,10 +527,9 @@ public Action NotCasting_Cmd(int client, int args)
 	}
 	else // If a target is specified
 	{
-		AdminId id = GetUserAdmin(client);
-		if (id != INVALID_ADMIN_ID && GetAdminFlag(id, Admin_Ban)) // Check for specific admin flag
+		if (!(GetUserFlagBits(client) & ADMFLAG_BAN)) // Check for specific admin flag
 		{
-			ReplyToCommand(client, "Only admins can remove other casters. Use sm_notcasting without arguments if you wish to remove yourself.");
+			ReplyToCommand(client, "\x01%t", "UnregCasterNonAdmin");
 			return Plugin_Handled;
 		}
 		
@@ -542,14 +542,14 @@ public Action NotCasting_Cmd(int client, int args)
 			{
 				if (casterTrie.Remove(buffer))
 				{
-					CPrintToChat(target, "{blue}[{olive}!{blue}] {default}You are unregistered as a caster by {blue}Admin {default}({olive}%N{default})", client);
+					CPrintToChat(target, "{blue}[{olive}!{blue}] {default}%t", "UnregCasterTarget", client);
 					NotCasting_Cmd(target, 0);
 				}
-				ReplyToCommand(client, "%N is no longer a caster", target);
+				ReplyToCommand(client, "\x01%t", "UnregCasterSuccess", target);
 			}
 			else
 			{
-				ReplyToCommand(client, "Couldn't find Steam ID.  Check for typos and let the player get fully connected.");
+				ReplyToCommand(client, "\x01%t", "CasterSteamIDError");
 			}
 		}
 	}
@@ -595,7 +595,7 @@ public Action Hide_Cmd(int client, int args)
 	{
 		hiddenPanel[client] = true;
 		hiddenManually[client] = true;
-		CPrintToChat(client, "[{olive}Readyup{default}] Panel is now {red}off{default}");
+		CPrintToChat(client, "[{olive}Readyup{default}] %t", "PanelHide");
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
@@ -607,7 +607,7 @@ public Action Show_Cmd(int client, int args)
 	{
 		hiddenPanel[client] = false;
 		hiddenManually[client] = false;
-		CPrintToChat(client, "[{olive}Readyup{default}] Panel is now {blue}on{default}");
+		CPrintToChat(client, "[{olive}Readyup{default}] %t", "PanelShow");
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
@@ -630,11 +630,10 @@ public Action ForceStart_Cmd(int client, int args)
 	if (inReadyUp)
 	{
 		// Check if admin always allowed to do so
-		AdminId id = GetUserAdmin(client);
-		if (id != INVALID_ADMIN_ID && GetAdminFlag(id, Admin_Ban)) // Check for specific admin flag
+		if (GetUserFlagBits(client) & ADMFLAG_BAN) // Check for specific admin flag
 		{
 			InitiateLiveCountdown();
-			CPrintToChatAll("[{green}!{default}] {blue}Game {default}start is {green}forced {default}by {blue}Admin {default}({olive}%N{default})", client);
+			CPrintToChatAll("[{green}!{default}] %t", "ForceStartAdmin", client);
 			return Plugin_Handled;
 		}
 		
@@ -645,7 +644,7 @@ public Action ForceStart_Cmd(int client, int args)
 		// Filter spectator
 		if (!IsPlayer(client))
 		{
-			CPrintToChat(client, "[{olive}Readyup{default}] {blue}Spectators {default}are not allowed to {green}force start{default}.");
+			CPrintToChat(client, "[{olive}Readyup{default}] %t", "ForceStartVoteSpec");
 			return Plugin_Handled;
 		}
 		
@@ -653,7 +652,7 @@ public Action ForceStart_Cmd(int client, int args)
 		int playercount = GetTeamHumanCount(L4D2Team_Survivor) + GetTeamHumanCount(L4D2Team_Infected);
 		if (playercount == survivor_limit.IntValue + z_max_player_zombies.IntValue)
 		{
-			CPrintToChat(client, "[{olive}Readyup{default}] You are {red}not allowed {default}to call a vote for force start due to {green}full players{default}.");
+			CPrintToChat(client, "[{olive}Readyup{default}] %t", "ForceStartFullPlayers");
 			return Plugin_Handled;
 		}
 		
@@ -668,26 +667,17 @@ public Action KickSpecs_Cmd(int client, int args)
 {
 	if (inReadyUp)
 	{
-		AdminId id;
-		id = GetUserAdmin(client);
-		bool hasFlag = false;
-		
-		if (id != INVALID_ADMIN_ID)
-		{
-			hasFlag = GetAdminFlag(id, Admin_Ban); // Check for specific admin flag
-		}
-		
-		if (hasFlag)
+		if (GetUserFlagBits(client) & ADMFLAG_BAN)
 		{
 			CreateTimer(2.0, Timer_KickSpecs);
-			CPrintToChatAll("[{green}!{default}] {blue}Spectators {default}are kicked by {blue}Admin {default}({olive}%N{default})", client);
+			CPrintToChatAll("[{green}!{default}] %t", "KickSpecsAdmin", client);
 			return Plugin_Handled;
 		}
 		
 		// Filter spectator
 		if (!IsPlayer(client))
 		{
-			CPrintToChat(client, "[{olive}Readyup{default}] {blue}Spectators {default}are not allowed to call a vote for {green}kicking specs{default}.");
+			CPrintToChat(client, "[{olive}Readyup{default}] %t", "KickSpecsVoteSpec");
 			return Plugin_Handled;
 		}
 		
@@ -707,19 +697,19 @@ void StartForceStartVote(int client)
 {
 	if (IsBuiltinVoteInProgress())
 	{
-		CPrintToChat(client, "[{olive}Readyup{default}] There's {olive}a vote {green}in progress{default}.");
+		CPrintToChat(client, "[{olive}Readyup{default}] %t", "VoteInProgress");
 		return;
 	}
 	if (CheckBuiltinVoteDelay() > 0)
 	{
-		CPrintToChat(client, "[{olive}Readyup{default}] Wait for another {blue}%is {default}to call a vote.", CheckBuiltinVoteDelay());
+		CPrintToChat(client, "[{olive}Readyup{default}] %t", "VoteDelay", CheckBuiltinVoteDelay());
 		return;
 	}
 	
 	g_hVote = CreateBuiltinVote(VoteActionHandler, BuiltinVoteType_Custom_YesNo, BuiltinVoteAction_Cancel | BuiltinVoteAction_VoteEnd | BuiltinVoteAction_End);
 
 	char sBuffer[128];
-	FormatEx(sBuffer, sizeof(sBuffer), "Force start the Game? (100%%%%)"); // kinda format :D
+	FormatEx(sBuffer, sizeof(sBuffer), "%T (100%%%%)", LANG_SERVER, "ForceStartVoteTitle"); // kinda format :D
 	SetBuiltinVoteArgument(g_hVote, sBuffer);
 	SetBuiltinVoteInitiator(g_hVote, client);
 	SetBuiltinVoteResultCallback(g_hVote, ForceStartVoteResultHandler);
@@ -747,19 +737,19 @@ void StartKickSpecsVote(int client)
 {
 	if (IsBuiltinVoteInProgress())
 	{
-		CPrintToChat(client, "[{olive}Readyup{default}] There has been {olive}a vote {green}in progress{default}.");
+		CPrintToChat(client, "[{olive}Readyup{default}] %t", "VoteInProgress");
 		return;
 	}
 	if (CheckBuiltinVoteDelay() > 0)
 	{
-		CPrintToChat(client, "[{olive}Readyup{default}] Wait for another {blue}%is {default}to call a vote.", CheckBuiltinVoteDelay());
+		CPrintToChat(client, "[{olive}Readyup{default}] %t", "VoteDelay", CheckBuiltinVoteDelay());
 		return;
 	}
 	
 	g_hVote = CreateBuiltinVote(VoteActionHandler, BuiltinVoteType_Custom_YesNo, BuiltinVoteAction_Cancel | BuiltinVoteAction_VoteEnd | BuiltinVoteAction_End);
 
 	char sBuffer[128];
-	FormatEx(sBuffer, sizeof(sBuffer), "Kick Non-Admin & Non-Casting Spectators?");
+	FormatEx(sBuffer, sizeof(sBuffer), "%T", LANG_SERVER, "KickSpecsVoteTitle");
 	SetBuiltinVoteArgument(g_hVote, sBuffer);
 	SetBuiltinVoteInitiator(g_hVote, client);
 	SetBuiltinVoteResultCallback(g_hVote, KickSpecsVoteResultHandler);
@@ -814,7 +804,7 @@ public int ForceStartVoteResultHandler(Handle vote, int num_votes, int num_clien
 			}
 			
 			char buffer[64];
-			FormatEx(buffer, sizeof(buffer), "Enforcing to Live...");
+			FormatEx(buffer, sizeof(buffer), "%T", LANG_SERVER, "ForceStartVoteSuccess");
 			DisplayBuiltinVotePass(vote, buffer);
 			
 			float delay = FindConVar("sv_vote_command_delay").FloatValue;
@@ -840,7 +830,7 @@ public int KickSpecsVoteResultHandler(Handle vote, int num_votes, int num_client
 			if (item_info[i][BUILTINVOTEINFO_ITEM_VOTES] > (num_clients / 2))
 			{
 				char buffer[64];
-				FormatEx(buffer, sizeof(buffer), "Ciao Spectators!");
+				FormatEx(buffer, sizeof(buffer), "%T", LANG_SERVER, "KickSpecsVoteSuccess");
 				DisplayBuiltinVotePass(vote, buffer);
 				
 				float delay = FindConVar("sv_vote_command_delay").FloatValue;
@@ -862,7 +852,7 @@ public Action Timer_KickSpecs(Handle timer)
 		if (IsClientCaster(i)) { continue; }
 		if (GetUserAdmin(i) != INVALID_ADMIN_ID) { continue; }
 					
-		KickClient(i, "No Spectators, please!");
+		KickClient(i, "%t", "KickSpecsReason");
 	}
 }
 
@@ -982,16 +972,13 @@ void UpdatePanel()
 			{
 				if (isPlayerReady[client])
 				{
-					if (!inLiveCountdown) PrintHintText(client, "You are ready.\nSay !unready / Press F2 to unready.");
+					if (!inLiveCountdown) PrintHintText(client, "%t", "HintReady");
 					Format(nameBuf, sizeof(nameBuf), "☑ %s\n", nameBuf);
 					GetClientTeam(client) == L4D2Team_Survivor ? StrCat(survivorBuffer, sizeof(survivorBuffer), nameBuf) : StrCat(infectedBuffer, sizeof(infectedBuffer), nameBuf);
 				}
 				else 
 				{
-					if (GetClientTeam(client) != L4D2Team_Spectator)
-						if (!inLiveCountdown)
-							PrintHintText(client, "You are not ready.\nSay !ready / Press F1 to ready up.");
-							
+					if (!inLiveCountdown) PrintHintText(client, "%t", "HintUnready");
 					Format(nameBuf, sizeof(nameBuf), "☐ %s%s\n", nameBuf, ( IsPlayerAfk(client, fTime) ? " [AFK]" : "" ));
 					GetClientTeam(client) == L4D2Team_Survivor ? StrCat(survivorBuffer, sizeof(survivorBuffer), nameBuf) : StrCat(infectedBuffer, sizeof(infectedBuffer), nameBuf);
 				}
@@ -1113,10 +1100,10 @@ void InitiateReadyUp()
 	sb_stop.SetBool(true);
 
 	if (IsScavenge()) {
-		scavenge_round_setup_time.FloatValue = 99999.9;
+		scavenge_round_setup_time.FloatValue = 99999.0;
 		HideCountdown();
 	}
-	else L4D2_CTimerStart(L4D2CT_VersusStartTimer, 99999.9);
+	else L4D2_CTimerStart(L4D2CT_VersusStartTimer, 99999.0);
 }
 
 void PrintCmd()
@@ -1188,7 +1175,7 @@ void InitiateLiveCountdown()
 	{
 		ReturnTeamToSaferoom(L4D2Team_Survivor);
 		SetTeamFrozen(L4D2Team_Survivor, true);
-		PrintHintTextToAll("Going live!\nSay !unready / Press F2 to cancel");
+		PrintHintTextToAll("%t", "LiveCountdownBegin");
 		inLiveCountdown = true;
 		readyDelay = l4d_ready_delay.IntValue;
 		readyCountdownTimer = CreateTimer(1.0, ReadyCountdownDelay_Timer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
@@ -1199,7 +1186,7 @@ public Action ReadyCountdownDelay_Timer(Handle timer)
 {
 	if (readyDelay == 0)
 	{
-		PrintHintTextToAll("Round is live!");
+		PrintHintTextToAll("%t", "RoundIsLive");
 		InitiateLive();
 		readyCountdownTimer = null;
 		if (l4d_ready_enable_sound.BoolValue)
@@ -1214,7 +1201,7 @@ public Action ReadyCountdownDelay_Timer(Handle timer)
 	}
 	else
 	{
-		PrintHintTextToAll("Live in: %d\nSay !unready / Press F2 to cancel", readyDelay);
+		PrintHintTextToAll("%t", "LiveCountdown", readyDelay);
 		if (l4d_ready_enable_sound.BoolValue)
 		{
 			EmitSoundToAll(countdownSound, _, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
@@ -1257,13 +1244,13 @@ void CancelFullReady(int client, disruptType type)
 		inLiveCountdown = false;
 		KillTimer(readyCountdownTimer);
 		readyCountdownTimer = null;
-		PrintHintTextToAll("Countdown Cancelled!");
+		PrintHintTextToAll("%t", "LiveCountdownCancelled");
 		
 		switch (type)
 		{
-			case readyStatus: CPrintToChatAllEx(client, "{default}[{green}!{default}] {green}Countdown Cancelled! {default}({teamcolor}%N {green}marked unready{default})", client);
-			case teamShuffle: CPrintToChatAllEx(client, "{default}[{green}!{default}] {green}Countdown Cancelled! {default}({teamcolor}%N {olive}switched team{default})", client);
-			case playerDisconn: CPrintToChatAllEx(client, "{default}[{green}!{default}] {green}Countdown Cancelled! {default}({teamcolor}%N {green}disconnected{default})", client);
+			case readyStatus: CPrintToChatAllEx(client, "{default}[{green}!{default}] %t", "DisruptReadyStatus", client);
+			case teamShuffle: CPrintToChatAllEx(client, "{default}[{green}!{default}] %t", "DisruptTeamShuffle", client);
+			case playerDisconn: CPrintToChatAllEx(client, "{default}[{green}!{default}] %t", "DisruptPlayerDisc", client);
 		}
 	}
 }
