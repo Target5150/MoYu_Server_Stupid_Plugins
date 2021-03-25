@@ -7,7 +7,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "9.1.1b"
+#define PLUGIN_VERSION "9.1.1c"
 
 #define NULL_VELOCITY view_as<float>({0.0, 0.0, 0.0})
 
@@ -313,7 +313,7 @@ public void OnClientDisconnect(int client)
 /* No need to do any other checks since it seems like this is required no matter what since the intros unfreezes players after the animation completes */
 public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3], float angles[3], int& weapon, int& subtype, int& cmdnum, int& tickcount, int& seed, int mouse[2])
 {
-	if (inReadyUp)
+	if (inReadyUp && IsClientInGame(client))
 	{
 		if (!IsFakeClient(client))
 		{
@@ -328,7 +328,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 			}
 		}
 		
-		if (IsClientInGame(client) && GetClientTeam(client) == L4D2Team_Survivor)
+		if (GetClientTeam(client) == L4D2Team_Survivor)
 		{
 			if (readySurvFreeze)
 			{
