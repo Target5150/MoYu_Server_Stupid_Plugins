@@ -1336,7 +1336,7 @@ void GetCurrentGameMode()
 	{
 		g_Gamemode = L4D2Gamemode_Scavenge;
 	}
-	if (strcmp(sGameMode, "versus") == 0
+	else if (strcmp(sGameMode, "versus") == 0
 		|| strcmp(sGameMode, "mutation12") == 0) // realism versus
 	{
 		g_Gamemode = L4D2Gamemode_Versus;
