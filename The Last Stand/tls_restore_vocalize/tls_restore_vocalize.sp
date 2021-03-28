@@ -8,7 +8,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.2.7"
+#define PLUGIN_VERSION "1.2.8"
 
 public Plugin myinfo = 
 {
@@ -18,6 +18,11 @@ public Plugin myinfo =
 	version = PLUGIN_VERSION,
 	url = "you"
 };
+
+
+// ============================
+//  Vocalize Enumeration
+// ============================
 
 #define NULL_VOCALIZE (view_as<Vocalize>(-1))
 enum Vocalize
@@ -32,9 +37,10 @@ static const char g_szVocalizeNames[Vocalize][] =
 	"PlayerLaugh", "PlayerTaunt", "Playerdeath"
 };
 
-/**
- *  Voices
- */
+
+// ============================
+//  Voices
+// ============================
 #define MAX_NICK_LAUGH 17
 #define MAX_NICK_TAUNT 9
 #define MAX_NICK_SCREAM 7
@@ -87,401 +93,409 @@ static const int g_iMaxVoices[Vocalize][SurvivorCharacter] =
 
 static const char g_szNickLaughs[][] =
 {
-	"scenes/gambler/laughter01.vcd",
-	"scenes/gambler/laughter02.vcd",
-	"scenes/gambler/laughter03.vcd",
-	"scenes/gambler/laughter04.vcd",
-	"scenes/gambler/laughter05.vcd",
-	"scenes/gambler/laughter06.vcd",
-	"scenes/gambler/laughter07.vcd",
-	"scenes/gambler/laughter08.vcd",
-	"scenes/gambler/laughter09.vcd",
-	"scenes/gambler/laughter10.vcd",
-	"scenes/gambler/laughter11.vcd",
-	"scenes/gambler/laughter12.vcd",
-	"scenes/gambler/laughter13.vcd",
-	"scenes/gambler/laughter14.vcd",
-	"scenes/gambler/laughter15.vcd",
-	"scenes/gambler/laughter16.vcd",
-	"scenes/gambler/laughter17.vcd"		// 17
+	"gambler/laughter01",
+	"gambler/laughter02",
+	"gambler/laughter03",
+	"gambler/laughter04",
+	"gambler/laughter05",
+	"gambler/laughter06",
+	"gambler/laughter07",
+	"gambler/laughter08",
+	"gambler/laughter09",
+	"gambler/laughter10",
+	"gambler/laughter11",
+	"gambler/laughter12",
+	"gambler/laughter13",
+	"gambler/laughter14",
+	"gambler/laughter15",
+	"gambler/laughter16",
+	"gambler/laughter17"		// 17
 };
 
 static const char g_szNickTaunts[][] =
 {
-	"scenes/gambler/taunt01.vcd",
-	"scenes/gambler/taunt02.vcd",
-	"scenes/gambler/taunt03.vcd",
-	"scenes/gambler/taunt04.vcd",
-	"scenes/gambler/taunt05.vcd",
-	"scenes/gambler/taunt06.vcd",
-	"scenes/gambler/taunt07.vcd",
-	"scenes/gambler/taunt08.vcd",
-	"scenes/gambler/taunt09.vcd"		// 9
+	"gambler/taunt01",
+	"gambler/taunt02",
+	"gambler/taunt03",
+	"gambler/taunt04",
+	"gambler/taunt05",
+	"gambler/taunt06",
+	"gambler/taunt07",
+	"gambler/taunt08",
+	"gambler/taunt09"		// 9
 };
 
 static const char g_szNickScreams[][] =
 {
-	"scenes/gambler/deathscream01.vcd",
-	"scenes/gambler/deathscream02.vcd",
-	"scenes/gambler/deathscream03.vcd",
-	"scenes/gambler/deathscream04.vcd",
-	"scenes/gambler/deathscream05.vcd",
-	"scenes/gambler/deathscream06.vcd",
-	"scenes/gambler/deathscream07.vcd"	// 7
+	"gambler/deathscream01",
+	"gambler/deathscream02",
+	"gambler/deathscream03",
+	"gambler/deathscream04",
+	"gambler/deathscream05",
+	"gambler/deathscream06",
+	"gambler/deathscream07"	// 7
 };
 
 static const char g_szRochelleLaughs[][] =
 {
-	"scenes/producer/laughter01.vcd",
-	"scenes/producer/laughter02.vcd",
-	"scenes/producer/laughter03.vcd",
-	"scenes/producer/laughter04.vcd",
-	"scenes/producer/laughter05.vcd",
-	"scenes/producer/laughter06.vcd",
-	"scenes/producer/laughter07.vcd",
-	"scenes/producer/laughter08.vcd",
-	"scenes/producer/laughter09.vcd",
-	"scenes/producer/laughter10.vcd",
-	"scenes/producer/laughter11.vcd",
-	"scenes/producer/laughter12.vcd",
-	"scenes/producer/laughter13.vcd",
-	"scenes/producer/laughter14.vcd",
-	"scenes/producer/laughter15.vcd",
-	"scenes/producer/laughter16.vcd",
-	"scenes/producer/laughter17.vcd"	// 17
+	"producer/laughter01",
+	"producer/laughter02",
+	"producer/laughter03",
+	"producer/laughter04",
+	"producer/laughter05",
+	"producer/laughter06",
+	"producer/laughter07",
+	"producer/laughter08",
+	"producer/laughter09",
+	"producer/laughter10",
+	"producer/laughter11",
+	"producer/laughter12",
+	"producer/laughter13",
+	"producer/laughter14",
+	"producer/laughter15",
+	"producer/laughter16",
+	"producer/laughter17"	// 17
 };
 
 static const char g_szRochelleTaunts[][] =
 {
-	"scenes/producer/taunt01.vcd",
-	"scenes/producer/taunt02.vcd",
-	"scenes/producer/taunt03.vcd",
-	"scenes/producer/taunt04.vcd",
-	"scenes/producer/taunt05.vcd",
-	"scenes/producer/taunt06.vcd",
-	"scenes/producer/taunt07.vcd",
-	"scenes/producer/taunt08.vcd"		// 8
+	"producer/taunt01",
+	"producer/taunt02",
+	"producer/taunt03",
+	"producer/taunt04",
+	"producer/taunt05",
+	"producer/taunt06",
+	"producer/taunt07",
+	"producer/taunt08"		// 8
 };
 
 static const char g_szRochelleScreams[][] =
 {
-	"scenes/producer/deathscream01.vcd",
-	"scenes/producer/deathscream02.vcd"	// 2
+	"producer/deathscream01",
+	"producer/deathscream02"	// 2
 };
 
 static const char g_szCoachLaughs[][] =
 {
-	"scenes/coach/laughter01.vcd",
-	"scenes/coach/laughter02.vcd",
-	"scenes/coach/laughter03.vcd",
-	"scenes/coach/laughter04.vcd",
-	"scenes/coach/laughter05.vcd",
-	"scenes/coach/laughter06.vcd",
-	"scenes/coach/laughter07.vcd",
-	"scenes/coach/laughter08.vcd",
-	"scenes/coach/laughter09.vcd",
-	"scenes/coach/laughter10.vcd",
-	"scenes/coach/laughter11.vcd",
-	"scenes/coach/laughter12.vcd",
-	"scenes/coach/laughter13.vcd",
-	"scenes/coach/laughter14.vcd",
-	"scenes/coach/laughter15.vcd",
-	"scenes/coach/laughter16.vcd",
-	"scenes/coach/laughter17.vcd",
-	"scenes/coach/laughter18.vcd",
-	"scenes/coach/laughter19.vcd",
-	"scenes/coach/laughter20.vcd",
-	"scenes/coach/laughter21.vcd",
-	"scenes/coach/laughter22.vcd",
-	"scenes/coach/laughter23.vcd"		// 23
+	"coach/laughter01",
+	"coach/laughter02",
+	"coach/laughter03",
+	"coach/laughter04",
+	"coach/laughter05",
+	"coach/laughter06",
+	"coach/laughter07",
+	"coach/laughter08",
+	"coach/laughter09",
+	"coach/laughter10",
+	"coach/laughter11",
+	"coach/laughter12",
+	"coach/laughter13",
+	"coach/laughter14",
+	"coach/laughter15",
+	"coach/laughter16",
+	"coach/laughter17",
+	"coach/laughter18",
+	"coach/laughter19",
+	"coach/laughter20",
+	"coach/laughter21",
+	"coach/laughter22",
+	"coach/laughter23"		// 23
 };
 
 static const char g_szCoachTaunts[][] =
 {
-	"scenes/coach/taunt01.vcd",
-	"scenes/coach/taunt02.vcd",
-	"scenes/coach/taunt03.vcd",
-	"scenes/coach/taunt04.vcd",
-	"scenes/coach/taunt05.vcd",
-	"scenes/coach/taunt06.vcd",
-	"scenes/coach/taunt07.vcd",
-	"scenes/coach/taunt08.vcd"			// 8
+	"coach/taunt01",
+	"coach/taunt02",
+	"coach/taunt03",
+	"coach/taunt04",
+	"coach/taunt05",
+	"coach/taunt06",
+	"coach/taunt07",
+	"coach/taunt08"			// 8
 };
 
 static const char g_szCoachScreams[][] =
 {
-	"scenes/coach/deathscream01.vcd",
-	"scenes/coach/deathscream02.vcd",
-	"scenes/coach/deathscream03.vcd",
-	"scenes/coach/deathscream04.vcd",
-	"scenes/coach/deathscream05.vcd",
-	"scenes/coach/deathscream06.vcd",
-	"scenes/coach/deathscream07.vcd",
-	"scenes/coach/deathscream08.vcd",
-	"scenes/coach/deathscream09.vcd"	// 9
+	"coach/deathscream01",
+	"coach/deathscream02",
+	"coach/deathscream03",
+	"coach/deathscream04",
+	"coach/deathscream05",
+	"coach/deathscream06",
+	"coach/deathscream07",
+	"coach/deathscream08",
+	"coach/deathscream09"	// 9
 };
 
 
 static const char g_szEllisLaughs[][] =
 {
-	"scenes/mechanic/laughter01.vcd",
-	"scenes/mechanic/laughter02.vcd",
-	"scenes/mechanic/laughter03.vcd",
-	"scenes/mechanic/laughter04.vcd",
-	"scenes/mechanic/laughter05.vcd",
-	"scenes/mechanic/laughter06.vcd",
-	"scenes/mechanic/laughter07.vcd",
-	"scenes/mechanic/laughter08.vcd",
-	"scenes/mechanic/laughter09.vcd",
-	"scenes/mechanic/laughter10.vcd",
-	"scenes/mechanic/laughter11.vcd",
-	"scenes/mechanic/laughter12.vcd",
-	"scenes/mechanic/laughter13.vcd",
-	"scenes/mechanic/laughter13a.vcd",
-	"scenes/mechanic/laughter13b.vcd",
-	"scenes/mechanic/laughter13c.vcd",
-	"scenes/mechanic/laughter13d.vcd",
-	"scenes/mechanic/laughter13e.vcd",
-	"scenes/mechanic/laughter14.vcd",	// 19
+	"mechanic/laughter01",
+	"mechanic/laughter02",
+	"mechanic/laughter03",
+	"mechanic/laughter04",
+	"mechanic/laughter05",
+	"mechanic/laughter06",
+	"mechanic/laughter07",
+	"mechanic/laughter08",
+	"mechanic/laughter09",
+	"mechanic/laughter10",
+	"mechanic/laughter11",
+	"mechanic/laughter12",
+	"mechanic/laughter13",
+	"mechanic/laughter13a",
+	"mechanic/laughter13b",
+	"mechanic/laughter13c",
+	"mechanic/laughter13d",
+	"mechanic/laughter13e",
+	"mechanic/laughter14",	// 19
 };
 
 static const char g_szEllisTaunts[][] =
 {
-	"scenes/mechanic/taunt01.vcd",
-	"scenes/mechanic/taunt02.vcd",
-	"scenes/mechanic/taunt03.vcd",
-	"scenes/mechanic/taunt04.vcd",
-	"scenes/mechanic/taunt05.vcd",
-	"scenes/mechanic/taunt06.vcd",
-	"scenes/mechanic/taunt07.vcd",
-	"scenes/mechanic/taunt08.vcd"		// 8
+	"mechanic/taunt01",
+	"mechanic/taunt02",
+	"mechanic/taunt03",
+	"mechanic/taunt04",
+	"mechanic/taunt05",
+	"mechanic/taunt06",
+	"mechanic/taunt07",
+	"mechanic/taunt08"		// 8
 };
 
 static const char g_szEllisScreams[][] =
 {
-	"scenes/mechanic/deathscream01.vcd",
-	"scenes/mechanic/deathscream02.vcd",
-	"scenes/mechanic/deathscream03.vcd",
-	"scenes/mechanic/deathscream04.vcd",
-	"scenes/mechanic/deathscream05.vcd",
-	"scenes/mechanic/deathscream06.vcd"	// 6
+	"mechanic/deathscream01",
+	"mechanic/deathscream02",
+	"mechanic/deathscream03",
+	"mechanic/deathscream04",
+	"mechanic/deathscream05",
+	"mechanic/deathscream06"	// 6
 };
 
 
 static const char g_szBillLaughs[][] =
 {
-	"scenes/namvet/laughter01.vcd",
-	"scenes/namvet/laughter02.vcd",
-	"scenes/namvet/laughter03.vcd",
-	"scenes/namvet/laughter04.vcd",
-	"scenes/namvet/laughter05.vcd",
-	"scenes/namvet/laughter06.vcd",
-	"scenes/namvet/laughter07.vcd",
-	"scenes/namvet/laughter08.vcd",
-	"scenes/namvet/laughter09.vcd",
-	"scenes/namvet/laughter10.vcd",
-	"scenes/namvet/laughter11.vcd",
-	"scenes/namvet/laughter12.vcd",
-	"scenes/namvet/laughter13.vcd",
-	"scenes/namvet/laughter14.vcd"		// 14
+	"namvet/laughter01",
+	"namvet/laughter02",
+	"namvet/laughter03",
+	"namvet/laughter04",
+	"namvet/laughter05",
+	"namvet/laughter06",
+	"namvet/laughter07",
+	"namvet/laughter08",
+	"namvet/laughter09",
+	"namvet/laughter10",
+	"namvet/laughter11",
+	"namvet/laughter12",
+	"namvet/laughter13",
+	"namvet/laughter14"		// 14
 };
 
 static const char g_szBillTaunts[][] =
 {
-	"scenes/namvet/taunt01.vcd",
-	"scenes/namvet/taunt02.vcd",
-	"scenes/namvet/taunt07.vcd",
-	"scenes/namvet/taunt08.vcd",
-	"scenes/namvet/taunt09.vcd"			// 5
+	"namvet/taunt01",
+	"namvet/taunt02",
+	"namvet/taunt07",
+	"namvet/taunt08",
+	"namvet/taunt09"			// 5
 };
 
 static const char g_szBillScreams[][] =
 {
-	"scenes/namvet/deathscream01.vcd",
-	"scenes/namvet/deathscream02.vcd",
-	"scenes/namvet/deathscream03.vcd",
-	"scenes/namvet/deathscream04.vcd",
-	"scenes/namvet/deathscream05.vcd",
-	"scenes/namvet/deathscream06.vcd",
-	"scenes/namvet/deathscream07.vcd",
-	"scenes/namvet/deathscream08.vcd"	// 8
+	"namvet/deathscream01",
+	"namvet/deathscream02",
+	"namvet/deathscream03",
+	"namvet/deathscream04",
+	"namvet/deathscream05",
+	"namvet/deathscream06",
+	"namvet/deathscream07",
+	"namvet/deathscream08"	// 8
 };
 
 
 static const char g_szZoeyLaughs[][] =
 {
-	"scenes/teengirl/laughter01.vcd",
-	"scenes/teengirl/laughter02.vcd",
-	"scenes/teengirl/laughter03.vcd",
-	"scenes/teengirl/laughter04.vcd",
-	"scenes/teengirl/laughter05.vcd",
-	"scenes/teengirl/laughter06.vcd",
-	"scenes/teengirl/laughter07.vcd",
-	"scenes/teengirl/laughter08.vcd",
-	"scenes/teengirl/laughter09.vcd",
-	"scenes/teengirl/laughter10.vcd",
-	"scenes/teengirl/laughter11.vcd",
-	"scenes/teengirl/laughter12.vcd",
-	"scenes/teengirl/laughter13.vcd",
-	"scenes/teengirl/laughter14.vcd",
-	"scenes/teengirl/laughter15.vcd",
-	"scenes/teengirl/laughter16.vcd",
-	"scenes/teengirl/laughter17.vcd",
-	"scenes/teengirl/laughter18.vcd",
-	"scenes/teengirl/laughter19.vcd",
-	"scenes/teengirl/laughter20.vcd",
-	"scenes/teengirl/laughter21.vcd"	// 21
+	"teengirl/laughter01",
+	"teengirl/laughter02",
+	"teengirl/laughter03",
+	"teengirl/laughter04",
+	"teengirl/laughter05",
+	"teengirl/laughter06",
+	"teengirl/laughter07",
+	"teengirl/laughter08",
+	"teengirl/laughter09",
+	"teengirl/laughter10",
+	"teengirl/laughter11",
+	"teengirl/laughter12",
+	"teengirl/laughter13",
+	"teengirl/laughter14",
+	"teengirl/laughter15",
+	"teengirl/laughter16",
+	"teengirl/laughter17",
+	"teengirl/laughter18",
+	"teengirl/laughter19",
+	"teengirl/laughter20",
+	"teengirl/laughter21"	// 21
 };
 
 static const char g_szZoeyTaunts[][] =
 {
-	"scenes/teengirl/taunt02.vcd",
-	"scenes/teengirl/taunt13.vcd",
-	"scenes/teengirl/taunt18.vcd",
-	"scenes/teengirl/taunt19.vcd",
-	"scenes/teengirl/taunt20.vcd",
-	"scenes/teengirl/taunt21.vcd",
-	"scenes/teengirl/taunt24.vcd",
-	"scenes/teengirl/taunt25.vcd",
-	"scenes/teengirl/taunt26.vcd",
-	"scenes/teengirl/taunt28.vcd",
-	"scenes/teengirl/taunt29.vcd",
-	"scenes/teengirl/taunt30.vcd",
-	"scenes/teengirl/taunt31.vcd",
-	"scenes/teengirl/taunt34.vcd",
-	"scenes/teengirl/taunt35.vcd",
-	"scenes/teengirl/taunt39.vcd"		// 16
+	"teengirl/taunt02",
+	"teengirl/taunt13",
+	"teengirl/taunt18",
+	"teengirl/taunt19",
+	"teengirl/taunt20",
+	"teengirl/taunt21",
+	"teengirl/taunt24",
+	"teengirl/taunt25",
+	"teengirl/taunt26",
+	"teengirl/taunt28",
+	"teengirl/taunt29",
+	"teengirl/taunt30",
+	"teengirl/taunt31",
+	"teengirl/taunt34",
+	"teengirl/taunt35",
+	"teengirl/taunt39"		// 16
 };
 
 static const char g_szZoeyScreams[][] =
 {
-	"scenes/teengirl/deathscream01.vcd",
-	"scenes/teengirl/deathscream02.vcd",
-	"scenes/teengirl/deathscream03.vcd",
-	"scenes/teengirl/deathscream04.vcd",
-	"scenes/teengirl/deathscream05.vcd",
-	"scenes/teengirl/deathscream06.vcd",
-	"scenes/teengirl/deathscream07.vcd",
-	"scenes/teengirl/deathscream08.vcd",
-	"scenes/teengirl/deathscream09.vcd",
-	"scenes/teengirl/deathscream10.vcd",
-	"scenes/teengirl/deathscream11.vcd"	// 11
+	"teengirl/deathscream01",
+	"teengirl/deathscream02",
+	"teengirl/deathscream03",
+	"teengirl/deathscream04",
+	"teengirl/deathscream05",
+	"teengirl/deathscream06",
+	"teengirl/deathscream07",
+	"teengirl/deathscream08",
+	"teengirl/deathscream09",
+	"teengirl/deathscream10",
+	"teengirl/deathscream11"	// 11
 };
 
 
 static const char g_szLouisLaughs[][] =
 {
-	"scenes/manager/laughter01.vcd",
-	"scenes/manager/laughter02.vcd",
-	"scenes/manager/laughter03.vcd",
-	"scenes/manager/laughter04.vcd",
-	"scenes/manager/laughter05.vcd",
-	"scenes/manager/laughter06.vcd",
-	"scenes/manager/laughter07.vcd",
-	"scenes/manager/laughter08.vcd",
-	"scenes/manager/laughter09.vcd",
-	"scenes/manager/laughter10.vcd",
-	"scenes/manager/laughter11.vcd",
-	"scenes/manager/laughter12.vcd",
-	"scenes/manager/laughter13.vcd",
-	"scenes/manager/laughter14.vcd",
-	"scenes/manager/laughter15.vcd",
-	"scenes/manager/laughter16.vcd",
-	"scenes/manager/laughter17.vcd",
-	"scenes/manager/laughter18.vcd",
-	"scenes/manager/laughter19.vcd",
-	"scenes/manager/laughter20.vcd",
-	"scenes/manager/laughter21.vcd"		// 21
+	"manager/laughter01",
+	"manager/laughter02",
+	"manager/laughter03",
+	"manager/laughter04",
+	"manager/laughter05",
+	"manager/laughter06",
+	"manager/laughter07",
+	"manager/laughter08",
+	"manager/laughter09",
+	"manager/laughter10",
+	"manager/laughter11",
+	"manager/laughter12",
+	"manager/laughter13",
+	"manager/laughter14",
+	"manager/laughter15",
+	"manager/laughter16",
+	"manager/laughter17",
+	"manager/laughter18",
+	"manager/laughter19",
+	"manager/laughter20",
+	"manager/laughter21"		// 21
 };
 
 static const char g_szLouisTaunts[][] =
 {
-	"scenes/manager/taunt01.vcd",
-	"scenes/manager/taunt02.vcd",
-	"scenes/manager/taunt03.vcd",
-	"scenes/manager/taunt04.vcd",
-	"scenes/manager/taunt05.vcd",
-	"scenes/manager/taunt06.vcd",
-	"scenes/manager/taunt07.vcd",
-	"scenes/manager/taunt08.vcd",
-	"scenes/manager/taunt09.vcd",
-	"scenes/manager/taunt10.vcd"		// 10
+	"manager/taunt01",
+	"manager/taunt02",
+	"manager/taunt03",
+	"manager/taunt04",
+	"manager/taunt05",
+	"manager/taunt06",
+	"manager/taunt07",
+	"manager/taunt08",
+	"manager/taunt09",
+	"manager/taunt10"		// 10
 };
 
 static const char g_szLouisScreams[][] =
 {
-	"scenes/manager/deathscream01.vcd",
-	"scenes/manager/deathscream02.vcd",
-	"scenes/manager/deathscream03.vcd",
-	"scenes/manager/deathscream04.vcd",
-	"scenes/manager/deathscream05.vcd",
-	"scenes/manager/deathscream06.vcd",
-	"scenes/manager/deathscream07.vcd",
-	"scenes/manager/deathscream08.vcd",
-	"scenes/manager/deathscream09.vcd",
-	"scenes/manager/deathscream10.vcd"	// 10
+	"manager/deathscream01",
+	"manager/deathscream02",
+	"manager/deathscream03",
+	"manager/deathscream04",
+	"manager/deathscream05",
+	"manager/deathscream06",
+	"manager/deathscream07",
+	"manager/deathscream08",
+	"manager/deathscream09",
+	"manager/deathscream10"	// 10
 };
 
 
 static const char g_szFrancisLaughs[][] =
 {
-	"scenes/biker/laughter01.vcd",
-	"scenes/biker/laughter02.vcd",
-	"scenes/biker/laughter03.vcd",
-	"scenes/biker/laughter04.vcd",
-	"scenes/biker/laughter05.vcd",
-	"scenes/biker/laughter06.vcd",
-	"scenes/biker/laughter07.vcd",
-	"scenes/biker/laughter08.vcd",
-	"scenes/biker/laughter09.vcd",
-	"scenes/biker/laughter10.vcd",
-	"scenes/biker/laughter11.vcd",
-	"scenes/biker/laughter12.vcd",
-	"scenes/biker/laughter13.vcd",
-	"scenes/biker/laughter14.vcd",
-	"scenes/biker/laughter15.vcd"		// 15
+	"biker/laughter01",
+	"biker/laughter02",
+	"biker/laughter03",
+	"biker/laughter04",
+	"biker/laughter05",
+	"biker/laughter06",
+	"biker/laughter07",
+	"biker/laughter08",
+	"biker/laughter09",
+	"biker/laughter10",
+	"biker/laughter11",
+	"biker/laughter12",
+	"biker/laughter13",
+	"biker/laughter14",
+	"biker/laughter15"		// 15
 };
 
 static const char g_szFrancisTaunts[][] =
 {
-	"scenes/biker/taunt01.vcd",
-	"scenes/biker/taunt02.vcd",
-	"scenes/biker/taunt03.vcd",
-	"scenes/biker/taunt04.vcd",
-	"scenes/biker/taunt05.vcd",
-	"scenes/biker/taunt06.vcd",
-	"scenes/biker/taunt07.vcd",
-	"scenes/biker/taunt08.vcd",
-	"scenes/biker/taunt09.vcd",
-	"scenes/biker/taunt10.vcd"			// 10
+	"biker/taunt01",
+	"biker/taunt02",
+	"biker/taunt03",
+	"biker/taunt04",
+	"biker/taunt05",
+	"biker/taunt06",
+	"biker/taunt07",
+	"biker/taunt08",
+	"biker/taunt09",
+	"biker/taunt10"			// 10
 };
 
 static const char g_szFrancisScreams[][] =
 {
-	"scenes/biker/deathscream01.vcd",
-	"scenes/biker/deathscream02.vcd",
-	"scenes/biker/deathscream03.vcd",
-	"scenes/biker/deathscream04.vcd",
-	"scenes/biker/deathscream05.vcd",
-	"scenes/biker/deathscream06.vcd",
-	"scenes/biker/deathscream07.vcd",
-	"scenes/biker/deathscream08.vcd",
-	"scenes/biker/deathscream09.vcd",
-	"scenes/biker/deathscream10.vcd"	// 10
+	"biker/deathscream01",
+	"biker/deathscream02",
+	"biker/deathscream03",
+	"biker/deathscream04",
+	"biker/deathscream05",
+	"biker/deathscream06",
+	"biker/deathscream07",
+	"biker/deathscream08",
+	"biker/deathscream09",
+	"biker/deathscream10"	// 10
 };
 
-ConVar g_cvGamemode;
+
+// ============================
+//  Variables
+// ============================
+
 bool g_bVersus;
+
+
+// ============================
+//  Forwards
+// ============================
 
 public void OnPluginStart()
 {
-	g_cvGamemode = FindConVar("mp_gamemode");
-	g_cvGamemode.AddChangeHook(OnGamemodeChanged);
+	FindConVar("mp_gamemode").AddChangeHook(OnGamemodeChanged);
 }
 
 public void OnMapStart()
 {
-	PrecacheScenes();
+	DoPrecache();
 }
 
 public void OnConfigsExecuted()
@@ -489,12 +503,22 @@ public void OnConfigsExecuted()
 	CheckVersus();
 }
 
+
+// ============================
+//  ConVar Change
+// ============================
+
 public void OnGamemodeChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	CheckVersus();
 }
 
+
+// ============================
+//  *IsAllowedGamemode()*
 // credit to SilverShot
+// ============================
+
 void CheckVersus()
 {
 	int entity = CreateEntityByName("info_gamemode");
@@ -518,7 +542,14 @@ public void OnGamemode(const char[] output, int caller, int activator, float del
 		g_bVersus = false;
 	else if( strcmp(output, "OnVersus") == 0 )
 		g_bVersus = true;
+		
+	LogMessage("OnGamemode: %i", g_bVersus);
 }
+
+
+// ============================
+//  Vocalize Handles
+// ============================
 
 public Action OnVocalizeCommand(int client, const char[] vocalize, int initiator)
 {
@@ -539,6 +570,21 @@ public Action OnVocalizeCommand(int client, const char[] vocalize, int initiator
 	PerformScene(client, g_szVocalizeNames[emVocalize], szVoiceFile);
 }
 
+
+// ============================
+//  Vocalize Pick & Formation
+// ============================
+
+#define SCENE_FILE_PREFIX "scenes/"
+#define SCENE_FILE_SURFIX ".vcd"
+#define SOUND_FILE_PREFIX "player/survivor/voice/"
+#define SOUND_FILE_SURFIX ".wav"
+
+// FormatScene(const char[] buffer, int maxlength, const char[] scene)
+#define FormatScene(%0,%1,%2) Format((%0), (%1), "%s%s%s", SCENE_FILE_PREFIX, (%2), SCENE_FILE_SURFIX)
+// FormatSound(const char[] buffer, int maxlength, const char[] sound)
+#define FormatSound(%0,%1,%2) Format((%0), (%1), "%s%s%s", SOUND_FILE_PREFIX, (%2), SOUND_FILE_SURFIX)
+
 void PickVoice(char[] szFile, int maxlength, Vocalize emVocalize, SurvivorCharacter emCharacter)
 {
 	int max = g_iMaxVoices[emVocalize][emCharacter];
@@ -550,42 +596,42 @@ void PickVoice(char[] szFile, int maxlength, Vocalize emVocalize, SurvivorCharac
 		{
 			switch (emCharacter)
 			{
-				case SC_NICK:		{strcopy(szFile, maxlength, g_szNickLaughs[rndPick]);}
-				case SC_ROCHELLE:	{strcopy(szFile, maxlength, g_szRochelleLaughs[rndPick]);}
-				case SC_COACH:		{strcopy(szFile, maxlength, g_szCoachLaughs[rndPick]);}
-				case SC_ELLIS:		{strcopy(szFile, maxlength, g_szEllisLaughs[rndPick]);}
-				case SC_BILL:		{strcopy(szFile, maxlength, g_szBillLaughs[rndPick]);}
-				case SC_ZOEY:		{strcopy(szFile, maxlength, g_szZoeyLaughs[rndPick]);}
-				case SC_LOUIS:		{strcopy(szFile, maxlength, g_szLouisLaughs[rndPick]);}
-				case SC_FRANCIS:	{strcopy(szFile, maxlength, g_szFrancisLaughs[rndPick]);}
+				case SC_NICK:		{FormatScene(szFile, maxlength, g_szNickLaughs[rndPick]);}
+				case SC_ROCHELLE:	{FormatScene(szFile, maxlength, g_szRochelleLaughs[rndPick]);}
+				case SC_COACH:		{FormatScene(szFile, maxlength, g_szCoachLaughs[rndPick]);}
+				case SC_ELLIS:		{FormatScene(szFile, maxlength, g_szEllisLaughs[rndPick]);}
+				case SC_BILL:		{FormatScene(szFile, maxlength, g_szBillLaughs[rndPick]);}
+				case SC_ZOEY:		{FormatScene(szFile, maxlength, g_szZoeyLaughs[rndPick]);}
+				case SC_LOUIS:		{FormatScene(szFile, maxlength, g_szLouisLaughs[rndPick]);}
+				case SC_FRANCIS:	{FormatScene(szFile, maxlength, g_szFrancisLaughs[rndPick]);}
 			}
 		}
 		case Vocal_PlayerTaunt:
 		{
 			switch (emCharacter)
 			{
-				case SC_NICK:		{strcopy(szFile, maxlength, g_szNickTaunts[rndPick]);}
-				case SC_ROCHELLE:	{strcopy(szFile, maxlength, g_szRochelleTaunts[rndPick]);}
-				case SC_COACH:		{strcopy(szFile, maxlength, g_szCoachTaunts[rndPick]);}
-				case SC_ELLIS:		{strcopy(szFile, maxlength, g_szEllisTaunts[rndPick]);}
-				case SC_BILL:		{strcopy(szFile, maxlength, g_szBillTaunts[rndPick]);}
-				case SC_ZOEY:		{strcopy(szFile, maxlength, g_szZoeyTaunts[rndPick]);}
-				case SC_LOUIS:		{strcopy(szFile, maxlength, g_szLouisTaunts[rndPick]);}
-				case SC_FRANCIS:	{strcopy(szFile, maxlength, g_szFrancisTaunts[rndPick]);}
+				case SC_NICK:		{FormatScene(szFile, maxlength, g_szNickTaunts[rndPick]);}
+				case SC_ROCHELLE:	{FormatScene(szFile, maxlength, g_szRochelleTaunts[rndPick]);}
+				case SC_COACH:		{FormatScene(szFile, maxlength, g_szCoachTaunts[rndPick]);}
+				case SC_ELLIS:		{FormatScene(szFile, maxlength, g_szEllisTaunts[rndPick]);}
+				case SC_BILL:		{FormatScene(szFile, maxlength, g_szBillTaunts[rndPick]);}
+				case SC_ZOEY:		{FormatScene(szFile, maxlength, g_szZoeyTaunts[rndPick]);}
+				case SC_LOUIS:		{FormatScene(szFile, maxlength, g_szLouisTaunts[rndPick]);}
+				case SC_FRANCIS:	{FormatScene(szFile, maxlength, g_szFrancisTaunts[rndPick]);}
 			}
 		}
 		case Vocal_Playerdeath:
 		{
 			switch (emCharacter)
 			{
-				case SC_NICK:		{strcopy(szFile, maxlength, g_szNickScreams[rndPick]);}
-				case SC_ROCHELLE:	{strcopy(szFile, maxlength, g_szRochelleScreams[rndPick]);}
-				case SC_COACH:		{strcopy(szFile, maxlength, g_szCoachScreams[rndPick]);}
-				case SC_ELLIS:		{strcopy(szFile, maxlength, g_szEllisScreams[rndPick]);}
-				case SC_BILL:		{strcopy(szFile, maxlength, g_szBillScreams[rndPick]);}
-				case SC_ZOEY:		{strcopy(szFile, maxlength, g_szZoeyScreams[rndPick]);}
-				case SC_LOUIS:		{strcopy(szFile, maxlength, g_szLouisScreams[rndPick]);}
-				case SC_FRANCIS:	{strcopy(szFile, maxlength, g_szFrancisScreams[rndPick]);}
+				case SC_NICK:		{FormatScene(szFile, maxlength, g_szNickScreams[rndPick]);}
+				case SC_ROCHELLE:	{FormatScene(szFile, maxlength, g_szRochelleScreams[rndPick]);}
+				case SC_COACH:		{FormatScene(szFile, maxlength, g_szCoachScreams[rndPick]);}
+				case SC_ELLIS:		{FormatScene(szFile, maxlength, g_szEllisScreams[rndPick]);}
+				case SC_BILL:		{FormatScene(szFile, maxlength, g_szBillScreams[rndPick]);}
+				case SC_ZOEY:		{FormatScene(szFile, maxlength, g_szZoeyScreams[rndPick]);}
+				case SC_LOUIS:		{FormatScene(szFile, maxlength, g_szLouisScreams[rndPick]);}
+				case SC_FRANCIS:	{FormatScene(szFile, maxlength, g_szFrancisScreams[rndPick]);}
 			}
 		}
 	}
@@ -600,85 +646,53 @@ Vocalize IdentifyVocalize(const char[] szVocalize)
 	return NULL_VOCALIZE;
 }
 
-void PrecacheScenes()
+
+// ============================
+//  Precaches
+// ============================
+
+void DoPrecache()
 {
 	bool save = LockStringTables(false);
 	
 	int i;
-	for (i = 0; i < MAX_NICK_LAUGH; ++i) {
-		AddSceneToTable(g_szNickLaughs[i]);
-	}
-	for (i = 0; i < MAX_NICK_TAUNT; ++i) {
-		AddSceneToTable(g_szNickTaunts[i]);
-	}
-	for (i = 0; i < MAX_NICK_SCREAM; ++i) {
-		AddSceneToTable(g_szNickScreams[i]);
-	}
-	for (i = 0; i < MAX_ROCHELLE_LAUGH; ++i) {
-		AddSceneToTable(g_szRochelleLaughs[i]);
-	}
-	for (i = 0; i < MAX_ROCHELLE_TAUNT; ++i) {
-		AddSceneToTable(g_szRochelleTaunts[i]);
-	}
-	for (i = 0; i < MAX_ROCHELLE_SCREAM; ++i) {
-		AddSceneToTable(g_szRochelleScreams[i]);
-	}
-	for (i = 0; i < MAX_COACH_LAUGH; ++i) {
-		AddSceneToTable(g_szCoachLaughs[i]);
-	}
-	for (i = 0; i < MAX_COACH_TAUNT; ++i) {
-		AddSceneToTable(g_szCoachTaunts[i]);
-	}
-	for (i = 0; i < MAX_COACH_SCREAM; ++i) {
-		AddSceneToTable(g_szCoachScreams[i]);
-	}
-	for (i = 0; i < MAX_ELLIS_LAUGH; ++i) {
-		AddSceneToTable(g_szEllisLaughs[i]);
-	}
-	for (i = 0; i < MAX_ELLIS_TAUNT; ++i) {
-		AddSceneToTable(g_szEllisTaunts[i]);
-	}
-	for (i = 0; i < MAX_ELLIS_SCREAM; ++i) {
-		AddSceneToTable(g_szEllisScreams[i]);
-	}
-	for (i = 0; i < MAX_BILL_LAUGH; ++i) {
-		AddSceneToTable(g_szBillLaughs[i]);
-	}
-	for (i = 0; i < MAX_BILL_TAUNT; ++i) {
-		AddSceneToTable(g_szBillTaunts[i]);
-	}
-	for (i = 0; i < MAX_BILL_SCREAM; ++i) {
-		AddSceneToTable(g_szBillScreams[i]);
-	}
-	for (i = 0; i < MAX_ZOEY_LAUGH; ++i) {
-		AddSceneToTable(g_szZoeyLaughs[i]);
-	}
-	for (i = 0; i < MAX_ZOEY_TAUNT; ++i) {
-		AddSceneToTable(g_szZoeyTaunts[i]);
-	}
-	for (i = 0; i < MAX_ZOEY_SCREAM; ++i) {
-		AddSceneToTable(g_szZoeyScreams[i]);
-	}
-	for (i = 0; i < MAX_LOUIS_LAUGH; ++i) {
-		AddSceneToTable(g_szLouisLaughs[i]);
-	}
-	for (i = 0; i < MAX_LOUIS_TAUNT; ++i) {
-		AddSceneToTable(g_szLouisTaunts[i]);
-	}
-	for (i = 0; i < MAX_LOUIS_SCREAM; ++i) {
-		AddSceneToTable(g_szLouisScreams[i]);
-	}
-	for (i = 0; i < MAX_FRANCIS_LAUGH; ++i) {
-		AddSceneToTable(g_szFrancisLaughs[i]);
-	}
-	for (i = 0; i < MAX_FRANCIS_TAUNT; ++i) {
-		AddSceneToTable(g_szFrancisTaunts[i]);
-	}
-	for (i = 0; i < MAX_FRANCIS_SCREAM; ++i) {
-		AddSceneToTable(g_szFrancisScreams[i]);
-	}
+	for (i = 0; i < MAX_NICK_LAUGH; ++i)		PrecacheVocalize(g_szNickLaughs[i]);
+	for (i = 0; i < MAX_NICK_TAUNT; ++i)		PrecacheVocalize(g_szNickTaunts[i]);
+	for (i = 0; i < MAX_NICK_SCREAM; ++i)		PrecacheVocalize(g_szNickScreams[i]);
+	for (i = 0; i < MAX_ROCHELLE_LAUGH; ++i)	PrecacheVocalize(g_szRochelleLaughs[i]);
+	for (i = 0; i < MAX_ROCHELLE_TAUNT; ++i)	PrecacheVocalize(g_szRochelleTaunts[i]);
+	for (i = 0; i < MAX_ROCHELLE_SCREAM; ++i)	PrecacheVocalize(g_szRochelleScreams[i]);
+	for (i = 0; i < MAX_COACH_LAUGH; ++i)		PrecacheVocalize(g_szCoachLaughs[i]);
+	for (i = 0; i < MAX_COACH_TAUNT; ++i)		PrecacheVocalize(g_szCoachTaunts[i]);
+	for (i = 0; i < MAX_COACH_SCREAM; ++i)		PrecacheVocalize(g_szCoachScreams[i]);
+	for (i = 0; i < MAX_ELLIS_LAUGH; ++i)		PrecacheVocalize(g_szEllisLaughs[i]);
+	for (i = 0; i < MAX_ELLIS_TAUNT; ++i)		PrecacheVocalize(g_szEllisTaunts[i]);
+	for (i = 0; i < MAX_ELLIS_SCREAM; ++i)		PrecacheVocalize(g_szEllisScreams[i]);
+	for (i = 0; i < MAX_BILL_LAUGH; ++i)		PrecacheVocalize(g_szBillLaughs[i]);
+	for (i = 0; i < MAX_BILL_TAUNT; ++i)		PrecacheVocalize(g_szBillTaunts[i]);
+	for (i = 0; i < MAX_BILL_SCREAM; ++i)		PrecacheVocalize(g_szBillScreams[i]);
+	for (i = 0; i < MAX_ZOEY_LAUGH; ++i)		PrecacheVocalize(g_szZoeyLaughs[i]);
+	for (i = 0; i < MAX_ZOEY_TAUNT; ++i)		PrecacheVocalize(g_szZoeyTaunts[i]);
+	for (i = 0; i < MAX_ZOEY_SCREAM; ++i)		PrecacheVocalize(g_szZoeyScreams[i]);
+	for (i = 0; i < MAX_LOUIS_LAUGH; ++i)		PrecacheVocalize(g_szLouisLaughs[i]);
+	for (i = 0; i < MAX_LOUIS_TAUNT; ++i)		PrecacheVocalize(g_szLouisTaunts[i]);
+	for (i = 0; i < MAX_LOUIS_SCREAM; ++i)		PrecacheVocalize(g_szLouisScreams[i]);
+	for (i = 0; i < MAX_FRANCIS_LAUGH; ++i)		PrecacheVocalize(g_szFrancisLaughs[i]);
+	for (i = 0; i < MAX_FRANCIS_TAUNT; ++i)		PrecacheVocalize(g_szFrancisTaunts[i]);
+	for (i = 0; i < MAX_FRANCIS_SCREAM; ++i)	PrecacheVocalize(g_szFrancisScreams[i]);
 	
 	LockStringTables(save);
+}
+
+void PrecacheVocalize(const char[] vocalize)
+{
+	char buffer[PLATFORM_MAX_PATH];
+	
+	FormatScene(buffer, sizeof(buffer), vocalize);
+	AddSceneToTable(buffer);
+	
+	FormatSound(buffer, sizeof(buffer), vocalize);
+	PrecacheSound(buffer, true);
 }
 
 void AddSceneToTable(const char[] scene)
@@ -706,6 +720,11 @@ void AddSceneToTable(const char[] scene)
 		}
 	}
 }
+
+
+// ============================
+//  Stocks
+// ============================
 
 /**
  * Returns a random, uniform Integer number in the specified (inclusive) range.
