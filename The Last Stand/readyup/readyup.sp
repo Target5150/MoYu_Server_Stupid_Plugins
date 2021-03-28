@@ -432,7 +432,14 @@ public Action Unready_Cmd(int client, int args)
 			SetEngineTime(client);
 			isPlayerReady[client] = false;
 		}
-		else if (!(GetUserFlagBits(client) & ADMFLAG_BAN)) { return Plugin_Handled; }
+		else
+		{
+			AdminId id = GetUserAdmin(client);
+			if (id != INVALID_ADMIN_ID && GetAdminFlag(id, Admin_Ban)) // Check for specific admin flag
+			{
+				return Plugin_Handled;
+			}
+		}
 		
 		// Client must be a player or an admin with ban flag to request.
 		CancelFullReady(client, readyStatus);
@@ -527,7 +534,8 @@ public Action NotCasting_Cmd(int client, int args)
 	}
 	else // If a target is specified
 	{
-		if (!(GetUserFlagBits(client) & ADMFLAG_BAN)) // Check for specific admin flag
+		AdminId id = GetUserAdmin(client);
+		if (id != INVALID_ADMIN_ID && GetAdminFlag(id, Admin_Ban)) // Check for specific admin flag
 		{
 			ReplyToCommand(client, "\x01%t", "UnregCasterNonAdmin");
 			return Plugin_Handled;
@@ -630,7 +638,8 @@ public Action ForceStart_Cmd(int client, int args)
 	if (inReadyUp)
 	{
 		// Check if admin always allowed to do so
-		if (GetUserFlagBits(client) & ADMFLAG_BAN) // Check for specific admin flag
+		AdminId id = GetUserAdmin(client);
+		if (id != INVALID_ADMIN_ID && GetAdminFlag(id, Admin_Ban)) // Check for specific admin flag
 		{
 			InitiateLiveCountdown();
 			CPrintToChatAll("[{green}!{default}] %t", "ForceStartAdmin", client);
@@ -667,7 +676,8 @@ public Action KickSpecs_Cmd(int client, int args)
 {
 	if (inReadyUp)
 	{
-		if (GetUserFlagBits(client) & ADMFLAG_BAN)
+		AdminId id = GetUserAdmin(client);
+		if (id != INVALID_ADMIN_ID && GetAdminFlag(id, Admin_Ban)) // Check for specific admin flag
 		{
 			CreateTimer(2.0, Timer_KickSpecs);
 			CPrintToChatAll("[{green}!{default}] %t", "KickSpecsAdmin", client);
@@ -709,7 +719,7 @@ void StartForceStartVote(int client)
 	g_hVote = CreateBuiltinVote(VoteActionHandler, BuiltinVoteType_Custom_YesNo, BuiltinVoteAction_Cancel | BuiltinVoteAction_VoteEnd | BuiltinVoteAction_End);
 
 	char sBuffer[128];
-	FormatEx(sBuffer, sizeof(sBuffer), "%T (100%%%%)", LANG_SERVER, "ForceStartVoteTitle"); // kinda format :D
+	FormatEx(sBuffer, sizeof(sBuffer), "%T (100%%%%)", "ForceStartVoteTitle", LANG_SERVER); // kinda format :D
 	SetBuiltinVoteArgument(g_hVote, sBuffer);
 	SetBuiltinVoteInitiator(g_hVote, client);
 	SetBuiltinVoteResultCallback(g_hVote, ForceStartVoteResultHandler);
@@ -749,7 +759,7 @@ void StartKickSpecsVote(int client)
 	g_hVote = CreateBuiltinVote(VoteActionHandler, BuiltinVoteType_Custom_YesNo, BuiltinVoteAction_Cancel | BuiltinVoteAction_VoteEnd | BuiltinVoteAction_End);
 
 	char sBuffer[128];
-	FormatEx(sBuffer, sizeof(sBuffer), "%T", LANG_SERVER, "KickSpecsVoteTitle");
+	FormatEx(sBuffer, sizeof(sBuffer), "%T", "KickSpecsVoteTitle", LANG_SERVER);
 	SetBuiltinVoteArgument(g_hVote, sBuffer);
 	SetBuiltinVoteInitiator(g_hVote, client);
 	SetBuiltinVoteResultCallback(g_hVote, KickSpecsVoteResultHandler);
@@ -804,7 +814,7 @@ public int ForceStartVoteResultHandler(Handle vote, int num_votes, int num_clien
 			}
 			
 			char buffer[64];
-			FormatEx(buffer, sizeof(buffer), "%T", LANG_SERVER, "ForceStartVoteSuccess");
+			FormatEx(buffer, sizeof(buffer), "%T", "ForceStartVoteSuccess", LANG_SERVER);
 			DisplayBuiltinVotePass(vote, buffer);
 			
 			float delay = FindConVar("sv_vote_command_delay").FloatValue;
@@ -830,7 +840,7 @@ public int KickSpecsVoteResultHandler(Handle vote, int num_votes, int num_client
 			if (item_info[i][BUILTINVOTEINFO_ITEM_VOTES] > (num_clients / 2))
 			{
 				char buffer[64];
-				FormatEx(buffer, sizeof(buffer), "%T", LANG_SERVER, "KickSpecsVoteSuccess");
+				FormatEx(buffer, sizeof(buffer), "%T", "KickSpecsVoteSuccess", LANG_SERVER);
 				DisplayBuiltinVotePass(vote, buffer);
 				
 				float delay = FindConVar("sv_vote_command_delay").FloatValue;

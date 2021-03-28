@@ -1,0 +1,183 @@
+"Phrases"
+{
+// The following uses default color tags (\x01 - \x05)
+	"RegCasterReply"
+	{
+		"#format"	"{1:N}"
+		"chi"		"认证了 \x05{1} \x01为解说"
+	}
+	
+	"CasterSteamIDError"
+	{
+		"chi"		"\x04Steam ID\x01查询失败。  请检查拼写错误，等待玩家加载。"
+	}
+
+	"UnregCasterNonAdmin"
+	{
+		"chi"		"只有 \x03管理员 \x01可以撤销其他人的解说身份。 输入不带参数的 \x04sm_notcasting \x01以解除解说身份。"
+	}
+
+	"UnregCasterSuccess"
+	{
+		"#format"	"{1:N}"
+		"chi"		"\x04{1} \x01已不再是解说。"
+	}
+	
+	
+// The following uses bracket style color tags (see colors.inc)
+	"SelfCast1"
+	{
+		"chi"		"你已经被认证成为了解说"
+	}
+
+	"SelfCast2"
+	{
+		"chi"		"重连服务器以加载 MOD"
+	}
+
+	"RegCasterTarget"
+	{
+		"#format"	"{1:N}"
+		"chi"		"{blue}管理员 {default}({olive}{1}{default}) 认证了你为解说"
+	}
+
+	"Reconnect1"
+	{
+		"chi"		"你将会被重连至服务器..."
+	}
+
+	"Reconnect2"
+	{
+		"chi"		"期间会黑屏而没有加载条！"
+	}
+
+	"UnregCasterTarget"
+	{
+		"#format"	"{1:N}"
+		"chi"		"{blue}管理员 {default}({olive}{1}{default}) 解除了你的解说身份"
+	}
+	
+	"PanelHide"
+	{
+		"chi"		"准备面板已 {red}关闭{default}"
+	}
+	
+	"PanelShow"
+	{
+		"chi"		"准备面板已 {blue}开启{default}"
+	}
+	
+	"ForceStartAdmin"
+	{
+		"#format"	"{1:N}"
+		"chi"		"{blue}管理员 {default}({olive}{1}{default}) {green}强制{default}了{blue}游戏开始"
+	}
+	
+	"ForceStartVoteSpec"
+	{
+		"chi"		"{blue}旁观者 {default}不可以投票 {green}强制开始{default}"
+	}
+	
+	"ForceStartFullPlayers"
+	{
+		"chi"		"由于{green}游戏满人{default}，你{red}不可以{default}投票强制开始"
+	}
+	
+	"KickSpecsAdmin"
+	{
+		"#format"	"{1:N}"
+		"chi"		"{blue}管理员 {default}({olive}{1}{default}) {default}踢出了{blue}所有旁观者"
+	}
+	
+	"KickSpecsVoteSpec"
+	{
+		"chi"		"{blue}旁观者 {default}不可以投票 {green}踢出旁观{default}"
+	}
+	
+	"VoteInProgress"
+	{
+		"chi"		"现在有 {olive}一个投票 {green}正在进行中{default}"
+	}
+	
+	"VoteDelay"
+	{
+		"#format"	"{1:d}"
+		"chi"		"请等待 {blue}{1}秒 {default}以发起下一轮投票"
+	}
+
+	"DisruptReadyStatus"
+	{
+		"#format"	"{1:N}"
+		"chi"		"{green}倒数中止！ {default}({teamcolor}{1} {green}取消了准备{default})"
+	}
+	
+	"DisruptTeamShuffle"
+	{
+		"#format"	"{1:N}"
+		"chi"		"{green}倒数中止！ {default}({teamcolor}{1} {olive}切换了阵营{default})"
+	}
+	
+	"DisruptPlayerDisc"
+	{
+		"#format"	"{1:N}"
+		"chi"		"{green}倒数中止！ {default}({teamcolor}{1} {green}离开了游戏{default})"
+	}
+	
+	
+// The following are not allowed to use any color tag
+	"ForceStartVoteTitle"
+	{
+		"chi"		"强制开始游戏？"
+	}
+	
+	"KickSpecsVoteTitle"
+	{
+		"chi"		"踢出所有非管理员和非解说的旁观者？"
+	}
+	
+	"ForceStartVoteSuccess"
+	{
+		"chi"		"即将强制开始..."
+	}
+	
+	"KickSpecsVoteSuccess"
+	{
+		"chi"		"再见了您呐！"
+	}
+	
+	"KickSpecsReason"
+	{
+		"chi"		"本比赛不允许旁观"
+	}
+	
+	"HintReady"
+	{
+		"chi"		"你已经准备了\n输入 !unready / 按 F2 取消准备"
+	}
+	
+	"HintUnready"
+	{
+		"chi"		"你还没有准备\n输入 !ready / 按 F1 确认准备"
+	}
+	
+	"LiveCountdownBegin"
+	{
+		"chi"		"比赛即将开始！\n输入 !unready / 按 F2 中断倒数"
+	}
+	
+	"LiveCountdown"
+	{
+		"#format"	"{1:d}"
+		"chi"		"请各就各位：{1} \n输入 !unready / 按 F2 中断倒数"
+	}
+	
+	"LiveCountdownCancelled"
+	{
+		"chi"		"倒数中止！"
+	}
+	
+	"RoundIsLive"
+	{
+		"chi"		"比赛开始！"
+	}
+}

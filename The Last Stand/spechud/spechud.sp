@@ -779,7 +779,7 @@ void FillInfectedInfo(Panel hSpecHud)
 				float fDuration = GetAbilityCooldownDuration(client);
 				if (!HasAbilityVictim(client, zClass) && iCooldown > 0 && fDuration > 1.0)
 				{
-					FormatEx(buffer, sizeof(buffer), " [%is]", info, iCooldown);
+					FormatEx(buffer, sizeof(buffer), " [%is]", iCooldown);
 				}
 				else { buffer[0] = '\0'; }
 				
@@ -1028,7 +1028,7 @@ float GetAbilityCooldown(int client)
 	if (ability != -1 && GetEntProp(ability, Prop_Send, "m_hasBeenUsed"))
 	{
 		if (GetCountdownDuration(ability) != 3600.0)
-			return GetCountdownTimestamp(ability) - GetGameTime();
+			return (GetCountdownTimestamp(ability) - GetGameTime());
 	}
 	return 0.0;
 }
