@@ -1,15 +1,17 @@
 # Restore Blocked Vocalize in Competitive
 
 ### Introduction
-**Self-descriptive**
-- Perform **Laughter**, **Taunt**, **Death Scream** _nearly_ as naturally as in vanilla.
-	- Works via `PerformScene()` provided with **scene files** (.vcd).
-	- **nearly** simply means since The Last Stand update, I cannot tell if certain voicelines are enabled or not, and how the new system of vocalize works.
+- **Self-descriptive**
+	- Perform **Laughter**, **Taunt**, **Death Scream** _nearly_ as naturally as in vanilla.
+		- Works via `PerformScene()` provided with **scene files** (.vcd).
+		- **nearly** simply means since The Last Stand update, I cannot tell if certain voicelines are enabled or not, and how the new system of vocalize works.
 
 <hr>
 
 ### Requirement
-[Scene Processor](https://forums.alliedmods.net/showthread.php?p=2147410)
+- [Scene Processor](https://forums.alliedmods.net/showthread.php?p=2147410)
+
+<hr>
 
 ### Changelog
 - (V1.2.8 2021/3/25) Precache sound files as well.
