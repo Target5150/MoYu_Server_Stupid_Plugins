@@ -17,7 +17,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION	"3.4.6"
+#define PLUGIN_VERSION	"3.4.6a"
 
 public Plugin myinfo = 
 {
@@ -316,7 +316,7 @@ public void OnRoundIsLive()
 			iTankCount = 1;
 			bFlowTankActive = bRoundHasFlowTank;
 			
-			static char mapname[64], dummy;
+			char mapname[64], dummy;
 			GetCurrentMap(mapname, sizeof(mapname));
 			
 			if (strcmp(mapname, "hf03_themansion") == 0) iTankCount += 1;
@@ -878,7 +878,7 @@ bool FillTankInfo(Panel hSpecHud, bool bTankHUD = false)
 	// Draw network
 	if (!IsFakeClient(tank))
 	{
-		FormatEx(info, sizeof(info), "Network: %ims / %.1f", RoundToNearest(GetClientAvgLatency(tank, NetFlow_Both) * 500.0), GetLerpTime(tank) * 1000.0);
+		FormatEx(info, sizeof(info), "Network: %ims / %.1f", RoundToNearest(GetClientAvgLatency(tank, NetFlow_Both) * 1000.0), GetLerpTime(tank) * 1000.0);
 	}
 	else
 	{
