@@ -7,7 +7,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.0.0b"
+#define PLUGIN_VERSION "1.0.1"
 
 public Plugin myinfo =
 {
@@ -114,7 +114,7 @@ public Action UpdateReadyUpFooter(Handle timer)
 public void OnRoundIsLive()
 {
 	// announce SI classes up now
-	char msg[64];
+	char msg[128];
 	if (ProcessSIString(msg, sizeof(msg)))
 	{
 		AnnounceSIClasses(msg);
@@ -127,7 +127,7 @@ public Action Event_PlayerLeftStartArea(Event event, const char[] name, bool don
 {
 	// if no readyup, use this as the starting event
 	if (!g_bMessagePrinted) {
-		char msg[64];
+		char msg[128];
 		if (ProcessSIString(msg, sizeof(msg)))
 			AnnounceSIClasses(msg);
 			
@@ -170,7 +170,7 @@ bool ProcessSIString(char[] msg, int maxlength, bool footer = false)
 				(footer ? NORMA_PARAM : COLOR_PARAM),
 				msg,
 				g_csSIClassName[iSpawnClass[count]]
-			);
+		);
 	}
 	
 	return true;
@@ -179,7 +179,7 @@ bool ProcessSIString(char[] msg, int maxlength, bool footer = false)
 void AnnounceSIClasses(const char[] Message)
 {
 	for (int i = 1; i <= MaxClients; i++) {
-		if (!IsClientInGame(i) || GetClientTeam(i) != TEAM_INFECTED || (IsFakeClient(i) && !IsClientSourceTV(i))) { continue; }
+		if (!IsClientInGame(i) || GetClientTeam(i) == TEAM_INFECTED || (IsFakeClient(i) && !IsClientSourceTV(i))) { continue; }
 
 		CPrintToChat(i, Message);
 		//PrintHintText(i, Message2);
