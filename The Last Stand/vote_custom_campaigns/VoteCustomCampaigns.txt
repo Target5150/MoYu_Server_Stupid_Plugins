@@ -1,53 +1,43 @@
 "VoteCustomCampaigns"
 {
-	"1"
+	"l4d2_diescraper1_apartment_361"
 	{
-		"mapinfo"		"l4d2_diescraper1_apartment_361"
-		"mapname"		"Diescraper Redux"
+		"name"		"Diescraper Redux"
 	}
-	"2"
+	"cwm1_intro"
 	{
-		"mapinfo"		"cwm1_intro"
-		"mapname"		"Carried off"
+		"name"		"Carried off"
 	}
-	"3"
+	"jsarena201_town"
 	{
-		"mapinfo"		"jsarena201_town"
-		"mapname"		"Arena of the Dead 2"
+		"name"		"Arena of the Dead 2"
 	}
-	"4"
+	"l4d2_stadium1_apartment"
 	{
-		"mapinfo"		"l4d2_stadium1_apartment"
-		"mapname"		"Suicide Blitz 2"
+		"name"		"Suicide Blitz 2"
 	}
-	"5"
+	"dkr_m1_motel"
 	{
-		"mapinfo"		"dkr_m1_motel"
-		"mapname"		"Dark Carnival Remix"
+		"name"		"Dark Carnival Remix"
 	}
-	"6"
+	"dprm1_milltown_a"
 	{
-		"mapinfo"		"dprm1_milltown_a"
-		"mapname"		"Hard Rain:Downpour"
+		"name"		"Hard Rain:Downpour"
 	}
-	"7"
+	"l4d_dbd2dc_anna_is_gone"
 	{
-		"mapinfo"		"l4d_dbd2dc_anna_is_gone"
-		"mapname"		"Dead Before Dawn 2 DC"
+		"name"		"Dead Before Dawn 2 DC"
 	}
-	"8"
+	"x1m1_cliffs"
 	{
-		"mapinfo"		"x1m1_cliffs"
-		"mapname"		"Open Road"
+		"name"		"Open Road"
 	}
-	"9"
+	"cdta_01detour"
 	{
-		"mapinfo"		"cdta_01detour"
-		"mapname"		"Detour Ahead"
+		"name"		"Detour Ahead"
 	}
-	"10"
+	"c5m1_darkwaterfront"
 	{
-		"mapinfo"		"c5m1_darkwaterfront"
-		"mapname"		"Dark Parish"
+		"name"		"Dark Parish"
 	}
 }

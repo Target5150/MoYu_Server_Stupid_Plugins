@@ -738,7 +738,9 @@ void AddSceneToTable(const char[] scene)
  */
 stock int Math_GetRandomInt(int min, int max)
 {
-	float random = GetURandomFloat();
+	int random = GetURandomInt();
 	
-	return RoundToCeil(random * float(max - min + 1)) + min - 1;
+	if (!random) random++;
+	
+	return random % (max - min + 1) + min;
 }

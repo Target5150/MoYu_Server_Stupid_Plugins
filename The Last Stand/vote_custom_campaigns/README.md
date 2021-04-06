@@ -1,19 +1,21 @@
 # vote_custom_campaigns
 
-- **Self-descriptive**
+### Intruduation
+Self-descriptive, plugin to vote for custom campaigns.
+- But campaigns need to be manually manipulate.
+- Should be fine for almost sure. If you meet any issue related to map change, try installing [Proper Changelevel](https://forums.alliedmods.net/showthread.php?p=2669850)
 
-# Installation
+<hr>
+
+### Installation
 1. Put the **vote_custom_campaigns.smx** to your _plugins_ folder.
 2. Put the **VoteCustomCampaigns.txt** to your _configs_ folder.
 3. Edit the **VoteCustomCampaigns.txt** to set up what custom campaigns to add.
 
-# Convars
-```
-// After this time(second) the menu should leave.
-// -
-// Default: "20"
-vcc_menu_leavetime "20"
+<hr>
 
+### Convars
+```
 // Votes reaching this percent of clients(no-spec) can a vote result.
 // -
 // Default: "0.60"

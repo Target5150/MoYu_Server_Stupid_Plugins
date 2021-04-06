@@ -7,7 +7,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "9.1.1c"
+#define PLUGIN_VERSION "9.1.2a"
 
 #define NULL_VELOCITY view_as<float>({0.0, 0.0, 0.0})
 
@@ -23,6 +23,12 @@
 #define SECRET_SOUND "/level/gnomeftw.wav"
 #define DEFAULT_COUNTDOWN_SOUND "weapons/hegrenade/beep.wav"
 #define DEFAULT_LIVE_SOUND "ui/survival_medal.wav"
+#define DEFAULT_AUTOSTART_SOUND "ui/buttonrollover.wav"
+
+#define AUTO_START_COUNTDOWN 5
+
+#define READY_MODE_MANUAL 1
+#define READY_MODE_AUTOSTART 2
 
 #define DEBUG 0
 
@@ -39,7 +45,8 @@ public Plugin myinfo =
 ConVar	director_no_specials, god, sb_stop, survivor_limit, z_max_player_zombies, sv_infinite_primary_ammo, scavenge_round_setup_time;
 
 // Plugin Cvars
-ConVar	l4d_ready_disable_spawns, l4d_ready_survivor_freeze,
+ConVar	l4d_ready_enabled,
+		l4d_ready_disable_spawns, l4d_ready_survivor_freeze,
 		l4d_ready_cfg_name,
 		l4d_ready_max_players, l4d_ready_delay,
 		l4d_ready_enable_sound, l4d_ready_chuckle, l4d_ready_countdown_sound, l4d_ready_live_sound,
@@ -73,6 +80,11 @@ int g_iLastMouse[MAXPLAYERS+1][2];
 // Spectate Fix
 Handle g_hChangeTeamTimer[MAXPLAYERS+1];
 
+// Auto Start
+bool isAutoStartMode, inAutoStart;
+Handle autoStartTimer;
+int autoStartDelay;
+
 enum disruptType
 {
 	readyStatus,
@@ -105,7 +117,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-	CreateConVar("l4d_ready_enabled", "1", "This cvar doesn't do anything, but if it is 0 the logger wont log this game.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	l4d_ready_enabled			= CreateConVar("l4d_ready_enabled", "1", "Enable this plugin. (Values: 1 = Manual ready, 2 = Auto start)", FCVAR_NOTIFY, true, 0.0, true, 2.0);
 	l4d_ready_cfg_name			= CreateConVar("l4d_ready_cfg_name", "", "Configname to display on the ready-up panel", FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 	l4d_ready_disable_spawns	= CreateConVar("l4d_ready_disable_spawns", "0", "Prevent SI from having spawns during ready-up", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	l4d_ready_survivor_freeze	= CreateConVar("l4d_ready_survivor_freeze", "1", "Freeze the survivors during ready-up.  When unfrozen they are unable to leave the saferoom but can move freely inside", FCVAR_NOTIFY, true, 0.0, true, 1.0);
@@ -194,7 +206,7 @@ public void RoundStart_Event(Event event, const char[] name, bool dontBroadcast)
 
 public void PlayerTeam_Event(Event event, const char[] name, bool dontBroadcast)
 {
-	if (!inReadyUp) return;
+	if (!inReadyUp || isAutoStartMode) return;
 	
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	if (!client || IsFakeClient(client)) return;
@@ -297,7 +309,11 @@ public void OnMapStart()
 /* This ensures all cvars are reset if the map is changed during ready-up */
 public void OnMapEnd()
 {
-	if (inReadyUp) InitiateLive(false);
+	if (inReadyUp)
+	{
+		InitiateAutoStart(false);
+		InitiateLive(false);
+	}
 }
 
 public void OnClientDisconnect(int client)
@@ -416,7 +432,7 @@ public Action Ready_Cmd(int client, int args)
 		isPlayerReady[client] = true;
 		if (l4d_ready_secret.BoolValue)
 			DoSecrets(client);
-		if (CheckFullReady())
+		if (!inAutoStart && CheckFullReady())
 			InitiateLiveCountdown();
 		return Plugin_Handled;
 	}
@@ -425,7 +441,7 @@ public Action Ready_Cmd(int client, int args)
 
 public Action Unready_Cmd(int client, int args)
 {
-	if (inReadyUp)
+	if (inReadyUp && !isAutoStartMode)
 	{
 		if (IsPlayer(client))
 		{
@@ -635,8 +651,8 @@ public Action Return_Cmd(int client, int args)
 
 public Action ForceStart_Cmd(int client, int args)
 {
-	if (inReadyUp)
-	{
+	if (inReadyUp && !isAutoStartMode)
+	{		
 		// Check if admin always allowed to do so
 		AdminId id = GetUserAdmin(client);
 		if (id != INVALID_ADMIN_ID && GetAdminFlag(id, Admin_Ban)) // Check for specific admin flag
@@ -912,6 +928,22 @@ public Action MenuCmd_Timer(Handle timer)
 	return Plugin_Stop;
 }
 
+void PrintCmd()
+{
+	switch (iCmd)
+	{
+		case 1: Format(sCmd, sizeof(sCmd), "->1. !ready|!r / !unready|!nr");
+		case 2: Format(sCmd, sizeof(sCmd), "->2. !slots #");
+		case 3: Format(sCmd, sizeof(sCmd), "->3. !voteboss <tank> <witch>");
+		case 4: Format(sCmd, sizeof(sCmd), "->4. !match / !rmatch");
+		case 5: Format(sCmd, sizeof(sCmd), "->5. !show / !hide");
+		case 6: Format(sCmd, sizeof(sCmd), "->6. !setscores <survs> <inf>");
+		case 7: Format(sCmd, sizeof(sCmd), "->7. !lerps");
+		case 8: Format(sCmd, sizeof(sCmd), "->8. !secondary");
+		case 9: Format(sCmd, sizeof(sCmd), "->9. !forcestart / !fs");
+	}
+}
+
 void UpdatePanel()
 {
 	if (IsBuiltinVoteInProgress())
@@ -982,14 +1014,14 @@ void UpdatePanel()
 			{
 				if (isPlayerReady[client])
 				{
-					if (!inLiveCountdown) PrintHintText(client, "%t", "HintReady");
-					Format(nameBuf, sizeof(nameBuf), "☑ %s\n", nameBuf);
+					if (!inLiveCountdown && !isAutoStartMode) PrintHintText(client, "%t", "HintReady");
+					Format(nameBuf, sizeof(nameBuf), isAutoStartMode ? "%s\n" : "☑ %s\n", nameBuf);
 					GetClientTeam(client) == L4D2Team_Survivor ? StrCat(survivorBuffer, sizeof(survivorBuffer), nameBuf) : StrCat(infectedBuffer, sizeof(infectedBuffer), nameBuf);
 				}
 				else 
 				{
-					if (!inLiveCountdown) PrintHintText(client, "%t", "HintUnready");
-					Format(nameBuf, sizeof(nameBuf), "☐ %s%s\n", nameBuf, ( IsPlayerAfk(client, fTime) ? " [AFK]" : "" ));
+					if (!inLiveCountdown && !isAutoStartMode) PrintHintText(client, "%t", "HintUnready");
+					Format(nameBuf, sizeof(nameBuf), isAutoStartMode ? "%s\n" : "☐ %s%s\n", nameBuf, ( IsPlayerAfk(client, fTime) ? " [AFK]" : "" ));
 					GetClientTeam(client) == L4D2Team_Survivor ? StrCat(survivorBuffer, sizeof(survivorBuffer), nameBuf) : StrCat(infectedBuffer, sizeof(infectedBuffer), nameBuf);
 				}
 			}
@@ -1095,6 +1127,8 @@ void InitiateReadyUp()
 	inReadyUp = true;
 	inLiveCountdown = false;
 	readyCountdownTimer = null;
+	
+	isAutoStartMode = (l4d_ready_enabled.IntValue == READY_MODE_AUTOSTART);
 
 	if (l4d_ready_disable_spawns.BoolValue)
 	{
@@ -1109,27 +1143,89 @@ void InitiateReadyUp()
 	god.Flags |= FCVAR_NOTIFY;
 	sb_stop.SetBool(true);
 
-	if (IsScavenge()) {
+	if (IsScavenge())
+	{
 		scavenge_round_setup_time.FloatValue = 99999.0;
 		HideCountdown();
 	}
-	else L4D2_CTimerStart(L4D2CT_VersusStartTimer, 99999.0);
+	else
+	{
+		L4D2_CTimerStart(L4D2CT_VersusStartTimer, 99999.0);
+	}
+	
+	if (isAutoStartMode)
+	{
+		CreateTimer(1.0, Timer_AutoStartHelper, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
+	}
 }
 
-void PrintCmd()
+
+public Action Timer_AutoStartHelper(Handle timer)
 {
-	switch (iCmd)
+	static int expireTime = 20;
+	
+	if (GetSeriousClientCount(true) == 0)
 	{
-		case 1: Format(sCmd, sizeof(sCmd), "->1. !ready|!r / !unready|!nr");
-		case 2: Format(sCmd, sizeof(sCmd), "->2. !slots #");
-		case 3: Format(sCmd, sizeof(sCmd), "->3. !voteboss <tank> <witch>");
-		case 4: Format(sCmd, sizeof(sCmd), "->4. !match / !rmatch");
-		case 5: Format(sCmd, sizeof(sCmd), "->5. !show / !hide");
-		case 6: Format(sCmd, sizeof(sCmd), "->6. !setscores <survs> <inf>");
-		case 7: Format(sCmd, sizeof(sCmd), "->7. !lerps");
-		case 8: Format(sCmd, sizeof(sCmd), "->8. !secondary");
-		case 9: Format(sCmd, sizeof(sCmd), "->9. !forcestart / !fs");
+		// no player in game
+		expireTime = 20;
+		return Plugin_Continue;
 	}
+	
+	if (IsAnyPlayerLoading())
+	{
+		if (expireTime > 0)
+		{
+			expireTime--;
+			// TODO: translation
+			PrintHintTextToAll("Waiting for loading players...");
+			return Plugin_Continue;
+		}
+	}
+	
+	expireTime = 20;
+	CreateTimer(8.0, Timer_InitiateAutoStart, _, TIMER_FLAG_NO_MAPCHANGE);
+	return Plugin_Stop;
+}
+
+public Action Timer_InitiateAutoStart(Handle timer)
+{
+	InitiateAutoStart();
+}
+
+void InitiateAutoStart(bool real = true)
+{
+	if (!real)
+	{
+		inAutoStart = false;
+		autoStartTimer = null;
+		return;
+	}
+	
+	if (autoStartTimer == null)
+	{
+		PrintHintTextToAll("Game will automatically start!");
+		inAutoStart = true;
+		autoStartDelay = AUTO_START_COUNTDOWN;
+		autoStartTimer = CreateTimer(1.0, AutoStartDelay_Timer, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
+	}
+}
+
+public Action AutoStartDelay_Timer(Handle timer)
+{
+	if (autoStartDelay == 0)
+	{
+		InitiateLiveCountdown();
+		autoStartTimer = null;
+		inAutoStart = false;
+		return Plugin_Stop;
+	}
+	else
+	{
+		PrintHintTextToAll("Game starts in: %i", autoStartDelay);
+		EmitSoundToAll(DEFAULT_AUTOSTART_SOUND, _, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
+		autoStartDelay--;
+	}
+	return Plugin_Continue;
 }
 
 void InitiateLive(bool real = true)
@@ -1529,15 +1625,27 @@ bool IsIDCaster(const char[] AuthID)
 	return GetTrieValue(casterTrie, AuthID, dummy);
 }
 
-stock int GetSeriousClientCount()
+stock bool IsAnyPlayerLoading()
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientConnected(i) && !IsClientInGame(i))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+stock int GetSeriousClientCount(bool inGame = false)
 {
 	int clients = 0;
 	
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (IsClientConnected(i) && !IsFakeClient(i))
+		if ((inGame ? IsClientInGame(i) : IsClientConnected(i)))
 		{
-			clients++;
+			if (!IsFakeClient(i)) clients++;
 		}
 	}
 	
@@ -1573,4 +1681,13 @@ stock int GetTeamHumanCount(int team)
 	}
 	
 	return humans;
+}
+
+/**
+ * Is the second round of this map currently being played?
+ *
+ * @return bool
+ */
+stock bool InSecondHalfOfRound() {
+    return !!GameRules_GetProp("m_bInSecondHalfOfRound");
 }
