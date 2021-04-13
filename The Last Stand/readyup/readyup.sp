@@ -7,7 +7,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "9.1.2a"
+#define PLUGIN_VERSION "9.1.3a"
 
 #define NULL_VELOCITY view_as<float>({0.0, 0.0, 0.0})
 
@@ -1177,7 +1177,7 @@ public Action Timer_AutoStartHelper(Handle timer)
 		{
 			expireTime--;
 			// TODO: translation
-			PrintHintTextToAll("Waiting for loading players...");
+			PrintHintTextToAll("%t", "AutoStartWaiting");
 			return Plugin_Continue;
 		}
 	}
@@ -1203,7 +1203,7 @@ void InitiateAutoStart(bool real = true)
 	
 	if (autoStartTimer == null)
 	{
-		PrintHintTextToAll("Game will automatically start!");
+		PrintHintTextToAll("%t", "InitiateAutoStart");
 		inAutoStart = true;
 		autoStartDelay = AUTO_START_COUNTDOWN;
 		autoStartTimer = CreateTimer(1.0, AutoStartDelay_Timer, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
@@ -1221,7 +1221,7 @@ public Action AutoStartDelay_Timer(Handle timer)
 	}
 	else
 	{
-		PrintHintTextToAll("Game starts in: %i", autoStartDelay);
+		PrintHintTextToAll("%t", "AutoStartCountdown", autoStartDelay);
 		EmitSoundToAll(DEFAULT_AUTOSTART_SOUND, _, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
 		autoStartDelay--;
 	}
@@ -1364,18 +1364,15 @@ void CancelFullReady(int client, disruptType type)
 void ReturnPlayerToSaferoom(int client, bool flagsSet = true)
 {
 	int warp_flags;
-	int give_flags;
 	if (!flagsSet)
 	{
 		warp_flags = GetCommandFlags("warp_to_start_area");
 		SetCommandFlags("warp_to_start_area", warp_flags & ~FCVAR_CHEAT);
-		give_flags = GetCommandFlags("give");
-		SetCommandFlags("give", give_flags & ~FCVAR_CHEAT);
 	}
 
 	if (GetEntProp(client, Prop_Send, "m_isHangingFromLedge"))
 	{
-		FakeClientCommand(client, "give health");
+		L4D_ReviveSurvivor(client);
 	}
 
 	FakeClientCommand(client, "warp_to_start_area");
@@ -1383,7 +1380,6 @@ void ReturnPlayerToSaferoom(int client, bool flagsSet = true)
 	if (!flagsSet)
 	{
 		SetCommandFlags("warp_to_start_area", warp_flags);
-		SetCommandFlags("give", give_flags);
 	}
 	
 	TeleportEntity(client, NULL_VECTOR, NULL_VECTOR, NULL_VELOCITY);
@@ -1393,8 +1389,6 @@ void ReturnTeamToSaferoom(int team)
 {
 	int warp_flags = GetCommandFlags("warp_to_start_area");
 	SetCommandFlags("warp_to_start_area", warp_flags & ~FCVAR_CHEAT);
-	int give_flags = GetCommandFlags("give");
-	SetCommandFlags("give", give_flags & ~FCVAR_CHEAT);
 
 	for (int client = 1; client <= MaxClients; client++)
 	{
@@ -1405,7 +1399,6 @@ void ReturnTeamToSaferoom(int team)
 	}
 
 	SetCommandFlags("warp_to_start_area", warp_flags);
-	SetCommandFlags("give", give_flags);
 }
 
 void SetTeamFrozen(int team, bool freezeStatus)
@@ -1681,13 +1674,4 @@ stock int GetTeamHumanCount(int team)
 	}
 	
 	return humans;
-}
-
-/**
- * Is the second round of this map currently being played?
- *
- * @return bool
- */
-stock bool InSecondHalfOfRound() {
-    return !!GameRules_GetProp("m_bInSecondHalfOfRound");
 }

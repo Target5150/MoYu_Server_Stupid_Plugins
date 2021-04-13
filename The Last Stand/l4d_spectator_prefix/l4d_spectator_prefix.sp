@@ -2,11 +2,12 @@
 #include <sdktools>
 #undef REQUIRE_PLUGIN
 #include <readyup>
+#define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.2.4"
+#define PLUGIN_VERSION "1.2.5"
 
 public Plugin myinfo = 
 {
@@ -17,12 +18,14 @@ public Plugin myinfo =
 	url = "https://steamcommunity.com/id/fbef0102/"
 };
 
-enum L4D2_Team
-{
-    L4D2Team_Spectator = 1,
-    L4D2Team_Survivor,
-    L4D2Team_Infected
-};
+// ===================================================================
+// Variables
+// ===================================================================
+
+#define L4D2Team_None 0
+#define L4D2Team_Spectator 1
+#define L4D2Team_Survivor 2
+#define L4D2Team_Infected 3
 
 ConVar g_cvPrefixType;
 ConVar g_cvPrefixTypeCaster;
@@ -36,15 +39,15 @@ StringMap g_triePrefixed;
 
 bool readyupAvailable;
 
+// ===================================================================
+// Plugin Setup / Backup
+// ===================================================================
+
 public void OnPluginStart()
 {
-	g_cvPrefixType =		CreateConVar("sp_prefix_type",			"(S)", "Determine your preferred type of Spectator Prefix");
-	g_cvPrefixTypeCaster =	CreateConVar("sp_prefix_type_caster",	"(C)", "Determine your preferred type of Spectator Prefix");
-	g_cvSupressMsg =		CreateConVar("sp_supress_msg", "1", "Determine whether to supress message of prefixing name", _, true, 0.0, true, 1.0);
-	
-	g_cvPrefixType.GetString(g_sPrefixType, sizeof(g_sPrefixType));
-	g_cvPrefixTypeCaster.GetString(g_sPrefixTypeCaster, sizeof(g_sPrefixTypeCaster));
-	g_bSupress = g_cvSupressMsg.BoolValue;
+	g_cvPrefixType			= CreateConVar("sp_prefix_type",		"(S)",	"Determine your preferred type of Spectator Prefix");
+	g_cvPrefixTypeCaster 	= CreateConVar("sp_prefix_type_caster",	"(C)",	"Determine your preferred type of Spectator Prefix");
+	g_cvSupressMsg			= CreateConVar("sp_supress_msg",		"1",	"Determine whether to supress message of prefixing name", _, true, 0.0, true, 1.0);
 	
 	g_cvPrefixType.AddChangeHook(OnConVarChanged);
 	g_cvPrefixTypeCaster.AddChangeHook(OnConVarChanged);
@@ -60,100 +63,117 @@ public void OnPluginEnd()
 {
 	if (g_triePrefixed.Size)
 	{
-		StringMapSnapshot snap = g_triePrefixed.Snapshot();
-		
-		int length = snap.Length;
-		char buffer[64], authId[64];
-		for (int i = 0; i < length; i++)
+		for (int i = 1; i <= MaxClients; i++)
 		{
-			snap.GetKey(i, buffer, sizeof(buffer));
-			for (int j = 1; j <= MaxClients; j++)
-			{
-				if (IsClientAndInGame(j))
-				{
-					GetClientAuthId(j, AuthId_Steam2, buffer, sizeof(buffer));
-					if (StrEqual(authId, buffer)) RemovePrefix(j);
-				}
-			}
+			if (IsClientAndInGame(i) && GetClientTeam(i) == L4D2Team_Spectator) RemovePrefix(i);
 		}
-		delete snap;
 	}
 }
+
+// ===================================================================
+// Ready Up Available
+// ===================================================================
 
 public void OnAllPluginsLoaded() { readyupAvailable = LibraryExists("readyup"); }
 public void OnLibraryAdded(const char[] name) { if (StrEqual(name, "readyup")) readyupAvailable = true; }
 public void OnLibraryRemoved(const char[] name) { if (StrEqual(name, "readyup")) readyupAvailable = false; }
 
+// ===================================================================
+// Clear Up
+// ===================================================================
+
 public void OnMapStart() { g_triePrefixed.Clear(); }
 
-public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+// ===================================================================
+// Get ConVars
+// ===================================================================
+
+public void OnConfigsExecuted() { GetCvars(); }
+public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue) { GetCvars(); }
+
+void GetCvars()
 {
 	g_cvPrefixType.GetString(g_sPrefixType, sizeof(g_sPrefixType));
 	g_cvPrefixTypeCaster.GetString(g_sPrefixTypeCaster, sizeof(g_sPrefixTypeCaster));
 	g_bSupress = g_cvSupressMsg.BoolValue;
 }
 
+// ===================================================================
+// Events
+// ===================================================================
+
 public void Event_NameChanged(Event event, const char[] name, bool dontBroadcast)
 {
-	int client = GetClientOfUserId(GetEventInt(event, "userid"));
+	int userid = event.GetInt("userid");
+	int client = GetClientOfUserId(userid);
 	
 	if (!IsClientAndInGame(client)
 		|| IsFakeClient(client)
-		|| view_as<L4D2_Team>(GetClientTeam(client)) != L4D2Team_Spectator)
+		|| GetClientTeam(client) != L4D2Team_Spectator)
 		return;
 			
 	char newname[MAX_NAME_LENGTH];
 	event.GetString("newname", newname, sizeof(newname));
 	
 	// Use a delay function to prevent issue
-	DataPack pack = new DataPack();
-	pack.WriteCell(client);
-	pack.WriteString(newname);
+	ArrayStack stack = new ArrayStack();
+	stack.PushString(newname);
+	stack.Push(userid);
 	
-	RequestFrame(DelayStuff, pack);
+	RequestFrame(OnNextFrame, stack);
 }
 
-void DelayStuff(DataPack pack)
+void OnNextFrame(ArrayStack stack)
 {
-	pack.Reset();
-	int client = pack.ReadCell();
+	int client = GetClientOfUserId(stack.Pop());
 	
-	if (IsClientInGame(client))
+	if (IsClientAndInGame(client))
 	{
 		char name[MAX_NAME_LENGTH];
-		pack.ReadString(name, sizeof(name));
-		
+		stack.PopString(name, sizeof(name));
 		if (!HasPrefix(name)) AddPrefix(client, name);
 	}
 	
-	delete pack;
+	delete stack;
 }
 
 public void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
 {
-	int client = GetClientOfUserId(GetEventInt(event, "userid"));
+	int client = GetClientOfUserId(event.GetInt("userid"));
 	
 	if (!IsClientAndInGame(client)
-		|| IsFakeClient(client)
-		|| event.GetBool("disconnect"))
+		|| IsFakeClient(client))
 		return;
 		
-	L4D2_Team newteam = view_as<L4D2_Team>(GetEventInt(event, "team"));
-	L4D2_Team oldteam = view_as<L4D2_Team>(GetEventInt(event, "oldteam"));
+	int newteam = event.GetInt("team");
+	if (newteam == L4D2Team_None)
+		return;
+		
+	int oldteam = event.GetInt("oldteam");
 	
 	if (newteam == L4D2Team_Spectator) AddPrefix(client);
 	else if (oldteam == L4D2Team_Spectator) RemovePrefix(client);
 }
 
+// ===================================================================
+// Prefix Methods
+// ===================================================================
+
 void AddPrefix(int client, const char[] newname = "")
 {
-	char buffer[64], name[MAX_NAME_LENGTH];
-	GetClientAuthId(client, AuthId_Steam2, buffer, sizeof(buffer));
+	char authId[64], name[MAX_NAME_LENGTH];
+	GetClientAuthId(client, AuthId_Steam2, authId, sizeof(authId));
 	
-	if (newname[0] != '\0') strcopy(name, sizeof(name), newname);
-	else GetClientName(client, name, sizeof(name));
+	if (strlen(newname) > 0)
+	{
+		strcopy(name, sizeof(name), newname);
+	}
+	else
+	{
+		GetClientName(client, name, sizeof(name));
+	}
 	
-	g_triePrefixed.SetString(buffer, name, true);
+	g_triePrefixed.SetString(authId, name, true);
 	
 	if (readyupAvailable && IsClientCaster(client))
 	{
@@ -169,11 +189,12 @@ void AddPrefix(int client, const char[] newname = "")
 
 void RemovePrefix(int client)
 {
-	char buffer[64], name[MAX_NAME_LENGTH];
-	GetClientAuthId(client, AuthId_Steam2, buffer, sizeof(buffer));
-	if (g_triePrefixed.GetString(buffer, name, sizeof(name))) // in case
+	char authId[64], name[MAX_NAME_LENGTH];
+	GetClientAuthId(client, AuthId_Steam2, authId, sizeof(authId));
+	
+	if (g_triePrefixed.GetString(authId, name, sizeof(name)))
 	{
-		g_triePrefixed.Remove(buffer);
+		g_triePrefixed.Remove(authId);
 		CS_SetClientName(client, name);
 	}
 }
@@ -213,6 +234,10 @@ void CS_SetClientName(int client, const char[] name)
 	}
 }
 
+// ===================================================================
+// Helpers
+// ===================================================================
+
 bool HasPrefix(const char[] name)
 {
 	return strncmp(name, g_sPrefixType, strlen(g_sPrefixType)) == 0 || strncmp(name, g_sPrefixTypeCaster, strlen(g_sPrefixTypeCaster)) == 0;
@@ -220,7 +245,7 @@ bool HasPrefix(const char[] name)
 
 stock bool IsClientAndInGame(int client)
 {
-	if (client > 0 && client <= MaxClients)
+	if (0 < client <= MaxClients)
 	{
 		return IsClientInGame(client);
 	}

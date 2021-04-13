@@ -179,5 +179,20 @@
 	"RoundIsLive"
 	{
 		"chi"		"比赛开始！"
+	}	
+	
+	"InitiateAutoStart"
+	{
+		"chi"		"游戏将会自动开始！"
+	}
+	
+	"AutoStartCountdown"
+	{
+		"chi"		"游戏开始于：%i"
+	}
+	
+	"AutoStartWaiting"
+	{
+		"chi"		"等待玩家加入 ..."
 	}
 }

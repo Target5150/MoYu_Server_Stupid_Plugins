@@ -180,4 +180,19 @@
 	{
 		"en"		"Round is live!"
 	}
+	
+	"InitiateAutoStart"
+	{
+		"en"		"Game will automatically start!"
+	}
+	
+	"AutoStartCountdown"
+	{
+		"en"		"Game starts in: %i"
+	}
+	
+	"AutoStartWaiting"
+	{
+		"en"		"Waiting for loading players..."
+	}
 }
