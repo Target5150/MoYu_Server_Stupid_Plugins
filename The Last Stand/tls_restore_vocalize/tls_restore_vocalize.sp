@@ -542,8 +542,6 @@ public void OnGamemode(const char[] output, int caller, int activator, float del
 		g_bVersus = false;
 	else if( strcmp(output, "OnVersus") == 0 )
 		g_bVersus = true;
-		
-	LogMessage("OnGamemode: %i", g_bVersus);
 }
 
 

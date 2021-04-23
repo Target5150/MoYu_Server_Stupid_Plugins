@@ -1,0 +1,160 @@
+"Games"
+{
+	"left4dead"
+	{
+		"MemPatches"
+		{
+			"CTankClaw::SweepFist::Check1"
+			{
+				"signature"			"CTankClaw::SweepFist"
+				"linux"
+				{
+					"offset"		"1565"
+					"verify"		"\xE8" // make sure the call instruction starts with E8
+					"patch"			"\x90\x90\x90\x90\x90" // patch the call instruction with NOPs (5 bytes)
+				}
+				
+				"windows"
+				{
+					"offset"		"1067"
+					"verify"		"\xE8" // make sure the call instruction starts with E8
+					"patch"			"\x90\x90\x90\x90\x90" // patch the call instruction with NOPs (5 bytes)
+				}
+			}
+			
+			"CTankClaw::SweepFist::Check2"
+			{
+				"signature"			"CTankClaw::SweepFist"
+				"linux"
+				{
+					"offset"		"3078"
+					"verify"		"\xE8" // make sure the call instruction starts with E8
+					"patch"			"\x90\x90\x90\x90\x90" // patch the call instruction with NOPs (5 bytes)
+				}
+				
+				"windows"
+				{
+					"offset"		"1076"
+					"verify"		"\xE8" // make sure the call instruction starts with E8
+					"patch"			"\x90\x90\x90\x90\x90" // patch the call instruction with NOPs (5 bytes)
+				}
+			}
+		}
+		
+		"Functions"
+		{
+			/* CTankClaw::SweepFist(Vector const&, Vector const&) */
+			"CTankClaw::SweepFist"
+			{
+				"signature"			"CTankClaw::SweepFist"
+				"callconv"			"thiscall"
+				"return"			"void"
+				"this"				"entity"
+				"arguments"
+				{
+					"a1"
+					{
+						"type"		"vectorptr"
+					}
+					"a2"
+					{
+						"type"		"vectorptr"
+					}
+				}
+			} 
+		}
+		
+		"Signatures"
+		{
+			/* CTankClaw::SweepFist(Vector const&, Vector const&) */
+			"CTankClaw::SweepFist"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9CTankClaw9SweepFistERK6VectorS2_"
+				"windows"	"\x2A\x2A\x2A\x2A\x2A\x2A\x55\x56\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x8B\x2A\x85\xF6\x0F\x84\x2A\x2A\x2A\x2A\x8B\x0D"
+				/* ? ? ? ? ? ? 55 56 8B ? E8 ? ? ? ? 8B ? 85 F6 0F 84 ? ? ? ? 8B 0D */ 
+				/* 1. (L4D1) Search "ValveBiped.Bip01_R_Hand" string which will lead you to "CTankClaw::DoSwing". */
+				/* 2. Look for "CTankClaw::SweepFist" as the very last function call. */
+			}
+		}
+	}
+
+	"left4dead2"
+	{
+		"MemPatches"
+		{
+			"CTankClaw::SweepFist::Check1"
+			{
+				"signature"			"CTankClaw::SweepFist"
+				"linux"
+				{
+					"offset"		"2519"
+					"verify"		"\xE8" // make sure the call instruction starts with E8
+					"patch"			"\x90\x90\x90\x90\x90" // patch the call instruction with NOPs (5 bytes)
+				}
+				
+				"windows"
+				{
+					"offset"		"1382"
+					"verify"		"\xE8" // make sure the call instruction starts with E8
+					"patch"			"\x90\x90\x90\x90\x90" // patch the call instruction with NOPs (5 bytes)
+				}
+			}
+			
+			"CTankClaw::SweepFist::Check2"
+			{
+				"signature"			"CTankClaw::SweepFist"
+				"linux"
+				{
+					"offset"		"3473"
+					"verify"		"\xE8" // make sure the call instruction starts with E8
+					"patch"			"\x90\x90\x90\x90\x90" // patch the call instruction with NOPs (5 bytes)
+				}
+				
+				"windows"
+				{
+					"offset"		"1391"
+					"verify"		"\xE8" // make sure the call instruction starts with E8
+					"patch"			"\x90\x90\x90\x90\x90" // patch the call instruction with NOPs (5 bytes)
+				}
+			}
+		}
+		
+		"Functions"
+		{
+			/* CTankClaw::SweepFist(Vector const&, Vector const&) */
+			"CTankClaw::SweepFist"
+			{
+				"signature"			"CTankClaw::SweepFist"
+				"callconv"			"thiscall"
+				"return"			"void"
+				"this"				"entity"
+				"arguments"
+				{
+					"a1"
+					{
+						"type"		"vectorptr"
+					}
+					"a2"
+					{
+						"type"		"vectorptr"
+					}
+				}
+			} 
+		}
+		
+		"Signatures"
+		{
+			/* CTankClaw::SweepFist(Vector const&, Vector const&) */
+			"CTankClaw::SweepFist"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9CTankClaw9SweepFistERK6VectorS2_"
+				"windows"	"\x2A\x2A\x2A\x2A\x2A\x2A\x83\xE4\xF0\x83\xC4\x04\x55\x8B\x6B\x04\x89\x6C\x24\x04\x8B\xEC\x81\xEC\xA8\x01\x00\x00\xA1\x2A\x2A\x2A\x2A\x33\xC5\x89\x45\xFC\x8B\x43\x0C"
+				/* ? ? ? ? ? ? 83 E4 F0 83 C4 04 55 8B 6B 04 89 6C 24 04 8B EC 81 EC A8 01 00 00 A1 ? ? ? ? 33 C5 89 45 FC 8B 43 0C */ 
+				/* 1. (L4D2) Search "ValveBiped.Bip01_L_Hand" string which will lead you to "CTankClaw::DoSwing". */
+				/* 2. Look for "CTankClaw::SweepFist" as the very last function call. */
+			}
+		}
+	}
+}

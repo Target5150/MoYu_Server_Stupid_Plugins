@@ -1176,7 +1176,6 @@ public Action Timer_AutoStartHelper(Handle timer)
 		if (expireTime > 0)
 		{
 			expireTime--;
-			// TODO: translation
 			PrintHintTextToAll("%t", "AutoStartWaiting");
 			return Plugin_Continue;
 		}
@@ -1246,7 +1245,7 @@ void InitiateLive(bool real = true)
 	
 	if (IsScavenge()) {
 		scavenge_round_setup_time.FloatValue = 45.0;
-		InitiateCountdown();
+		RestartScavengeCountdown();
 	}
 	else L4D2_CTimerStart(L4D2CT_VersusStartTimer, 60.0);
 
@@ -1432,7 +1431,7 @@ bool IsScavenge()
 	return strcmp(sGamemode, "scavenge") == 0;
 }
 
-void InitiateCountdown()
+void RestartScavengeCountdown()
 {
 	for (int i = 1; i <= MaxClients; i++)
 	{
