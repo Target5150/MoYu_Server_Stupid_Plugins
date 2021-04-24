@@ -3,7 +3,7 @@ https://forums.alliedmods.net/showthread.php?t=332046
 
 ### Intruduction
 - Patch memory bytes to allow multi-punch for tank in Coop Mode
-	- Untested for L4D1 & L4D2 Linux
+	- Untested on L4D1 (2021/4/24)
 
 <hr>
 
