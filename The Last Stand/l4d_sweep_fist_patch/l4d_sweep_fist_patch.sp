@@ -5,7 +5,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.1"
+#define PLUGIN_VERSION "1.2"
 
 public Plugin myinfo = 
 {
@@ -104,9 +104,7 @@ public void OnPluginEnd()
 
 public void OnConfigsExecuted()
 {
-	bool bIsAllowedMode = IsAllowedGamemode();
-	PatchSweepFist(bIsAllowedMode);
-	ToggleDetour(bIsAllowedMode);
+	ToggleDetour(IsAllowedGamemode());
 }
 
 // =======================================
