@@ -5,7 +5,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo = 
 {
@@ -15,6 +15,10 @@ public Plugin myinfo =
 	version = PLUGIN_VERSION,
 	url = "verygood"
 };
+
+// =======================================
+// Variables
+// =======================================
 
 #define GAMEDATA_FILE "l4d_sweep_fist_patch"
 
@@ -27,6 +31,8 @@ MemoryPatch g_hPatcher_Check2;
 
 Handle g_hDetour;
 
+bool g_bLeft4Dead2;
+
 // =======================================
 // Engine Detect
 // =======================================
@@ -35,8 +41,14 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
 	switch (GetEngineVersion())
 	{
-		case Engine_Left4Dead, Engine_Left4Dead2:
+		case Engine_Left4Dead:
 		{
+			g_bLeft4Dead2 = false;
+			return APLRes_Success;
+		}
+		case Engine_Left4Dead2:
+		{
+			g_bLeft4Dead2 = true;
 			return APLRes_Success;
 		}
 	}
@@ -65,7 +77,7 @@ public void OnPluginStart()
 		SetFailState("Failed to validate memory patches");
 		
 	SetupDetour(hGameData);
-		
+	
 	delete hGameData;
 }
 
@@ -78,8 +90,6 @@ void SetupDetour(GameData &hGameData)
 	g_hDetour = DHookCreateFromConf(hGameData, KEY_SWEEPFIST);
 	if (g_hDetour == null)
 		SetFailState("Missing detour settings for or signature of \"" ... KEY_SWEEPFIST ... "\"");
-	if (!DHookEnableDetour(g_hDetour, false, OnSweepFistPre) || !DHookEnableDetour(g_hDetour, true, OnSweepFistPost))
-		SetFailState("Failed to enable detour for \"" ... KEY_SWEEPFIST ... "\"");
 }
 
 // =======================================
@@ -89,17 +99,18 @@ void SetupDetour(GameData &hGameData)
 public void OnPluginEnd()
 {
 	PatchSweepFist(false);
-	if (!DHookDisableDetour(g_hDetour, false, OnSweepFistPre) || !DHookDisableDetour(g_hDetour, true, OnSweepFistPost))
-		SetFailState("Failed to disable detour for \"" ... KEY_SWEEPFIST ... "\"");
+	ToggleDetour(false);
 }
 
 public void OnConfigsExecuted()
 {
-	PatchSweepFist(IsAllowedGamemode());
+	bool bIsAllowedMode = IsAllowedGamemode();
+	PatchSweepFist(bIsAllowedMode);
+	ToggleDetour(bIsAllowedMode);
 }
 
 // =======================================
-// Patch method
+// Toggle methods
 // =======================================
 
 void PatchSweepFist(bool patch)
@@ -122,6 +133,25 @@ void PatchSweepFist(bool patch)
 		{
 			SetFailState("Failed in patching checks for \"" ... KEY_SWEEPFIST ... "\"");
 		}
+	}
+}
+
+void ToggleDetour(bool enable)
+{
+	static bool detoured = false;
+	if (detoured && !enable)
+	{
+		if (!DHookDisableDetour(g_hDetour, false, OnSweepFistPre) || !DHookDisableDetour(g_hDetour, true, OnSweepFistPost))
+			SetFailState("Failed to disable detour for \"" ... KEY_SWEEPFIST ... "\"");
+		
+		detoured = false;
+	}
+	else if (!detoured && enable)
+	{
+		if (!DHookEnableDetour(g_hDetour, false, OnSweepFistPre) || !DHookEnableDetour(g_hDetour, true, OnSweepFistPost))
+			SetFailState("Failed to enable detour for \"" ... KEY_SWEEPFIST ... "\"");
+			
+		detoured = true;
 	}
 }
 
@@ -165,23 +195,22 @@ public void OnGamemode(const char[] output, int caller, int activator, float del
 
 public MRESReturn OnSweepFistPre(int pThis, Handle hParams)
 {
+	if (!IsValidEntity(pThis)) return;
+	
 	int tank = GetEntPropEnt(pThis, Prop_Send, "m_hOwner");
 	if (IsTank(tank))
-	{
 		PatchSweepFist(true);
-	}
-	return MRES_Ignored;
 }
 
 public MRESReturn OnSweepFistPost(int pThis, Handle hParams)
 {
-	PatchSweepFist(false);
-	return MRES_Ignored;
+	if (IsValidEntity(pThis))
+		PatchSweepFist(false);
 }
 
 #define IS_VALID_CLIENT_INGAME(%0) ((%0) <= MaxClients && (%0) > 0 && IsClientInGame(%0))
 stock bool IsTank(int client) {
 	return IS_VALID_CLIENT_INGAME(client)
 		&& GetClientTeam(client) == 3
-		&& GetEntProp(client, Prop_Send, "m_zombieClass") == 8;
+		&& GetEntProp(client, Prop_Send, "m_zombieClass") == (g_bLeft4Dead2 ? 8 : 5);
 }
