@@ -16,3 +16,12 @@ https://forums.alliedmods.net/showthread.php?t=332046
 ### Special Thanks
 - **Crasher_3637**: for providing everything.
 - **HarryPotter**: for original idea.
+
+<hr>
+
+### Changelog
+(v1.3 2021/4/24 9PM UTC+8) Redirected the way message gets printed, no longer spamming in console.
+
+(v1.2 2021/4/24 4PM UTC+8) Fixed server starting on Survival Mode.
+
+(V1.1 2021/4/24 1PM UTC+8) Fixed IsTank check for L4D1 and some optimization.

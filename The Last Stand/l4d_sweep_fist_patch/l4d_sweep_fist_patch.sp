@@ -5,7 +5,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.2"
+#define PLUGIN_VERSION "1.3"
 
 public Plugin myinfo = 
 {
@@ -79,6 +79,8 @@ public void OnPluginStart()
 	SetupDetour(hGameData);
 	
 	delete hGameData;
+	
+	PrintToServer("[SweepFist] Successfully validated patch for 2 check in \"" ... KEY_SWEEPFIST ... "\"");
 }
 
 // =======================================
@@ -104,7 +106,10 @@ public void OnPluginEnd()
 
 public void OnConfigsExecuted()
 {
-	ToggleDetour(IsAllowedGamemode());
+	bool bIsAllowedGamemode = IsAllowedGamemode();
+	if (!bIsAllowedGamemode) PatchSweepFist(false);
+	
+	ToggleDetour(bIsAllowedGamemode);
 }
 
 // =======================================
@@ -123,14 +128,9 @@ void PatchSweepFist(bool patch)
 	else if (!patched && patch)
 	{
 		if (g_hPatcher_Check1.Enable() && g_hPatcher_Check2.Enable())
-		{
-			PrintToServer("[SweepFist] Successfully patched 2 checks in \"" ... KEY_SWEEPFIST ... "\"");
 			patched = true;
-		}
 		else
-		{
 			SetFailState("Failed in patching checks for \"" ... KEY_SWEEPFIST ... "\"");
-		}
 	}
 }
 
@@ -205,6 +205,10 @@ public MRESReturn OnSweepFistPost(int pThis, Handle hParams)
 	if (IsValidEntity(pThis))
 		PatchSweepFist(false);
 }
+
+// =======================================
+// Helper
+// =======================================
 
 #define IS_VALID_CLIENT_INGAME(%0) ((%0) <= MaxClients && (%0) > 0 && IsClientInGame(%0))
 stock bool IsTank(int client) {
