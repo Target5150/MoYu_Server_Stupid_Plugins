@@ -5,7 +5,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.3"
+#define PLUGIN_VERSION "1.4"
 
 public Plugin myinfo = 
 {
@@ -81,6 +81,8 @@ public void OnPluginStart()
 	delete hGameData;
 	
 	PrintToServer("[SweepFist] Successfully validated patch for 2 check in \"" ... KEY_SWEEPFIST ... "\"");
+
+	FindConVar("mp_gamemode").AddChangeHook(OnGameModeChanged);
 }
 
 // =======================================
@@ -110,6 +112,11 @@ public void OnConfigsExecuted()
 	if (!bIsAllowedGamemode) PatchSweepFist(false);
 	
 	ToggleDetour(bIsAllowedGamemode);
+}
+
+public void OnGameModeChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	OnConfigsExecuted();
 }
 
 // =======================================
