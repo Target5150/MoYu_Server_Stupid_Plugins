@@ -3,7 +3,6 @@ https://forums.alliedmods.net/showthread.php?t=332046
 
 ### Intruduction
 - Patch memory bytes to allow multi-punch for tank in Coop Mode
-	- Untested on L4D1 (2021/4/24)
 
 <hr>
 
@@ -20,6 +19,8 @@ https://forums.alliedmods.net/showthread.php?t=332046
 <hr>
 
 ### Changelog
+(v1.5 2021/4/29 7PM UTC+8) Added L4D1 Linux support.
+
 (v1.3 2021/4/24 9PM UTC+8) Redirected the way message gets printed, no longer spamming in console.
 
 (v1.2 2021/4/24 4PM UTC+8) Fixed server starting on Survival Mode.

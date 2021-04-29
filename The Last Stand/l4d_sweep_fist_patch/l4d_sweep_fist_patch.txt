@@ -1,5 +1,17 @@
 "Games"
 {
+	"#default"
+	{
+		"Offsets"
+		{
+			"OS"
+			{
+				"windows"		"1"
+				"linux"			"2"
+			}
+		}
+	}
+	
 	"left4dead"
 	{
 		"MemPatches"
@@ -9,7 +21,7 @@
 				"signature"			"CTankClaw::SweepFist"
 				"linux"
 				{
-					"offset"		"1565"
+					"offset"		"1051"
 					"verify"		"\xE8" // make sure the call instruction starts with E8
 					"patch"			"\x90\x90\x90\x90\x90" // patch the call instruction with NOPs (5 bytes)
 				}
@@ -27,7 +39,7 @@
 				"signature"			"CTankClaw::SweepFist"
 				"linux"
 				{
-					"offset"		"3078"
+					"offset"		"3418"
 					"verify"		"\xE8" // make sure the call instruction starts with E8
 					"patch"			"\x90\x90\x90\x90\x90" // patch the call instruction with NOPs (5 bytes)
 				}
@@ -43,25 +55,52 @@
 		
 		"Functions"
 		{
-			/* CTankClaw::SweepFist(Vector const&, Vector const&) */
+			/* NIX: __usercall CTankClaw::SweepFist(CTankClaw *a1@<eax>, Vector a2@<edx>, Vector a3) [clone] */
+			/* WIN: __thiscall CTankClaw::SweepFist(CTankClaw *a1, Vector a2, Vector a3) */
 			"CTankClaw::SweepFist"
 			{
 				"signature"			"CTankClaw::SweepFist"
-				"callconv"			"thiscall"
-				"return"			"void"
-				"this"				"entity"
-				"arguments"
+				"linux"
 				{
-					"a1"
+					"callconv"			"cdecl" // __usercall https://www.hex-rays.com/products/ida/support/idadoc/1361.shtml
+					"return"			"void"
+					"this"				"ignore"
+					"arguments"
 					{
-						"type"		"vectorptr"
-					}
-					"a2"
-					{
-						"type"		"vectorptr"
+						"a1"
+						{
+							"type"		"cbaseentity"
+							"register"	"eax"
+						}
+						"a2"
+						{
+							"type"		"vectorptr"
+							"register"	"edx"
+						}
+						"a3"
+						{
+							"type"		"vectorptr"
+						}
 					}
 				}
-			} 
+				"windows"
+				{
+					"callconv"			"thiscall"
+					"return"			"void"
+					"this"				"entity"
+					"arguments"
+					{
+						"a1"
+						{
+							"type"		"vectorptr"
+						}
+						"a2"
+						{
+							"type"		"vectorptr"
+						}
+					}
+				}
+			}
 		}
 		
 		"Signatures"
@@ -70,7 +109,7 @@
 			"CTankClaw::SweepFist"
 			{
 				"library"	"server"
-				"linux"		"@_ZN9CTankClaw9SweepFistERK6VectorS2_"
+				"linux"		"@_ZN9CTankClaw9SweepFistERK6VectorS2_.constprop.248"
 				"windows"	"\x2A\x2A\x2A\x2A\x2A\x2A\x55\x56\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x8B\x2A\x85\xF6\x0F\x84\x2A\x2A\x2A\x2A\x8B\x0D"
 				/* ? ? ? ? ? ? 55 56 8B ? E8 ? ? ? ? 8B ? 85 F6 0F 84 ? ? ? ? 8B 0D */ 
 				/* 1. (L4D1) Search "ValveBiped.Bip01_R_Hand" string which will lead you to "CTankClaw::DoSwing". */
