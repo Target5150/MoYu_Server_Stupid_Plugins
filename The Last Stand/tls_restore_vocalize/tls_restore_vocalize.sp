@@ -8,7 +8,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.2.8"
+#define PLUGIN_VERSION "1.2.9"
 
 public Plugin myinfo = 
 {
@@ -481,7 +481,7 @@ static const char g_szFrancisScreams[][] =
 //  Variables
 // ============================
 
-bool g_bVersus;
+bool g_bVersus, g_bMapStarted;
 
 
 // ============================
@@ -495,7 +495,13 @@ public void OnPluginStart()
 
 public void OnMapStart()
 {
+	g_bMapStarted = true;
 	DoPrecache();
+}
+
+public void OnMapEnd()
+{
+	g_bMapStarted = false;
 }
 
 public void OnConfigsExecuted()
@@ -521,27 +527,26 @@ public void OnGamemodeChanged(ConVar convar, const char[] oldValue, const char[]
 
 void CheckVersus()
 {
-	int entity = CreateEntityByName("info_gamemode");
-	if( IsValidEntity(entity) )
+	g_bVersus = false;
+	
+	if (g_bMapStarted)
 	{
-		DispatchSpawn(entity);
-		HookSingleEntityOutput(entity, "OnCoop", OnGamemode, true);
-		HookSingleEntityOutput(entity, "OnSurvival", OnGamemode, true);
-		HookSingleEntityOutput(entity, "OnVersus", OnGamemode, true);
-		HookSingleEntityOutput(entity, "OnScavenge", OnGamemode, true);
-		ActivateEntity(entity);
-		AcceptEntityInput(entity, "PostSpawnActivate");
-		if( IsValidEntity(entity) ) // Because sometimes "PostSpawnActivate" seems to kill the ent.
-			RemoveEdict(entity); // Because multiple plugins creating at once, avoid too many duplicate ents in the same frame
+		int entity = CreateEntityByName("info_gamemode");
+		if( IsValidEntity(entity) )
+		{
+			DispatchSpawn(entity);
+			HookSingleEntityOutput(entity, "OnVersus", OnVersus, true);
+			ActivateEntity(entity);
+			AcceptEntityInput(entity, "PostSpawnActivate");
+			if( IsValidEntity(entity) ) // Because sometimes "PostSpawnActivate" seems to kill the ent.
+				RemoveEdict(entity); // Because multiple plugins creating at once, avoid too many duplicate ents in the same frame
+		}
 	}
 }
 
-public void OnGamemode(const char[] output, int caller, int activator, float delay)
+public void OnVersus(const char[] output, int caller, int activator, float delay)
 {
-	if( strcmp(output, "OnCoop") == 0 || strcmp(output, "OnSurvival") == 0 || strcmp(output, "OnScavenge") == 0 )
-		g_bVersus = false;
-	else if( strcmp(output, "OnVersus") == 0 )
-		g_bVersus = true;
+	g_bVersus = true;
 }
 
 

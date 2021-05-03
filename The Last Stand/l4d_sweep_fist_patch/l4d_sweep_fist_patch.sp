@@ -58,7 +58,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 }
 
 // =======================================
-// Plugin Setup
+// Plugin OnOff
 // =======================================
 
 public void OnPluginStart()
@@ -85,6 +85,12 @@ public void OnPluginStart()
 	FindConVar("mp_gamemode").AddChangeHook(OnGameModeChanged);
 }
 
+public void OnPluginEnd()
+{
+	PatchSweepFist(false);
+	ToggleDetour(false);
+}
+
 // =======================================
 // Detour Setup
 // =======================================
@@ -100,12 +106,6 @@ void SetupDetour(GameData &hGameData)
 // Forwards
 // =======================================
 
-public void OnPluginEnd()
-{
-	PatchSweepFist(false);
-	ToggleDetour(false);
-}
-
 public void OnConfigsExecuted()
 {
 	bool bIsAllowedGamemode = IsAllowedGamemode();
@@ -117,6 +117,53 @@ public void OnConfigsExecuted()
 public void OnGameModeChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	OnConfigsExecuted();
+}
+
+// =======================================
+// IsAllowedGamemode() credie to Silvers
+// =======================================
+
+bool g_bMapStarted;
+public void OnMapStart()
+{
+	g_bMapStarted = true;
+}
+
+public void OnMapEnd()
+{
+	g_bMapStarted = false;
+}
+
+int g_iGamemode;
+bool IsAllowedGamemode()
+{
+	if (!g_bMapStarted) return false;
+	
+	g_iGamemode = 0;
+	
+	int entity = CreateEntityByName("info_gamemode");
+	if( IsValidEntity(entity) )
+	{
+		DispatchSpawn(entity);
+		HookSingleEntityOutput(entity, "OnCoop", OnGamemode, true);
+		HookSingleEntityOutput(entity, "OnSurvival", OnGamemode, true);
+		HookSingleEntityOutput(entity, "OnVersus", OnGamemode, true);
+		HookSingleEntityOutput(entity, "OnScavenge", OnGamemode, true);
+		ActivateEntity(entity);
+		AcceptEntityInput(entity, "PostSpawnActivate");
+		if( IsValidEntity(entity) ) // Because sometimes "PostSpawnActivate" seems to kill the ent.
+			RemoveEdict(entity); // Because multiple plugins creating at once, avoid too many duplicate ents in the same frame
+	}
+	
+	return g_iGamemode == 1; // Coop or Realism
+}
+
+public void OnGamemode(const char[] output, int caller, int activator, float delay)
+{
+	if( strcmp(output, "OnCoop") == 0 )				g_iGamemode = 1;
+	else if( strcmp(output, "OnVersus") == 0 )		g_iGamemode = 2;
+	else if( strcmp(output, "OnSurvival") == 0 )	g_iGamemode = 3;
+	else if( strcmp(output, "OnScavenge") == 0 )	g_iGamemode = 4;
 }
 
 // =======================================
@@ -158,40 +205,6 @@ void ToggleDetour(bool enable)
 			
 		detoured = true;
 	}
-}
-
-// =======================================
-// IsAllowedGamemode() credie to Silvers
-// =======================================
-
-int g_iGamemode;
-bool IsAllowedGamemode()
-{
-	g_iGamemode = 0;
-	
-	int entity = CreateEntityByName("info_gamemode");
-	if( IsValidEntity(entity) )
-	{
-		DispatchSpawn(entity);
-		HookSingleEntityOutput(entity, "OnCoop", OnGamemode, true);
-		HookSingleEntityOutput(entity, "OnSurvival", OnGamemode, true);
-		HookSingleEntityOutput(entity, "OnVersus", OnGamemode, true);
-		HookSingleEntityOutput(entity, "OnScavenge", OnGamemode, true);
-		ActivateEntity(entity);
-		AcceptEntityInput(entity, "PostSpawnActivate");
-		if( IsValidEntity(entity) ) // Because sometimes "PostSpawnActivate" seems to kill the ent.
-			RemoveEdict(entity); // Because multiple plugins creating at once, avoid too many duplicate ents in the same frame
-	}
-	
-	return g_iGamemode == 1; // Coop or Realism
-}
-
-public void OnGamemode(const char[] output, int caller, int activator, float delay)
-{
-	if( strcmp(output, "OnCoop") == 0 )				g_iGamemode = 1;
-	else if( strcmp(output, "OnVersus") == 0 )		g_iGamemode = 2;
-	else if( strcmp(output, "OnSurvival") == 0 )	g_iGamemode = 3;
-	else if( strcmp(output, "OnScavenge") == 0 )	g_iGamemode = 4;
 }
 
 // =======================================
