@@ -5,12 +5,12 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.4"
+#define PLUGIN_VERSION "1.5"
 
 public Plugin myinfo = 
 {
 	name = "[L4D & 2] Coop Tank Sweep Fist Patch",
-	author = "Forgetest (Big thanks to Crasher_3637)",
+	author = "Forgetest (Big thanks to Crasher_3637), Dragokas",
 	description = "Kinda destroyed by AIs won't be suck anymore! well nah it is.",
 	version = PLUGIN_VERSION,
 	url = "verygood"
@@ -31,7 +31,7 @@ MemoryPatch g_hPatcher_Check2;
 
 Handle g_hDetour;
 
-bool g_bLeft4Dead2;
+bool g_bLeft4Dead2, g_bLinux;
 
 // =======================================
 // Engine Detect
@@ -66,6 +66,8 @@ public void OnPluginStart()
 	GameData hGameData = new GameData(GAMEDATA_FILE);
 	if (hGameData == null)
 		SetFailState("Missing gamedata file (" ... GAMEDATA_FILE ... ")");
+	
+	g_bLinux = (hGameData.GetOffset("OS") == 2);
 	
 	g_hPatcher_Check1 = MemoryPatch.CreateFromConf(hGameData, KEY_SWEEPFIST_CHECK1);
 	g_hPatcher_Check2 = MemoryPatch.CreateFromConf(hGameData, KEY_SWEEPFIST_CHECK2);
@@ -193,16 +195,28 @@ void ToggleDetour(bool enable)
 	static bool detoured = false;
 	if (detoured && !enable)
 	{
-		if (!DHookDisableDetour(g_hDetour, false, OnSweepFistPre) || !DHookDisableDetour(g_hDetour, true, OnSweepFistPost))
-			SetFailState("Failed to disable detour for \"" ... KEY_SWEEPFIST ... "\"");
-		
+		if (!g_bLeft4Dead2 && g_bLinux) {
+			if (!DHookDisableDetour(g_hDetour, false, OnSweepFistPre_L4D1Linux) || !DHookDisableDetour(g_hDetour, true, OnSweepFistPost_L4D1Linux)) {
+				SetFailState("Failed to disable detour for \"" ... KEY_SWEEPFIST ... "\"");
+			}
+		} else {
+			if (!DHookDisableDetour(g_hDetour, false, OnSweepFistPre) || !DHookDisableDetour(g_hDetour, true, OnSweepFistPost)) {
+				SetFailState("Failed to disable detour for \"" ... KEY_SWEEPFIST ... "\"");
+			}
+		}
 		detoured = false;
 	}
 	else if (!detoured && enable)
 	{
-		if (!DHookEnableDetour(g_hDetour, false, OnSweepFistPre) || !DHookEnableDetour(g_hDetour, true, OnSweepFistPost))
-			SetFailState("Failed to enable detour for \"" ... KEY_SWEEPFIST ... "\"");
-			
+		if (!g_bLeft4Dead2 && g_bLinux) {
+			if (!DHookEnableDetour(g_hDetour, false, OnSweepFistPre_L4D1Linux) || !DHookEnableDetour(g_hDetour, true, OnSweepFistPost_L4D1Linux)) {
+				SetFailState("Failed to disable detour for \"" ... KEY_SWEEPFIST ... "\"");
+			}
+		} else {
+			if (!DHookEnableDetour(g_hDetour, false, OnSweepFistPre) || !DHookEnableDetour(g_hDetour, true, OnSweepFistPost)) {
+				SetFailState("Failed to disable detour for \"" ... KEY_SWEEPFIST ... "\"");
+			}
+		}
 		detoured = true;
 	}
 }
@@ -220,9 +234,30 @@ public MRESReturn OnSweepFistPre(int pThis, Handle hParams)
 		PatchSweepFist(true);
 }
 
+public MRESReturn OnSweepFistPre_L4D1Linux(Handle hParams)
+{
+	int iFist = DHookGetParam(hParams, 1);
+	
+	if (!IsValidEntity(iFist)) return;
+	
+	int tank = GetEntPropEnt(iFist, Prop_Send, "m_hOwner");
+	if (IsTank(tank))
+	{
+		PatchSweepFist(true);
+	}
+}
+
 public MRESReturn OnSweepFistPost(int pThis, Handle hParams)
 {
 	if (IsValidEntity(pThis))
+		PatchSweepFist(false);
+}
+
+public MRESReturn OnSweepFistPost_L4D1Linux(Handle hParams)
+{
+	int iFist = DHookGetParam(hParams, 1);
+	
+	if (IsValidEntity(iFist))
 		PatchSweepFist(false);
 }
 
