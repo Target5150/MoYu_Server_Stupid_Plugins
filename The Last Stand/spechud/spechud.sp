@@ -18,7 +18,7 @@
 #pragma newdecls required
 
 #define DEBUG 0
-#define PLUGIN_VERSION	"3.4.7"
+#define PLUGIN_VERSION	"3.4.7a"
 
 public Plugin myinfo = 
 {
@@ -191,15 +191,15 @@ public void OnPluginStart()
 void FillServerNamer()
 {
 	ConVar convar = null;
-	if ((convar = FindConVar("sn_main_name")) == null) {
+	if ((convar = FindConVar("sn_main_name")) == null)
 		convar = FindConVar("hostname");
-	}
 	
-	if (hServerNamer == null) {
+	if (hServerNamer == null)
+	{
 		hServerNamer = convar;
 	}
-	
-	else if (hServerNamer != convar) {
+	else if (hServerNamer != convar)
+	{
 		hServerNamer.RemoveChangeHook(OnHostnameChanged);
 		delete hServerNamer;
 		hServerNamer = view_as<ConVar>(CloneHandle(convar));
@@ -366,7 +366,7 @@ public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast
 	if (GetInfectedClass(client) == ZC_Tank)
 	{
 		if (iTankCount > 0) iTankCount--;
-		if (!bRoundHasFlowTank) bFlowTankActive = false;
+		if (bRoundHasFlowTank) bFlowTankActive = false;
 	}
 }
 
@@ -506,7 +506,7 @@ public int DummyTankHudHandler(Menu hMenu, MenuAction action, int param1, int pa
 void FillHeaderInfo(Panel hSpecHud)
 {
 	static int tickrate = 0;
-	if (tickrate != 0 && IsServerProcessing()) {
+	if (tickrate == 0 && IsServerProcessing()) {
 		tickrate = RoundToNearest(1.0 / GetTickInterval());
 	}
 	
@@ -639,12 +639,14 @@ void FillSurvivorInfo(Panel hSpecHud)
 		{
 			if (IsSurvivorHanging(client))
 			{
+				// Nick: <300HP@Hanging>
 				FormatEx(info, sizeof(info), "%s: <%iHP@Hanging>", name, GetClientHealth(client));
 			}
 			else if (IsIncapacitated(client))
 			{
 				int activeWep = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
 				GetLongWeaponName(IdentifyWeapon(activeWep), info, sizeof(info));
+				// Nick: <300HP@1st> [Deagle 8]
 				Format(info, sizeof(info), "%s: <%iHP@%s> [%s %i]", name, GetClientHealth(client), (GetSurvivorIncapCount(client) == 1 ? "2nd" : "1st"), info, GetWeaponClipAmmo(activeWep));
 			}
 			else
@@ -656,12 +658,14 @@ void FillSurvivorInfo(Panel hSpecHud)
 				int incapCount = GetSurvivorIncapCount(client);
 				if (incapCount == 0)
 				{
-					//FormatEx(buffer, sizeof(buffer), "#%iT", tempHealth);
+					// "#" indicates that player is bleeding.
+					// Nick: 99HP# [Chrome 8/72]
 					Format(info, sizeof(info), "%s: %iHP%s [%s]", name, health, (tempHealth > 0 ? "#" : ""), info);
 				}
 				else
 				{
-					//FormatEx(buffer, sizeof(buffer), "%i incap%s", incapCount, (incapCount > 1 ? "s" : ""));
+					// Player ever incapped should always be bleeding.
+					// Nick: 99HP (#1st) [Chrome 8/72]
 					Format(info, sizeof(info), "%s: %iHP (#%s) [%s]", name, health, (incapCount == 2 ? "2nd" : "1st"), info);
 				}
 			}
@@ -688,6 +692,10 @@ void FillScoreInfo(Panel hSpecHud)
 		
 		DrawPanelText(hSpecHud, " ");
 		
+		// > HB: 100% | DB: 100% | Pills: 60 / 100%
+		// > Bonus: 860 <100.0%>
+		// > Distance: 400
+		
 		FormatEx(	info,
 					sizeof(info),
 					"> HB: %.0f%% | DB: %.0f%% | Pills: %i / %.0f%%",
@@ -713,6 +721,9 @@ void FillScoreInfo(Panel hSpecHud)
 		
 		DrawPanelText(hSpecHud, " ");
 		
+		// > Health Bonus: 860
+		// > Distance: 400
+		
 		FormatEx(info, sizeof(info), "> Health Bonus: %i", healthBonus);
 		DrawPanelText(hSpecHud, info);
 		
@@ -734,6 +745,11 @@ void FillScoreInfo(Panel hSpecHud)
 		int maxTotalBonus	= maxPermBonus	+ maxTempBonus	+ maxPillsBonus;
 		
 		DrawPanelText(hSpecHud, " ");
+		
+		// > Perm: 114 | Temp: 514 | Pills: 810
+		// > Bonus: 114514 <100.0%>
+		// > Distance: 191
+		// never ever played on Next so take it easy.
 		
 		FormatEx(	info,
 					sizeof(info),
@@ -775,14 +791,17 @@ void FillInfectedInfo(Panel hSpecHud)
 		if (!IsPlayerAlive(client)) 
 		{
 			int timeLeft = RoundToFloor(L4D_GetPlayerSpawnTime(client));
-			if (timeLeft < 0)
+			if (timeLeft < 0) // Deathcam
 			{
+				// verygood: Dead
 				FormatEx(info, sizeof(info), "%s: Dead", name);
 			}
-			else
+			else // Ghost Countdown
 			{
 				FormatEx(buffer, sizeof(buffer), "%is", timeLeft);
+				// verygood: Dead (15s)
 				FormatEx(info, sizeof(info), "%s: Dead (%s)", name, (timeLeft ? buffer : "Spawning..."));
+				
 				//if (storedClass[client] > ZC_None) {
 				//	FormatEx(info, sizeof(info), "%s: Dead (%s) [%s]", name, ZOMBIECLASS_NAME(storedClass[client]), (RoundToNearest(timeLeft) ? buffer : "Spawning..."));
 				//} else {
@@ -802,10 +821,12 @@ void FillInfectedInfo(Panel hSpecHud)
 				// DONE: Handle a case of respawning chipped SI, show the ghost's health
 				if (iHP < iMaxHP)
 				{
+					// verygood: Charger (Ghost@1HP)
 					FormatEx(info, sizeof(info), "%s: %s (Ghost@%iHP)", name, ZOMBIECLASS_NAME(zClass), iHP);
 				}
 				else
 				{
+					// verygood: Charger (Ghost)
 					FormatEx(info, sizeof(info), "%s: %s (Ghost)", name, ZOMBIECLASS_NAME(zClass));
 				}
 			}
@@ -821,10 +842,12 @@ void FillInfectedInfo(Panel hSpecHud)
 				
 				if (GetEntityFlags(client) & FL_ONFIRE)
 				{
+					// verygood: Charger (1HP) [On Fire] [6s]
 					FormatEx(info, sizeof(info), "%s: %s (%iHP) [On Fire]%s", name, ZOMBIECLASS_NAME(zClass), iHP, buffer);
 				}
 				else
 				{
+					// verygood: Charger (1HP) [6s]
 					FormatEx(info, sizeof(info), "%s: %s (%iHP)%s", name, ZOMBIECLASS_NAME(zClass), iHP, buffer);
 				}
 			}
