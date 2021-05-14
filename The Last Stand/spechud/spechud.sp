@@ -18,7 +18,7 @@
 #pragma newdecls required
 
 #define DEBUG 0
-#define PLUGIN_VERSION	"3.4.8a"
+#define PLUGIN_VERSION	"3.4.8b"
 
 public Plugin myinfo = 
 {
@@ -438,7 +438,7 @@ public void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast
 	if (GetInfectedClass(client) == ZC_Tank)
 	{
 		if (iTankCount > 0) iTankCount--;
-		if (bRoundHasFlowTank) bFlowTankActive = false;
+		if (!RoundHasFlowTank()) bFlowTankActive = false;
 	}
 }
 
