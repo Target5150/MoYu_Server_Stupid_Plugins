@@ -18,7 +18,7 @@
 #pragma newdecls required
 
 #define DEBUG 0
-#define PLUGIN_VERSION	"3.4.8"
+#define PLUGIN_VERSION	"3.4.8a"
 
 public Plugin myinfo = 
 {
@@ -993,11 +993,11 @@ bool FillTankInfo(Panel &hSpecHud, bool bTankHUD = false)
 	if (!IsFakeClient(tank))
 	{
 		GetClientFixedName(tank, name, sizeof(name));
-		Format(info, sizeof(info), "Control: %s (%s)", name, info);
+		Format(info, sizeof(info), "Control : %s (%s)", name, info);
 	}
 	else
 	{
-		Format(info, sizeof(info), "Control: AI (%s)", info);
+		Format(info, sizeof(info), "Control : AI (%s)", info);
 	}
 	DrawPanelText(hSpecHud, info);
 
@@ -1006,23 +1006,23 @@ bool FillTankInfo(Panel &hSpecHud, bool bTankHUD = false)
 	int maxhealth = GetEntProp(tank, Prop_Send, "m_iMaxHealth");
 	if (health <= 0 || IsIncapacitated(tank) || !IsPlayerAlive(tank))
 	{
-		info = "Health : Dead";
+		info = "Health  : Dead";
 	}
 	else
 	{
 		int healthPercent = RoundFloat((100.0 / maxhealth) * health);
-		FormatEx(info, sizeof(info), "Health : %i / %i%%", health, ((healthPercent < 1) ? 1 : healthPercent));
+		FormatEx(info, sizeof(info), "Health  : %i / %i%%", health, ((healthPercent < 1) ? 1 : healthPercent));
 	}
 	DrawPanelText(hSpecHud, info);
 
 	// Draw frustration
 	if (!IsFakeClient(tank))
 	{
-		FormatEx(info, sizeof(info), "Frustr. : %d%%", GetTankFrustration(tank));
+		FormatEx(info, sizeof(info), "Frustr.  : %d%%", GetTankFrustration(tank));
 	}
 	else
 	{
-		info = "Frustr. : AI";
+		info = "Frustr.  : AI";
 	}
 	DrawPanelText(hSpecHud, info);
 
@@ -1260,13 +1260,19 @@ stock void BuildPlayerArrays()
 	int survivorCount = 0, infectedCount = 0;
 	for (int client = 1; client <= MaxClients; ++client) 
 	{
-		if (IsSurvivor(client) && survivorCount < iSurvivorLimit)
+		if (!IsClientInGame(client)) continue;
+		switch (GetClientTeam(client))
 		{
-			iSurvivorArray[survivorCount++] = client;
-		}
-		else if (IsInfected(client) && infectedCount < iMaxPlayerZombies)
-		{
-			iInfectedArray[infectedCount++] = client;
+			case TEAM_SURVIVOR:
+			{
+				if (survivorCount < iSurvivorLimit)
+					iSurvivorArray[survivorCount++] = client;
+			}
+			case TEAM_INFECTED:
+			{
+				if (GetInfectedClass(client) != ZC_Tank && infectedCount < iMaxPlayerZombies)
+					iInfectedArray[infectedCount++] = client;
+			}
 		}
 	}
 	
