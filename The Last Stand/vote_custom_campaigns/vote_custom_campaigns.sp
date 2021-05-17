@@ -8,7 +8,7 @@
 #pragma newdecls required
 #pragma semicolon 1
 
-#define PLUGIN_VERSION "1.2"
+#define PLUGIN_VERSION "1.3"
 
 public Plugin myinfo =
 {
@@ -23,6 +23,7 @@ public Plugin myinfo =
  * Globals
  */
 #define PLURAL(%0) ((%0) > 1 ? "s" : "")
+#define CAMPAIGN_FILE "configs/VoteCustomCampaigns.txt"
  
 ArrayList g_aCampaignList;
 
@@ -254,16 +255,16 @@ bool ParseCampaigns()
 	KeyValues kv = new KeyValues("VoteCustomCampaigns");
 
 	char sPath[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sPath, sizeof(sPath), "configs/VoteCustomCampaigns.txt");
+	BuildPath(Path_SM, sPath, sizeof(sPath), CAMPAIGN_FILE);
 
-	if ( !kv.ImportFromFile(sPath) ) 
+	if ( !kv.ImportFromFile(sPath) )
 	{
-		LogError("<VCC> File doesn't exist! (%s)", sPath);
+		LogMessage("<VCC> File doesn't exist! (%s)", sPath);
 		return false;
 	}
 	if ( !kv.GotoFirstSubKey() )
 	{
-		LogError("<VCC> Failed to locate first sub key.");
+		LogMessage("<VCC> Failed to locate first sub key.");
 		return false;
 	}
 	

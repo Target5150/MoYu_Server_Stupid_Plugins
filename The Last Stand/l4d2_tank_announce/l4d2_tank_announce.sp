@@ -1,12 +1,12 @@
 #include <sourcemod>
-#include <sdktools>
-#include <left4dhooks>
+#include <sdktools_sound>
+#include <dhooks>
 #include <colors>
 
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.2"
+#define PLUGIN_VERSION "1.3"
 
 public Plugin myinfo = 
 {
@@ -17,18 +17,49 @@ public Plugin myinfo =
 	url = "https://github.com/Attano"
 };
 
-public void OnMapStart()
+#define DANG "ui/pickup_secret01.wav"
+
+Handle g_hDetour;
+
+public void OnPluginStart()
 {
-	PrecacheSound("ui/pickup_secret01.wav");
+	GameData hData = new GameData("left4dhooks.l4d2");
+	if (hData == null)
+		SetFailState("Missing gamedata \"left4dhooks.l4d2\".");
+	
+	g_hDetour = DHookCreateFromConf(hData, "SpawnTank");
+	if (g_hDetour == null)
+		SetFailState("Failed to create detour \"SpawnTank\" from gamedata.");
+	
+	if (!DHookEnableDetour(g_hDetour, true, OnSpawnTank))
+		SetFailState("Failed to enable detour \"SpawnTank\".");
+		
+	delete hData;
 }
 
-public Action L4D_OnTryOfferingTankBot(int tank_index, bool &enterStasis)
+public void OnPluginEnd()
 {
-	if (IsFakeClient(tank_index)) // New Tank Spawned
-	{
-		CPrintToChatAll("{red}[{default}!{red}] {olive}Tank {default}has spawned!");
-		EmitSoundToAll("ui/pickup_secret01.wav");
-	}
+	if (!DHookDisableDetour(g_hDetour, true, OnSpawnTank))
+		SetFailState("Failed to disable detour \"SpawnTank\".");
+}
+
+public void OnMapStart()
+{
+	PrecacheSound(DANG);
+}
+
+public MRESReturn OnSpawnTank(Handle hReturn, Handle hParams)
+{
+	bool ret = DHookGetReturn(hReturn) != 0; // left4dhooks sets it 0 to disable tank spawns
 	
-	return Plugin_Continue;
+	if (ret == true)
+		RequestFrame(OnNextFrame);	// seems it occurs often that prints with wrong teamcolors
+									// make a slight delay here to try fixing this
+	return MRES_Ignored;
+}
+
+public void OnNextFrame()
+{
+	CPrintToChatAll("{red}[{default}!{red}] {olive}Tank {default}has spawned!");
+	EmitSoundToAll(DANG);
 }
