@@ -20,6 +20,8 @@ If you find a bug or something strange when using this project, any report is ap
 > Plugin contributor
 - fbef0102 (Harry Potter)
 - IA-NanaNana
+- Crasher_3637
+- Dragokas
 
 > God reporters/helpers
 - J.
