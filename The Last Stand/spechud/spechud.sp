@@ -18,7 +18,7 @@
 #pragma newdecls required
 
 #define DEBUG 0
-#define PLUGIN_VERSION	"3.5.0a"
+#define PLUGIN_VERSION	"3.5.2"
 
 public Plugin myinfo = 
 {
@@ -40,7 +40,7 @@ public Plugin myinfo =
 #define MAX(%0,%1) (((%0) > (%1)) ? (%0) : (%1))
 #define MIN(%0,%1) (((%0) < (%1)) ? (%0) : (%1))
 
-// ToPercent(int score, int maxbonus) : float
+// ToPercent(int var, int varmax): float
 #define ToPercent(%0,%1) ((%0) < 1 ? 0.0 : (100.0 * (%0) / (%1)))
 
 #define TEAM_NONE       0
@@ -119,9 +119,10 @@ int iSurvivorArray[MAXPLAYERS/2+1], iInfectedArray[MAXPLAYERS/2+1];
 // Plugin Handle
 //ArrayList hSurvivorArray;
 
-// Finale Tank Spawn Scheme
+// Boss Spawn Scheme
 StringMap hFirstTankSpawningScheme, hSecondTankSpawningScheme;		// eq_finale_tanks (Zonemod, Acemod, etc.)
 StringMap hFinaleExceptionMaps;										// finale_tank_blocker (Promod and older?)
+StringMap hCustomTankScriptMaps;									// Handled by this plugin
 
 // Flow Bosses
 int iTankCount, iWitchCount;
@@ -332,38 +333,47 @@ public void OnLibraryRemoved(const char[] name)
 }
 
 // ======================================================================
-//  Finale Bosses Cache
+//  Bosses Caching
 // ======================================================================
+void BuildCustomTrieEntries()
+{
+	// Haunted Forest 3
+	hCustomTankScriptMaps.SetValue("hf03_themansion", true);
+}
+
 void InitTankSpawnSchemeTrie()
 {
 	hFirstTankSpawningScheme	= new StringMap();
 	hSecondTankSpawningScheme	= new StringMap();
 	hFinaleExceptionMaps		= new StringMap();
+	hCustomTankScriptMaps		= new StringMap();
 	
 	RegServerCmd("tank_map_flow_and_second_event",	SetMapFirstTankSpawningScheme);
 	RegServerCmd("tank_map_only_first_event",		SetMapSecondTankSpawningScheme);
 	RegServerCmd("finale_tank_default",				SetFinaleExceptionMap);
+	
+	BuildCustomTrieEntries();
 }
 
 public Action SetMapFirstTankSpawningScheme(int args)
 {
 	char mapname[64];
 	GetCmdArg(1, mapname, sizeof(mapname));
-	SetTrieValue(hFirstTankSpawningScheme, mapname, true);
+	hFirstTankSpawningScheme.SetValue(mapname, true);
 }
 
 public Action SetMapSecondTankSpawningScheme(int args)
 {
 	char mapname[64];
 	GetCmdArg(1, mapname, sizeof(mapname));
-	SetTrieValue(hSecondTankSpawningScheme, mapname, true);
+	hSecondTankSpawningScheme.SetValue(mapname, true);
 }
 
 public Action SetFinaleExceptionMap(int args)
 {
 	char mapname[64];
 	GetCmdArg(1, mapname, sizeof(mapname));
-	SetTrieValue(hFinaleExceptionMaps, mapname, true);
+	hFinaleExceptionMaps.SetValue(mapname, true);
 }
 
 /**********************************************************************************************/
@@ -400,23 +410,22 @@ public void OnRoundIsLive()
 	{
 		bRoundHasFlowTank = RoundHasFlowTank();
 		bRoundHasFlowWitch = RoundHasFlowWitch();
+		bFlowTankActive = bRoundHasFlowTank;
 		
-		iTankCount = iWitchCount = 0;
+		iTankCount = 0;
+		iWitchCount = 0;
 		
-		if (l4d_witch_percent)
-			iWitchCount = (GetConVarBool(l4d_witch_percent) ? 1 : 0);
-		
-		if (l4d_tank_percent && GetConVarBool(l4d_tank_percent))
+		if (l4d_tank_percent != null && l4d_tank_percent.BoolValue)
 		{
 			iTankCount = 1;
-			bFlowTankActive = bRoundHasFlowTank;
 			
 			char mapname[64];
 			bool dummy;
 			GetCurrentMap(mapname, sizeof(mapname));
 			
 			// TODO: individual plugin served as an interface to tank counts?
-			if (strcmp(mapname, "hf03_themansion") == 0) iTankCount += 1; // hardcodin is good
+			if (hCustomTankScriptMaps.GetValue(mapname, dummy)) iTankCount += 1;
+			
 			else if (!IsDarkCarniRemix() && L4D_IsMissionFinalMap())
 			{
 				iTankCount = 3
@@ -425,6 +434,11 @@ public void OnRoundIsLive()
 							- view_as<int>(hFinaleExceptionMaps.Size > 0 && !hFinaleExceptionMaps.GetValue(mapname, dummy))
 							- view_as<int>(IsStaticTankMap());
 			}
+		}
+		
+		if (l4d_witch_percent != null && l4d_witch_percent.BoolValue)
+		{
+			iWitchCount = 1;
 		}
 	}
 }
@@ -557,7 +571,7 @@ public Action HudDrawTimer(Handle hTimer)
 			if (!IsClientInGame(i) || GetClientTeam(i) != TEAM_SPECTATOR || !bSpecHudActive[i] || (IsFakeClient(i) && !IsClientSourceTV(i)))
 				continue;
 
-			if (IsBuiltinVoteInProgress() && IsClientInBuiltinVotePool(i))
+			if (BuiltinVote_IsVoteInProgress() && IsClientInBuiltinVotePool(i))
 				continue;
 
 			SendPanelToClient(specHud, i, DummySpecHudHandler, 3);
@@ -583,7 +597,7 @@ public Action HudDrawTimer(Handle hTimer)
 			if (!IsClientInGame(i) || IsFakeClient(i) || GetClientTeam(i) == TEAM_SURVIVOR || !bTankHudActive[i] || (bSpecHudActive[i] && GetClientTeam(i) == TEAM_SPECTATOR))
 				continue;
 			
-			if (IsBuiltinVoteInProgress() && IsClientInBuiltinVotePool(i))
+			if (BuiltinVote_IsVoteInProgress() && IsClientInBuiltinVotePool(i))
 				continue;
 	
 			SendPanelToClient(tankHud, i, DummyTankHudHandler, 3);
@@ -1058,16 +1072,16 @@ bool FillTankInfo(Panel &hSpecHud, bool bTankHUD = false)
 	DrawPanelText(hSpecHud, info);
 
 	// Draw health
-	int health = GetClientHealth(tank);
-	int maxhealth = GetEntProp(tank, Prop_Send, "m_iMaxHealth");
+	int health = GetClientHealth(tank),
+		maxhealth = GetEntProp(tank, Prop_Send, "m_iMaxHealth");
+	float healthPercent = ToPercent(health, maxhealth);
 	if (health <= 0 || IsIncapacitated(tank) || !IsPlayerAlive(tank))
 	{
 		info = "Health  : Dead";
 	}
 	else
 	{
-		int healthPercent = RoundFloat((100.0 / maxhealth) * health);
-		FormatEx(info, sizeof(info), "Health  : %i / %i%%", health, MAX(1, healthPercent));
+		FormatEx(info, sizeof(info), "Health  : %i / %i%%", health, MAX(1, RoundFloat(healthPercent)));
 	}
 	DrawPanelText(hSpecHud, info);
 
@@ -1096,7 +1110,7 @@ bool FillTankInfo(Panel &hSpecHud, bool bTankHUD = false)
 	// Draw fire status
 	if (GetEntityFlags(tank) & FL_ONFIRE)
 	{
-		int timeleft = RoundToCeil(health / (maxhealth / fTankBurnDuration));
+		int timeleft = RoundToCeil(healthPercent * fTankBurnDuration);
 		FormatEx(info, sizeof(info), "On Fire : %is", timeleft);
 		DrawPanelText(hSpecHud, info);
 	}
@@ -1161,10 +1175,10 @@ void FillGameInfo(Panel &hSpecHud)
 					FormatEx(buffer, sizeof(buffer), "%i%%", witchPercent);
 					
 					if (bDivide) {
-						Format(info, sizeof(info), "%s | Witch: %s", info, (bRoundHasFlowWitch ? buffer : (IsStaticWitchMap() ? "Static" : "Event")));
+						Format(info, sizeof(info), "%s | Witch: %s", info, ((bRoundHasFlowWitch || IsDarkCarniRemix()) ? buffer : (IsStaticWitchMap() ? "Static" : "Event")));
 					} else {
 						bDivide = true;
-						FormatEx(info, sizeof(info), "Witch: %s", (bRoundHasFlowWitch ? buffer : (IsStaticWitchMap() ? "Static" : "Event")));
+						FormatEx(info, sizeof(info), "Witch: %s", ((bRoundHasFlowWitch || IsDarkCarniRemix()) ? buffer : (IsStaticWitchMap() ? "Static" : "Event")));
 					}
 				}
 				

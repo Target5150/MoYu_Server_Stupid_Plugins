@@ -14,6 +14,13 @@
 <hr>
 
 ### Changelog
+- (V1.2.10 2021/6/2)
+	- Restored previously removed checking to restrict usage.
+	- Replaced `l4d2util` dependency with required functionalites only.
+	- Modified `Math_GetRandomInt` to prevent sequently giving equal numbers.
+
+- (V1.2.9 2021/5/4) Fixed spamming errors of not being able to create entity on no map loaded.
+
 - (V1.2.8 2021/3/25) Precache sound files as well.
 
 - (V1.2.7 2021/3/25) Fixed spamming array out of bounds errors.

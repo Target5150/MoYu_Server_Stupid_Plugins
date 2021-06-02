@@ -1,14 +1,11 @@
 #include <sourcemod>
 #include <sdktools>
 #include <sceneprocessor>
-#define L4D2UTIL_STOCKS_ONLY
-#include <l4d2util>
-#undef L4D2UTIL_STOCKS_ONLY
 
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.2.9"
+#define PLUGIN_VERSION "1.2.10"
 
 public Plugin myinfo = 
 {
@@ -35,6 +32,18 @@ enum Vocalize
 static const char g_szVocalizeNames[Vocalize][] = 
 {
 	"PlayerLaugh", "PlayerTaunt", "Playerdeath"
+};
+
+enum SurvivorCharacter {
+    SC_NONE=-1,
+    SC_COACH=0,
+    SC_NICK,
+    SC_ROCHELLE,
+    SC_ELLIS,
+    SC_LOUIS,
+    SC_ZOEY,
+    SC_BILL,
+    SC_FRANCIS
 };
 
 
@@ -556,17 +565,25 @@ public void OnVersus(const char[] output, int caller, int activator, float delay
 
 public Action OnVocalizeCommand(int client, const char[] vocalize, int initiator)
 {
-	if (!g_bVersus) return;
+	if (!g_bVersus)
+		return;
 	
-	if (!IsSurvivor(client) || !IsPlayerAlive(client)) return;
+	if (!IsSurvivor(client) || !IsPlayerAlive(client))
+		return;
+	
+	int scene = GetSceneFromActor(client);
 	
 	Vocalize emVocalize = IdentifyVocalize(vocalize);
 	if (emVocalize == NULL_VOCALIZE
-			|| (emVocalize == Vocal_PlayerTaunt && IsActorBusy(client))) // :D
+			|| (emVocalize == Vocal_PlayerTaunt && IsValidScene(scene))) // :D
 		return;
-
+		
+	if (IsValidScene(scene) && GetSceneInitiator(scene) == SCENE_INITIATOR_WORLD)
+		return;
+	
 	SurvivorCharacter emCharacter = IdentifySurvivor(client);
-	if (emCharacter == SC_NONE) return;
+	if (emCharacter == SC_NONE)
+		return;
 
 	char szVoiceFile[PLATFORM_MAX_PATH];
 	PickVoice(szVoiceFile, sizeof(szVoiceFile), emVocalize, emCharacter);
@@ -583,10 +600,10 @@ public Action OnVocalizeCommand(int client, const char[] vocalize, int initiator
 #define SOUND_FILE_PREFIX "player/survivor/voice/"
 #define SOUND_FILE_SURFIX ".wav"
 
-// FormatScene(const char[] buffer, int maxlength, const char[] scene)
-#define FormatScene(%0,%1,%2) Format((%0), (%1), "%s%s%s", SCENE_FILE_PREFIX, (%2), SCENE_FILE_SURFIX)
-// FormatSound(const char[] buffer, int maxlength, const char[] sound)
-#define FormatSound(%0,%1,%2) Format((%0), (%1), "%s%s%s", SOUND_FILE_PREFIX, (%2), SOUND_FILE_SURFIX)
+// FormatScene(char[] buffer, int maxlength, const char[] scene)
+#define FormatScene(%0,%1,%2) FormatEx((%0), (%1), "%s%s%s", SCENE_FILE_PREFIX, (%2), SCENE_FILE_SURFIX)
+// FormatSound(char[] buffer, int maxlength, const char[] sound)
+#define FormatSound(%0,%1,%2) FormatEx((%0), (%1), "%s%s%s", SOUND_FILE_PREFIX, (%2), SOUND_FILE_SURFIX)
 
 void PickVoice(char[] szFile, int maxlength, Vocalize emVocalize, SurvivorCharacter emCharacter)
 {
@@ -730,6 +747,72 @@ void AddSceneToTable(const char[] scene)
 // ============================
 
 /**
+ * Initializes internal structure necessary for IdentifySurvivor() function
+ * @remark It is recommended that you run this function on plugin start, but not necessary
+ *
+ * @noreturn
+ */
+stock void InitSurvivorModelTrie(StringMap& hTrie)
+{
+	hTrie = new StringMap();
+	hTrie.SetValue("models/survivors/survivor_coach.mdl", SC_COACH);
+	hTrie.SetValue("models/survivors/survivor_gambler.mdl", SC_NICK);
+	hTrie.SetValue("models/survivors/survivor_producer.mdl", SC_ROCHELLE);
+	hTrie.SetValue("models/survivors/survivor_mechanic.mdl", SC_ELLIS);
+	hTrie.SetValue("models/survivors/survivor_manager.mdl", SC_LOUIS);
+	hTrie.SetValue("models/survivors/survivor_teenangst.mdl", SC_ZOEY);
+	hTrie.SetValue("models/survivors/survivor_namvet.mdl", SC_BILL);
+	hTrie.SetValue("models/survivors/survivor_biker.mdl", SC_FRANCIS);
+}
+
+/**
+ * Identifies a client's survivor character based on their current model.
+ * @remark SC_NONE on errors
+ *
+ * @param client                Survivor client to identify
+ * @return SurvivorCharacter    index identifying the survivor, or SC_NONE if not identified.
+ */
+stock SurvivorCharacter IdentifySurvivor(int client)
+{
+	static char clientModel[42];
+	GetClientModel(client, clientModel, sizeof(clientModel));
+	return ClientModelToSC(clientModel);
+}
+
+/**
+ * Identifies the survivor character corresponding to a player model.
+ * @remark SC_NONE on errors, uses SurvivorModelTrie
+ *
+ * @param model                 Player model to identify
+ * @return SurvivorCharacter    index identifying the model, or SC_NONE if not identified.
+ */
+stock SurvivorCharacter ClientModelToSC(const char[] model)
+{
+	static StringMap hSurvivorModelsTrie;
+	if (hSurvivorModelsTrie == null)
+	{
+		InitSurvivorModelTrie(hSurvivorModelsTrie);
+	}
+	SurvivorCharacter sc;
+	if (hSurvivorModelsTrie.GetValue(model, sc))
+	{
+		return sc;
+	}
+	return SC_NONE;
+}
+
+/**
+ * Returns true if the player is currently on the survivor team. 
+ *
+ * @param client client ID
+ * @return bool
+ */
+stock bool IsSurvivor(int client)
+{
+	return IsClientInGame(client) && GetClientTeam(client) == 2;
+}
+
+/**
  * Returns a random, uniform Integer number in the specified (inclusive) range.
  * This is safe to use multiple times in a function.
  * The seed is set automatically for each plugin.
@@ -739,11 +822,20 @@ void AddSceneToTable(const char[] scene)
  * @param max			Max value used as upper border
  * @return				Random Integer number between min and max
  */
+// Simple modification against sequently giving equal numbers.
 stock int Math_GetRandomInt(int min, int max)
 {
 	int random = GetURandomInt();
+	int range = max - min + 1;
+	int pick = 0;
 	
-	if (!random) random++;
+	if (random)
+	{
+		pick = random % range;
+	}
 	
-	return random % (max - min + 1) + min;
+	static int prev = -1;
+	prev = (prev == pick ? ++pick : pick);
+	
+	return (pick > range ? (pick - range) : pick) + min; // => pick % range + min
 }

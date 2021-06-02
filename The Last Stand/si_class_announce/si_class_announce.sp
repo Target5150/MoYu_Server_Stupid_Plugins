@@ -7,7 +7,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.0.1"
+#define PLUGIN_VERSION "1.0.3"
 
 public Plugin myinfo =
 {
@@ -33,6 +33,9 @@ public Plugin myinfo =
 
 #define MAXSPAWNS               8
 
+#define CHAT_FLAG        (1 << 0)
+#define HINT_FLAG        (1 << 1)
+
 static const char g_csSIClassName[][] =
 {
     "",
@@ -47,46 +50,66 @@ static const char g_csSIClassName[][] =
 };
 
 Handle g_hAddFooterTimer;
-bool g_bFooterAdded, g_bMessagePrinted;
+ConVar g_hCvarFooter, g_hCvarPrint;
+bool g_bRoundStarted, g_bAllowFooter, g_bMessagePrinted;
 
 public void OnPluginStart()
 {
+	g_hCvarFooter	= CreateConVar(	"si_announce_ready_footer",
+									"1",
+									"Enable si class string be added to readyup panel as footer (if available).",
+									FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	
+	g_hCvarPrint	= CreateConVar(	"si_announce_print",
+									"1",
+									"Decide where the plugin prints the announce. (0: Disable, 1: Chat, 2: Hint, 3: Chat and Hint)",
+									FCVAR_NOTIFY, true, 0.0, true, 3.0);
+									
 	HookEvent("round_start", view_as<EventHook>(Event_RoundStart), EventHookMode_PostNoCopy);
+	HookEvent("round_end", view_as<EventHook>(Event_RoundEnd), EventHookMode_PostNoCopy);
 	HookEvent("player_left_start_area", Event_PlayerLeftStartArea, EventHookMode_Post);
+	HookEvent("player_team", Event_PlayerTeam);
+}
+
+public void OnMapEnd()
+{
+	g_bRoundStarted = false;
+}
+
+void ProcessReadyupFooter()
+{
+	if( GetFeatureStatus(FeatureType_Native, "AddStringToReadyFooter") == FeatureStatus_Available )
+	{
+		g_hAddFooterTimer = CreateTimer(7.0, UpdateReadyUpFooter, _, TIMER_FLAG_NO_MAPCHANGE);
+	}
 }
 
 public void Event_RoundStart()
 {
-	g_bFooterAdded = false;
 	g_bMessagePrinted = false;
+	g_bRoundStarted = true;
 	
-	if( GetFeatureStatus(FeatureType_Native, "AddStringToReadyFooter") == FeatureStatus_Available )
+	if (g_hCvarFooter.BoolValue)
 	{
-		ToggleEvent(true);
-		g_hAddFooterTimer = CreateTimer(7.0, UpdateReadyUpFooter, _, TIMER_FLAG_NO_MAPCHANGE);
+		g_bAllowFooter = true;
+		ProcessReadyupFooter();
 	}
 	else
 	{
-		ToggleEvent(false);
+		g_bAllowFooter = false;
 	}
 }
 
-void ToggleEvent(bool hook)
+public void Event_RoundEnd()
 {
-	static bool hooked = false;
-	if (!hooked && hook)
-	{
-		HookEvent("player_team", Event_PlayerTeam);
-	}
-	else if (hooked && !hook)
-	{
-		UnhookEvent("player_team", Event_PlayerTeam);
-	}
+	g_bRoundStarted = false;
 }
 
 public void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
 {
-	if (g_bFooterAdded) return;
+	if (!g_bAllowFooter) return;
+	
+	if (!g_bRoundStarted) return;
 	
 	if (g_hAddFooterTimer != null) return;
 	
@@ -103,16 +126,19 @@ public Action UpdateReadyUpFooter(Handle timer)
 {
 	g_hAddFooterTimer = null;
 	
-	if (!IsInfectedTeamFullAlive() || g_bFooterAdded)
+	if (!IsInfectedTeamFullAlive() || !g_bAllowFooter)
 		return;
 	
-	char msg[64];
+	char msg[65];
 	if (ProcessSIString(msg, sizeof(msg), true))
-		g_bFooterAdded = (AddStringToReadyFooter(msg) != -1);
+		g_bAllowFooter = !(AddStringToReadyFooter(msg) != -1);
 }
 
 public void OnRoundIsLive()
 {
+	if (g_hCvarPrint.IntValue == 0)
+		return;
+	
 	// announce SI classes up now
 	char msg[128];
 	if (ProcessSIString(msg, sizeof(msg)))
@@ -120,15 +146,14 @@ public void OnRoundIsLive()
 		AnnounceSIClasses(msg);
 		g_bMessagePrinted = true;
 	}
-	ToggleEvent(false);
 }
 
-public Action Event_PlayerLeftStartArea(Event event, const char[] name, bool dontBroadcast)
+public void Event_PlayerLeftStartArea(Event event, const char[] name, bool dontBroadcast)
 {
 	// if no readyup, use this as the starting event
 	if (!g_bMessagePrinted) {
 		char msg[128];
-		if (ProcessSIString(msg, sizeof(msg)))
+		if (ProcessSIString(msg, sizeof(msg)) && g_hCvarPrint.IntValue != 0)
 			AnnounceSIClasses(msg);
 			
 		// no matter printed or not, we won't bother the game since survivor leaves saferoom.
@@ -161,15 +186,18 @@ bool ProcessSIString(char[] msg, int maxlength, bool footer = false)
     
 	strcopy(msg, maxlength, footer ? "SI: " : "Special Infected: ");
 	
+	int printFlags = g_hCvarPrint.IntValue;
+	bool useColor = !footer && (printFlags & CHAT_FLAG);
+	
 	// format classes, according to amount of spawns found
-	for (int count = 0; count < iSpawns; count++) {
-		if (count) StrCat(msg, maxlength, ", ");
+	for (int i = 0; i < iSpawns; i++) {
+		if (i) StrCat(msg, maxlength, ", ");
 		
 		Format(	msg,
 				maxlength,
-				(footer ? NORMA_PARAM : COLOR_PARAM),
+				(useColor ? COLOR_PARAM : NORMA_PARAM),
 				msg,
-				g_csSIClassName[iSpawnClass[count]]
+				g_csSIClassName[iSpawnClass[i]]
 		);
 	}
 	
@@ -178,11 +206,20 @@ bool ProcessSIString(char[] msg, int maxlength, bool footer = false)
 
 void AnnounceSIClasses(const char[] Message)
 {
+	char temp[128];
+	
+	int printFlags = g_hCvarPrint.IntValue;
+	if (printFlags & HINT_FLAG)
+	{
+		strcopy(temp, sizeof temp, Message);
+		CRemoveTags(temp, sizeof temp);
+	}
+	
 	for (int i = 1; i <= MaxClients; i++) {
 		if (!IsClientInGame(i) || GetClientTeam(i) == TEAM_INFECTED || (IsFakeClient(i) && !IsClientSourceTV(i))) { continue; }
 
-		CPrintToChat(i, Message);
-		//PrintHintText(i, Message2);
+		if (printFlags & CHAT_FLAG) CPrintToChat(i, Message);
+		if (printFlags & HINT_FLAG) PrintHintText(i, temp);
     }
 }
 
