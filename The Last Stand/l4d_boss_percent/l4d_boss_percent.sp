@@ -24,7 +24,7 @@ out what's going on :D Kinda makes my other plugins look bad huh :/
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "3.2.0"
+#define PLUGIN_VERSION "3.2.1"
 
 public Plugin myinfo =
 {
@@ -916,7 +916,7 @@ public Action VoteBossCmd(int client, int args)
 	if (args != 2)
 	{
 		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Usage: !voteboss {olive}<{default}tank{olive}> <{default}witch{olive}>{default}.");
-		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Use {default}\"{blue}0{default}\" for {olive}No Spawn.");
+		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Use {default}\"{blue}0{default}\" for {olive}No Spawn{default}, \"{blue}-1{default}\" for {olive}Ignorance.");
 		return;
 	}
 	
@@ -974,9 +974,8 @@ public Action VoteBossCmd(int client, int args)
 	}
 	
 	// Check if a new vote is allowed to be called
-	if (IsNewBuiltinVoteAllowed() && !IsBuiltinVoteInProgress())
+	if (IsNewBuiltinVoteAllowed())
 	{
-		
 		char bv_voteTitle[64];
 		
 		// Set vote title
@@ -984,13 +983,27 @@ public Action VoteBossCmd(int client, int args)
 		{
 			Format(bv_voteTitle, 64, "Set Tank to: %s and Witch to: %s?", bv_sTank, bv_sWitch);
 		}
-		else if (bv_bTank)	// Only Tank can be changed -- Witch must be static
+		else if (bv_bTank)	// Only Tank can be changed
 		{
-			Format(bv_voteTitle, 64, "Set Tank to: %s?", bv_sTank);
+			if (bv_iWitch == 0)
+			{
+				Format(bv_voteTitle, 64, "Set Tank to: %s and Witch to: Disabled?", bv_sTank);
+			}
+			else
+			{
+				Format(bv_voteTitle, 64, "Set Tank to: %s?", bv_sTank);
+			}
 		}
-		else if (bv_bWitch) // Only Witch can be changed -- Tank must be static
+		else if (bv_bWitch) // Only Witch can be changed
 		{
-			Format(bv_voteTitle, 64, "Set Witch to: %s?", bv_sWitch);
+			if (bv_iTank == 0)
+			{
+				Format(bv_voteTitle, 64, "Set Tank to: Disabled and Witch to: %s?", bv_sWitch);
+			}
+			else
+			{
+				Format(bv_voteTitle, 64, "Set Witch to: %s?", bv_sWitch);
+			}
 		}
 		else // Neither can be changed... ok...
 		{
@@ -1012,7 +1025,7 @@ public Action VoteBossCmd(int client, int args)
 	}
 }
 
-public int BossVoteActionHandler(Handle vote, BuiltinVoteAction action, int param1, int param2)
+public void BossVoteActionHandler(Handle vote, BuiltinVoteAction action, int param1, int param2)
 {
 	switch (action)
 	{
@@ -1028,7 +1041,7 @@ public int BossVoteActionHandler(Handle vote, BuiltinVoteAction action, int para
 	}
 }
 
-public int BossVoteResultHandler(Handle vote, int num_votes, int num_clients, const client_info[][2], int num_items, const item_info[][2])
+public int BossVoteResultHandler(Handle vote, int num_votes, int num_clients, const int[][] client_info, int num_items, const int[][] item_info)
 {
 	for (int i=0; i<num_items; i++)
 	{
@@ -1089,7 +1102,7 @@ public int BossVoteResultHandler(Handle vote, int num_votes, int num_clients, co
 }
 
 // credit to SirPlease
-bool ValidateFlow(int iTank = 0, int iWitch = 0, bool bTank = false, bool bWitch = false)
+bool ValidateFlow(int iTank = -1, int iWitch = -1, bool bTank = false, bool bWitch = false)
 {
 	int iBossMinFlow = RoundToCeil(GetConVarFloat(g_hVsBossFlowMin) * 100);
 	int iBossMaxFlow = RoundToFloor(GetConVarFloat(g_hVsBossFlowMax) * 100);
@@ -1125,7 +1138,7 @@ bool ValidateFlow(int iTank = 0, int iWitch = 0, bool bTank = false, bool bWitch
 	
 	// 1. Any boss change is requested and passes validation
 	// 2. Neither is requested and voter wants both to be disabled
-	return (bTank || bWitch) ^ (iTank <= 0 && iWitch <= 0);
+	return (bTank || bWitch) ^ (iTank == 0 || iWitch == 0);
 }
 
 public void SetWitchPercent(int percent)

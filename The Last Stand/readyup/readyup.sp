@@ -7,7 +7,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "9.1.5"
+#define PLUGIN_VERSION "9.1.6"
 
 #define NULL_VELOCITY view_as<float>({0.0, 0.0, 0.0})
 
@@ -136,6 +136,7 @@ public void OnPluginStart()
 	
 	HookEvent("round_start", RoundStart_Event, EventHookMode_PostNoCopy);
 	HookEvent("player_team", PlayerTeam_Event, EventHookMode_Pre);
+	HookEvent("gameinstructor_draw", GameInstructorDraw_Event, EventHookMode_PostNoCopy);
 
 	casterTrie = new StringMap();
 	//allowedCastersTrie = new StringMap();
@@ -232,6 +233,12 @@ public void RoundStart_Event(Event event, const char[] name, bool dontBroadcast)
 	InitiateReadyUp();
 }
 
+public void GameInstructorDraw_Event(Event event, const char[] name, bool dontBroadcast)
+{
+	// Workaround for remove countdown after scavenge intro
+	CreateTimer(0.1, Timer_RemoveCountdown, .flags = TIMER_FLAG_NO_MAPCHANGE);
+}
+
 public void PlayerTeam_Event(Event event, const char[] name, bool dontBroadcast)
 {
 	if (!inReadyUp || isAutoStartMode) return;
@@ -255,7 +262,7 @@ public void PlayerTeam_Event(Event event, const char[] name, bool dontBroadcast)
 		stack.Push(client);
 		stack.Push(GetClientUserId(client));
 		stack.Push(oldteam);
-		g_hChangeTeamTimer[client] = CreateTimer(0.1, Timer_PlayerTeam, stack, TIMER_FLAG_NO_MAPCHANGE | TIMER_DATA_HNDL_CLOSE);
+		g_hChangeTeamTimer[client] = CreateTimer(0.1, Timer_PlayerTeam, stack, TIMER_DATA_HNDL_CLOSE);
 	}
 }
 
@@ -263,9 +270,9 @@ public Action Timer_PlayerTeam(Handle timer, ArrayStack stack)
 {
 	int oldteam = stack.Pop();
 	int userid = stack.Pop();
-	int client = GetClientOfUserId(userid);
+	int client = stack.Pop();
 	
-	if (client > 0 && IsClientInGame(client))
+	if (client == GetClientOfUserId(userid) && IsClientInGame(client))
 	{
 		if (inLiveCountdown)
 		{
@@ -278,10 +285,6 @@ public Action Timer_PlayerTeam(Handle timer, ArrayStack stack)
 				}
 			}
 		}
-	}
-	else
-	{
-		client = stack.Pop();
 	}
 	
 	g_hChangeTeamTimer[client] = null;
@@ -1185,7 +1188,7 @@ void InitiateReadyUp()
 	footerCounter = 0;
 
 	if (IsScavenge()) {
-		RestartScavengeCountdown(99999.0, false);
+		CreateTimer(0.1, Timer_RemoveCountdown, .flags = TIMER_FLAG_NO_MAPCHANGE);
 	}
 	else L4D2_CTimerStart(L4D2CT_VersusStartTimer, 99999.0);
 	
@@ -1194,6 +1197,11 @@ void InitiateReadyUp()
 		expireTime = l4d_ready_autostart_wait.IntValue;
 		CreateTimer(1.0, Timer_AutoStartHelper, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
 	}
+}
+
+public Action Timer_RemoveCountdown(Handle timer)
+{
+	RestartScavengeCountdown(99999.0, false);
 }
 
 public Action Timer_AutoStartHelper(Handle timer)
@@ -1475,8 +1483,6 @@ void RestartScavengeCountdown(float duration, bool startOn)
 {
 	CTimer_Invalidate(L4D2Direct_GetScavengeRoundSetupTimer());
 	CTimer_Start(L4D2Direct_GetScavengeRoundSetupTimer(), duration);
-	L4D_ScavengeBeginRoundSetupTime();
-	L4D_NotifyNetworkStateChanged();
 	ToggleCountdownPanel(startOn);
 }
 
