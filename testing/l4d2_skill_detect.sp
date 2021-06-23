@@ -1668,7 +1668,7 @@ public OnEntityCreated ( entity, const String:classname[] )
             }
             SetTrieArray(g_hRockTrie, rock_key, rock_array, sizeof(rock_array), true);
             
-            SDKHook(entity, SDKHook_TraceAttack, TraceAttack_Rock);
+            SDKHook(entity, SDKHook_OnTakeDamageAlivePost, OnTakeDamageAlivePost_Rock);
             SDKHook(entity, SDKHook_Touch, OnTouch_Rock);
         }
         
@@ -1753,15 +1753,6 @@ public OnEntityDestroyed ( entity )
     decl String:witch_key[10];
     FormatEx(witch_key, sizeof(witch_key), "%x", entity);
     
-    decl rock_array[3];
-    if ( GetTrieArray(g_hRockTrie, witch_key, rock_array, sizeof(rock_array)) )
-    {
-        // tank rock
-        CreateTimer( ROCK_CHECK_TIME, Timer_CheckRockSkeet, entity );
-        SDKUnhook(entity, SDKHook_TraceAttack, TraceAttack_Rock);
-        return;
-    }
-
     decl witch_array[MAXPLAYERS+DMGARRAYEXT];
     if ( GetTrieArray(g_hWitchTrie, witch_key, witch_array, sizeof(witch_array)) )
     {
@@ -2099,22 +2090,33 @@ stock CheckWitchCrown ( witch, attacker, bool: bOneShot = false )
 }
 
 // tank rock
-public Action: TraceAttack_Rock (victim, &attacker, &inflictor, &Float:damage, &damagetype, &ammotype, hitbox, hitgroup)
+public void OnTakeDamageAlivePost_Rock (int victim, int attacker, int inflictor, float damage, int damagetype)
 {
-    if ( IS_VALID_SURVIVOR(attacker) )
+    if ( !IS_VALID_SURVIVOR(attacker) )
+    	return;
+    
+    decl String:rock_key[10];
+    decl rock_array[3];
+    FormatEx(rock_key, sizeof(rock_key), "%x", victim);
+    GetTrieArray(g_hRockTrie, rock_key, rock_array, sizeof(rock_array));
+    
+    /*
+        can't really use this for precise detection, though it does
+        report the last shot -- the damage report is without distance falloff
+        
+        NOTE: Was using TraceAttack hook.
+    */
+    rock_array[rckDamage] += RoundToFloor(damage);
+    rock_array[rckSkeeter] = attacker;
+    SetTrieArray(g_hRockTrie, rock_key, rock_array, sizeof(rock_array), true);
+    
+    if (GetEntProp(victim, Prop_Data, "m_iHealth") > 0)
     {
-        /*
-            can't really use this for precise detection, though it does
-            report the last shot -- the damage report is without distance falloff
-        */
-        decl String:rock_key[10];
-        decl rock_array[3];
-        FormatEx(rock_key, sizeof(rock_key), "%x", victim);
-        GetTrieArray(g_hRockTrie, rock_key, rock_array, sizeof(rock_array));
-        rock_array[rckDamage] += RoundToFloor(damage);
-        rock_array[rckSkeeter] = attacker;
-        SetTrieArray(g_hRockTrie, rock_key, rock_array, sizeof(rock_array), true);
+        return;
     }
+
+    // tank rock
+    CreateTimer( ROCK_CHECK_TIME, Timer_CheckRockSkeet, victim );
 }
 
 public OnTouch_Rock ( entity )
