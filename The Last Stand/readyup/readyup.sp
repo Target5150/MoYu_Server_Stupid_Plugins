@@ -7,7 +7,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "9.1.6"
+#define PLUGIN_VERSION "9.1.7"
 
 #define NULL_VELOCITY view_as<float>({0.0, 0.0, 0.0})
 
@@ -258,19 +258,21 @@ public void PlayerTeam_Event(Event event, const char[] name, bool dontBroadcast)
 	
 	else if (!g_hChangeTeamTimer[client]) // Player in-game swapping team
 	{
-		ArrayStack stack = new ArrayStack();
-		stack.Push(client);
-		stack.Push(GetClientUserId(client));
-		stack.Push(oldteam);
-		g_hChangeTeamTimer[client] = CreateTimer(0.1, Timer_PlayerTeam, stack, TIMER_DATA_HNDL_CLOSE);
+		DataPack dp;
+		g_hChangeTeamTimer[client] = CreateDataTimer(0.1, Timer_PlayerTeam, dp);
+		dp.WriteCell(client);
+		dp.WriteCell(GetClientUserId(client));
+		dp.WriteCell(oldteam);
 	}
 }
 
-public Action Timer_PlayerTeam(Handle timer, ArrayStack stack)
+public Action Timer_PlayerTeam(Handle timer, DataPack dp)
 {
-	int oldteam = stack.Pop();
-	int userid = stack.Pop();
-	int client = stack.Pop();
+	dp.Reset();
+	
+	int client = dp.ReadCell();
+	int userid = dp.ReadCell();
+	int oldteam = dp.ReadCell();
 	
 	if (client == GetClientOfUserId(userid) && IsClientInGame(client))
 	{
@@ -341,7 +343,7 @@ public void OnMapEnd()
 {
 	if (inReadyUp)
 	{
-		InitiateAutoStart(false);
+		if (inAutoStart) InitiateAutoStart(false);
 		InitiateLive(false);
 	}
 }
@@ -489,7 +491,7 @@ public Action Unready_Cmd(int client, int args)
 		else
 		{
 			AdminId id = GetUserAdmin(client);
-			if (id != INVALID_ADMIN_ID && GetAdminFlag(id, Admin_Ban)) // Check for specific admin flag
+			if (id == INVALID_ADMIN_ID || !GetAdminFlag(id, Admin_Ban)) // Check for specific admin flag
 			{
 				return Plugin_Handled;
 			}
@@ -728,27 +730,23 @@ public Action ForceStart_Cmd(int client, int args)
 
 public Action KickSpecs_Cmd(int client, int args)
 {
-	if (inReadyUp)
+	AdminId id = GetUserAdmin(client);
+	if (id != INVALID_ADMIN_ID && GetAdminFlag(id, Admin_Ban)) // Check for specific admin flag
 	{
-		AdminId id = GetUserAdmin(client);
-		if (id != INVALID_ADMIN_ID && GetAdminFlag(id, Admin_Ban)) // Check for specific admin flag
-		{
-			CreateTimer(2.0, Timer_KickSpecs);
-			CPrintToChatAll("[{green}!{default}] %t", "KickSpecsAdmin", client);
-			return Plugin_Handled;
-		}
-		
-		// Filter spectator
-		if (!IsPlayer(client))
-		{
-			CPrintToChat(client, "[{olive}Readyup{default}] %t", "KickSpecsVoteSpec");
-			return Plugin_Handled;
-		}
-		
-		StartKickSpecsVote(client);
+		CreateTimer(2.0, Timer_KickSpecs);
+		CPrintToChatAll("[{green}!{default}] %t", "KickSpecsAdmin", client);
 		return Plugin_Handled;
 	}
-	return Plugin_Continue;
+	
+	// Filter spectator
+	if (!IsPlayer(client))
+	{
+		CPrintToChat(client, "[{olive}Readyup{default}] %t", "KickSpecsVoteSpec");
+		return Plugin_Handled;
+	}
+	
+	StartKickSpecsVote(client);
+	return Plugin_Handled;
 }
 
 
@@ -1151,9 +1149,10 @@ void UpdatePanel()
 
 void InitiateReadyUp()
 {
-	for (int i = 0; i <= MAXPLAYERS; i++)
+	for (int i = 1; i <= MaxClients; i++)
 	{
 		isPlayerReady[i] = false;
+		SetEngineTime(i);
 	}
 
 	UpdatePanel();
@@ -1187,10 +1186,14 @@ void InitiateReadyUp()
 	}
 	footerCounter = 0;
 
-	if (IsScavenge()) {
+	if (IsScavenge())
+	{
 		CreateTimer(0.1, Timer_RemoveCountdown, .flags = TIMER_FLAG_NO_MAPCHANGE);
 	}
-	else L4D2_CTimerStart(L4D2CT_VersusStartTimer, 99999.0);
+	else
+	{
+		L4D2_CTimerStart(L4D2CT_VersusStartTimer, 99999.0);
+	}
 	
 	if (isAutoStartMode)
 	{
@@ -1287,10 +1290,14 @@ void InitiateLive(bool real = true)
 	god.Flags |= FCVAR_NOTIFY;
 	sb_stop.SetBool(false);
 	
-	if (IsScavenge()) {
+	if (IsScavenge())
+	{
 		RestartScavengeCountdown(scavenge_round_setup_time.FloatValue, true);
 	}
-	else L4D2_CTimerStart(L4D2CT_VersusStartTimer, 60.0);
+	else
+	{
+		L4D2_CTimerStart(L4D2CT_VersusStartTimer, 60.0);
+	}
 
 	for (int i = 0; i < 4; i++)
 	{
