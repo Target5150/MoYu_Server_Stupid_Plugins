@@ -23,121 +23,133 @@
 		"en"		"{1} is no longer a caster"
 	}
 	
+	"CasterDBReset"
+	{
+		"en"		"[casters_database] Reset successfully"
+	}
+	
+	"CasterDBAdd"
+	{
+		"#format"	"{1:s}"
+		"en"		"[casters_database] Added '{1}'"
+	}
+	
+	"CasterDBRemove"
+	{
+		"#format"	"{1:s}"
+		"en"		"[casters_database] Removed '{1}'"
+	}
+	
+	"CasterDBFound"
+	{
+		"#format"	"{1:s}"
+		"en"		"[casters_database] '{1}' already exists"
+	}
+	
+	"CasterDBError"
+	{
+		"en"		"[casters_database] No args specified / empty buffer"
+	}
 	
 // The following uses bracket style color tags (see colors.inc)
+	"SelfCastNotAllowed"
+	{
+		"en"		"{blue}[{default}Cast{blue}] {default}You are not allowed to register as a caster {green}on this server{default}."
+	}
+
 	"SelfCast1"
 	{
-		"en"		"You have registered yourself as a caster."
+		"en"		"{blue}[{default}Cast{blue}] {default}You have registered yourself as a caster."
 	}
 
 	"SelfCast2"
 	{
-		"en"		"Reconnect to make your Addons work."
+		"en"		"{blue}[{default}Cast{blue}] {default}Reconnect to make your Addons work."
 	}
 
 	"RegCasterTarget"
 	{
 		"#format"	"{1:N}"
-		"en"		"{blue}Admin {default}({olive}{1}{default}) has registered you as a caster"
+		"en"		"{default}[{olive}!{default}] {blue}Admin {default}({olive}{1}{default}) has registered you as a caster"
 	}
 
 	"Reconnect1"
 	{
-		"en"		"You will be reconnected to the server.."
+		"en"		"{blue}[{default}Reconnect{blue}] {default}You will be reconnected to the server.."
 	}
 
 	"Reconnect2"
 	{
-		"en"		"There's a black screen instead of a loading bar!"
+		"en"		"{blue}[{default}Reconnect{blue}] {default}There's a black screen instead of a loading bar!"
 	}
 
 	"UnregCasterTarget"
 	{
 		"#format"	"{1:N}"
-		"en"		"You are unregistered as a caster by {blue}Admin {default}({olive}{1}{default})"
+		"en"		"{default}[{olive}!{default}] {default}You are unregistered as a caster by {blue}Admin {default}({olive}{1}{default})"
 	}
 	
 	"PanelHide"
 	{
-		"en"		"Panel is now {red}off{default}"
+		"en"		"[{olive}Readyup{default}] Panel is now {red}off{default}"
 	}
 	
 	"PanelShow"
 	{
-		"en"		"Panel is now {blue}on{default}"
+		"en"		"[{olive}Readyup{default}] Panel is now {blue}on{default}"
 	}
 	
 	"ForceStartAdmin"
 	{
 		"#format"	"{1:N}"
-		"en"		"{blue}Game {default}start is {green}forced {default}by {blue}Admin {default}({olive}{1}{default})"
-	}
-	
-	"ForceStartVoteSpec"
-	{
-		"en"		"{blue}Spectators {default}are not allowed to {green}force start{default}."
-	}
-	
-	"ForceStartFullPlayers"
-	{
-		"en"		"You are {red}not allowed {default}to call a vote for force start due to {green}full players{default}."
+		"en"		"[{green}!{default}] {blue}Game {default}start is {green}forced {default}by {blue}Admin {default}({olive}{1}{default})"
 	}
 	
 	"KickSpecsAdmin"
 	{
 		"#format"	"{1:N}"
-		"en"		"{blue}Spectators {default}are kicked by {blue}Admin {default}({olive}{1}{default})"
+		"en"		"[{green}!{default}] {blue}Spectators {default}are kicked by {blue}Admin {default}({olive}{1}{default})"
 	}
 	
 	"KickSpecsVoteSpec"
 	{
-		"en"		"{blue}Spectators {default}are not allowed to call a vote for {green}kicking specs{default}."
+		"en"		"[{olive}Readyup{default}] {blue}Spectators {default}are not allowed to call a vote for {green}kicking specs{default}."
 	}
 	
 	"VoteInProgress"
 	{
-		"en"		"There's {olive}a vote {green}in progress{default}."
+		"en"		"[{olive}Readyup{default}] There's {olive}a vote {green}in progress{default}."
 	}
 	
 	"VoteDelay"
 	{
 		"#format"	"{1:d}"
-		"en"		"Wait for another {blue}{1}s {default}to call a vote."
+		"en"		"[{olive}Readyup{default}] Wait for another {blue}{1}s {default}to call a vote."
 	}
 
 	"DisruptReadyStatus"
 	{
 		"#format"	"{1:N}"
-		"en"		"{green}Countdown Cancelled! {default}({teamcolor}{1} {green}marked unready{default})"
+		"en"		"{default}[{green}!{default}] {green}Countdown Cancelled! {default}({teamcolor}{1} {green}marked unready{default})"
 	}
 	
 	"DisruptTeamShuffle"
 	{
 		"#format"	"{1:N}"
-		"en"		"{green}Countdown Cancelled! {default}({teamcolor}{1} {olive}switched team{default})"
+		"en"		"{default}[{green}!{default}] {green}Countdown Cancelled! {default}({teamcolor}{1} {olive}switched team{default})"
 	}
 	
 	"DisruptPlayerDisc"
 	{
 		"#format"	"{1:N}"
-		"en"		"{green}Countdown Cancelled! {default}({teamcolor}{1} {green}disconnected{default})"
+		"en"		"{default}[{green}!{default}] {green}Countdown Cancelled! {default}({teamcolor}{1} {green}disconnected{default})"
 	}
 	
 	
 // The following are not allowed to use any color tag
-	"ForceStartVoteTitle"
-	{
-		"en"		"Force start the game?"
-	}
-	
 	"KickSpecsVoteTitle"
 	{
 		"en"		"Kick Non-Admin & Non-Casting Spectators?"
-	}
-	
-	"ForceStartVoteSuccess"
-	{
-		"en"		"Forcing start..."
 	}
 	
 	"KickSpecsVoteSuccess"

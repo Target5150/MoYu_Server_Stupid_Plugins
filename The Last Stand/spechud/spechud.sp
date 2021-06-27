@@ -18,7 +18,7 @@
 #pragma newdecls required
 
 #define DEBUG 0
-#define PLUGIN_VERSION	"3.5.2"
+#define PLUGIN_VERSION	"3.5.3"
 
 public Plugin myinfo = 
 {
@@ -131,6 +131,7 @@ bool bRoundHasFlowTank, bRoundHasFlowWitch, bFlowTankActive;
 // Score & Scoremod
 //int iFirstHalfScore;
 bool bScoremod, bHybridScoremod, bNextScoremod;
+int iMaxDistance;
 
 // Tank Control EQ
 bool bTankSelection;
@@ -412,6 +413,8 @@ public void OnRoundIsLive()
 		bRoundHasFlowWitch = RoundHasFlowWitch();
 		bFlowTankActive = bRoundHasFlowTank;
 		
+		iMaxDistance = L4D_GetVersusMaxCompletionScore() / 4 * iSurvivorLimit;
+		
 		iTankCount = 0;
 		iWitchCount = 0;
 		
@@ -473,14 +476,11 @@ public void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
 	if (!client) return;
 	
 	int team = event.GetInt("team");
-	int oldteam = event.GetInt("oldteam");
 	
 	if (team == TEAM_NONE) // Player disconnecting
 	{
 		bSpecHudActive[client] = false;
 		bTankHudActive[client] = true;
-		
-		if (oldteam == TEAM_SPECTATOR) return;
 	}
 	
 	bPendingArrayRefresh = true;
@@ -527,8 +527,7 @@ public Action HudDrawTimer(Handle hTimer)
 	
 	for (int i = 1; i <= MaxClients; ++i)
 	{
-		// 1. Human spectator with spechud active. 
-		// 2. SourceTV active.
+		// Human spectator with spechud active. 
 		if( IsClientInGame(i) && GetClientTeam(i) == TEAM_SPECTATOR && bSpecHudActive[i] )
 		{
 			bSpecsOnServer = true;
@@ -624,9 +623,8 @@ public int DummyTankHudHandler(Menu hMenu, MenuAction action, int param1, int pa
 void FillHeaderInfo(Panel &hSpecHud)
 {
 	static int iTickrate = 0;
-	if (iTickrate == 0 && IsServerProcessing()) {
+	if (iTickrate == 0 && IsServerProcessing())
 		iTickrate = RoundToNearest(1.0 / GetTickInterval());
-	}
 	
 	static char buf[64];
 	Format(buf, sizeof(buf), "☂ %s [Slots %i/%i | %iT]", sHostname, GetRealClientCount(), iMaxPlayers, iTickrate);
@@ -854,7 +852,7 @@ void FillScoreInfo(Panel &hSpecHud)
 				FormatEx(info, sizeof(info), "> Bonus: %i <%.1f%%>", totalBonus, ToPercent(totalBonus, maxTotalBonus));
 				DrawPanelText(hSpecHud, info);
 				
-				FormatEx(info, sizeof(info), "> Distance: %i", L4D_GetVersusMaxCompletionScore() / 4 * iSurvivorLimit);
+				FormatEx(info, sizeof(info), "> Distance: %i", iMaxDistance);
 				//if (InSecondHalfOfRound())
 				//{
 				//	Format(info, sizeof(info), "%s | R#1: %i <%.1f%%>", info, iFirstHalfScore, ToPercent(iFirstHalfScore, L4D_GetVersusMaxCompletionScore() + maxTotalBonus));
@@ -874,7 +872,7 @@ void FillScoreInfo(Panel &hSpecHud)
 				FormatEx(info, sizeof(info), "> Health Bonus: %i", healthBonus);
 				DrawPanelText(hSpecHud, info);
 				
-				FormatEx(info, sizeof(info), "> Distance: %i", L4D_GetVersusMaxCompletionScore() / 4 * iSurvivorLimit);
+				FormatEx(info, sizeof(info), "> Distance: %i", iMaxDistance);
 				//if (InSecondHalfOfRound())
 				//{
 				//	Format(info, sizeof(info), "%s | R#1: %i", info, iFirstHalfScore);
@@ -907,7 +905,7 @@ void FillScoreInfo(Panel &hSpecHud)
 				FormatEx(info, sizeof(info), "> Bonus: %i <%.1f%%>", totalBonus, ToPercent(totalBonus, maxTotalBonus));
 				DrawPanelText(hSpecHud, info);
 				
-				FormatEx(info, sizeof(info), "> Distance: %i", L4D_GetVersusMaxCompletionScore() / 4 * iSurvivorLimit);
+				FormatEx(info, sizeof(info), "> Distance: %i", iMaxDistance);
 				//if (InSecondHalfOfRound())
 				//{
 				//	Format(info, sizeof(info), "%s | R#1: %i <%.1f%%>", info, iFirstHalfScore, ToPercent(iFirstHalfScore, L4D_GetVersusMaxCompletionScore() + maxTotalBonus));

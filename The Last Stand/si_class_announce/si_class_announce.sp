@@ -7,7 +7,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.0.3"
+#define PLUGIN_VERSION "1.0.4"
 
 public Plugin myinfo =
 {
@@ -49,9 +49,17 @@ static const char g_csSIClassName[][] =
     ""
 };
 
-Handle g_hAddFooterTimer;
-ConVar g_hCvarFooter, g_hCvarPrint;
-bool g_bRoundStarted, g_bAllowFooter, g_bMessagePrinted;
+Handle
+	g_hAddFooterTimer;
+	
+ConVar
+	g_hCvarFooter,
+	g_hCvarPrint;
+	
+bool
+	g_bRoundStarted,
+	g_bAllowFooter,
+	g_bMessagePrinted;
 
 public void OnPluginStart()
 {
@@ -232,5 +240,5 @@ stock bool IsInfectedTeamFullAlive()
 	for (int i = 1; i <= MaxClients; i++) {
 		if (IsClientInGame(i) && GetClientTeam(i) == TEAM_INFECTED && IsPlayerAlive(i)) players++;
 	}
-	return players >= cMaxZombies.IntValue;
+	return players == cMaxZombies.IntValue;
 }
