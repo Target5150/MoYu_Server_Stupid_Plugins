@@ -7,7 +7,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "9.2.0"
+#define PLUGIN_VERSION "9.2.2"
 
 public Plugin myinfo =
 {
@@ -81,8 +81,7 @@ ConVar ServerNamer;
 
 // Ready Panel
 bool
-	hiddenPanel[MAXPLAYERS+1],
-	hiddenManually[MAXPLAYERS+1];
+	hiddenPanel[MAXPLAYERS+1];
 char
 	sCmd[32],
 	readyFooter[MAX_FOOTERS][MAX_FOOTER_LEN];
@@ -135,7 +134,8 @@ enum disruptType
 {
 	readyStatus,
 	teamShuffle,
-	playerDisconn
+	playerDisconn,
+	forceStartAbort
 };
 
 static const char chuckleSound[MAX_SOUNDS][] =
@@ -211,9 +211,9 @@ public void OnPluginStart()
 	RegAdminCmd("sm_caster",			Caster_Cmd, ADMFLAG_BAN, "Registers a player as a caster");
 	RegAdminCmd("sm_resetcasters",		ResetCaster_Cmd, ADMFLAG_BAN, "Used to reset casters between matches.  This should be in confogl_off.cfg or equivalent for your system");
 	RegAdminCmd("sm_add_caster_id",		AddCasterSteamID_Cmd, ADMFLAG_BAN, "Used for adding casters to the whitelist -- i.e. who's allowed to self-register as a caster");
-	RegAdminCmd("sm_remove_caster_id",	RemoveCasterSteamID_Cmd, ADMFLAG_BAN, "Used for adding casters to the whitelist -- i.e. who's allowed to self-register as a caster");
+	RegAdminCmd("sm_remove_caster_id",	RemoveCasterSteamID_Cmd, ADMFLAG_BAN, "Used for removing casters to the whitelist -- i.e. who's allowed to self-register as a caster");
 	RegAdminCmd("sm_printcasters",		PrintCasters_Cmd, ADMFLAG_BAN, "Used for print casters in the whitelist");
-	RegConsoleCmd("sm_cast",			Cast_Cmd, "Registers the calling player as a caster so the round will not go live unless they are ready");
+	RegConsoleCmd("sm_cast",			Cast_Cmd, "Registers the calling player as a caster");
 	RegConsoleCmd("sm_notcasting",		NotCasting_Cmd, "Deregister yourself as a caster or allow admins to deregister other players");
 	RegConsoleCmd("sm_uncast",			NotCasting_Cmd, "Deregister yourself as a caster or allow admins to deregister other players");
 	
@@ -417,7 +417,6 @@ public void OnClientPostAdminCheck(int client)
 public void OnClientDisconnect(int client)
 {
 	hiddenPanel[client] = false;
-	hiddenManually[client] = false;
 	isPlayerReady[client] = false;
 	g_fButtonTime[client] = 0.0;
 	g_hChangeTeamTimer[client] = null;
@@ -430,8 +429,6 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 	{
 		if (!IsFakeClient(client))
 		{
-			if (buttons || impulse) SetEngineTime(client);
-			
 			static int iLastMouse[MAXPLAYERS+1][2];
 			
 			// Mouse Movement Check
@@ -441,6 +438,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 				iLastMouse[client][1] = mouse[1];
 				SetEngineTime(client);
 			}
+			else if (buttons || impulse) SetEngineTime(client);
 		}
 		
 		if (GetClientTeam(client) == L4D2Team_Survivor)
@@ -448,7 +446,7 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 			if (readySurvFreeze)
 			{
 				MoveType iMoveType = GetEntityMoveType(client);
-				if (!(iMoveType == MOVETYPE_NONE || iMoveType == MOVETYPE_NOCLIP))
+				if (iMoveType != MOVETYPE_NONE && iMoveType != MOVETYPE_NOCLIP)
 				{
 					SetClientFrozen(client, true);
 				}
@@ -540,23 +538,27 @@ public Action Unready_Cmd(int client, int args)
 {
 	if (inReadyUp && !isAutoStartMode)
 	{
-		if (IsPlayer(client) && !isForceStart)
+		AdminId id = GetUserAdmin(client);
+		bool hasflag = (id != INVALID_ADMIN_ID && GetAdminFlag(id, Admin_Ban)); // Check for specific admin flag
+		
+		if (isForceStart)
 		{
-			SetEngineTime(client);
-			isPlayerReady[client] = false;
+			if (!hasflag) return Plugin_Handled;
+			CancelFullReady(client, forceStartAbort);
 		}
 		else
 		{
-			AdminId id = GetUserAdmin(client);
-			if (id == INVALID_ADMIN_ID || !GetAdminFlag(id, Admin_Ban)) // Check for specific admin flag
+			if (IsPlayer(client))
+			{
+				SetEngineTime(client);
+				isPlayerReady[client] = false;
+			}
+			else if (!hasflag)
 			{
 				return Plugin_Handled;
 			}
+			CancelFullReady(client, readyStatus);
 		}
-		
-		// Client must be a player or an admin with ban flag to request.
-		CancelFullReady(client, readyStatus);
-		
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
@@ -657,7 +659,7 @@ public Action NotCasting_Cmd(int client, int args)
 	else // If a target is specified
 	{
 		AdminId id = GetUserAdmin(client);
-		if (id != INVALID_ADMIN_ID && GetAdminFlag(id, Admin_Ban)) // Check for specific admin flag
+		if (id == INVALID_ADMIN_ID || !GetAdminFlag(id, Admin_Ban)) // Check for specific admin flag
 		{
 			ReplyToCommand(client, "\x01%t", "UnregCasterNonAdmin");
 			return Plugin_Handled;
@@ -705,9 +707,9 @@ public Action AddCasterSteamID_Cmd(int client, int args)
 	GetCmdArg(1, buffer, sizeof(buffer));
 	if (buffer[0] != EOS) 
 	{
+		forbidSelfRegister = true;
 		if (allowedCastersTrie.SetValue(buffer, 1, false))
 		{
-			forbidSelfRegister = true;
 			ReplyToCommand(client, "\x01%t", "CasterDBAdd", buffer);
 		}
 		else ReplyToCommand(client, "\x01%t", "CasterDBFound", buffer);
@@ -726,8 +728,8 @@ public Action RemoveCasterSteamID_Cmd(int client, int args)
 		if (allowedCastersTrie.GetValue(buffer, dummy))
 		{
 			allowedCastersTrie.Remove(buffer);
-			ReplyToCommand(client, "\x01%t", "CasterDBRemove", buffer);
 			if (allowedCastersTrie.Size == 0) forbidSelfRegister = false;
+			ReplyToCommand(client, "\x01%t", "CasterDBRemove", buffer);
 		}
 		else ReplyToCommand(client, "\x01%t", "CasterDBFound", buffer);
 	}
@@ -793,7 +795,6 @@ public Action Hide_Cmd(int client, int args)
 	if (inReadyUp)
 	{
 		hiddenPanel[client] = true;
-		hiddenManually[client] = true;
 		CPrintToChat(client, "%t", "PanelHide");
 		return Plugin_Handled;
 	}
@@ -805,7 +806,6 @@ public Action Show_Cmd(int client, int args)
 	if (inReadyUp)
 	{
 		hiddenPanel[client] = false;
-		hiddenManually[client] = false;
 		CPrintToChat(client, "%t", "PanelShow");
 		return Plugin_Handled;
 	}
@@ -959,6 +959,23 @@ public Action InitLive_Cmd(int client, int args)
 //  Readyup Stuff
 // ========================
 
+void ToggleCommandListeners(bool hook)
+{
+	static bool hooked = false;
+	if (hooked && !hook)
+	{
+		RemoveCommandListener(Say_Callback, "say");
+		RemoveCommandListener(Say_Callback, "say_team");
+		RemoveCommandListener(Vote_Callback, "Vote");
+	}
+	else if (!hooked && hook)
+	{
+		AddCommandListener(Say_Callback, "say");
+		AddCommandListener(Say_Callback, "say_team");
+		AddCommandListener(Vote_Callback, "Vote");
+	}
+}
+
 public int DummyHandler(Handle menu, MenuAction action, int param1, int param2) { }
 
 public Action MenuRefresh_Timer(Handle timer)
@@ -999,23 +1016,6 @@ void PrintCmd()
 
 void UpdatePanel()
 {
-	if (BuiltinVote_IsVoteInProgress())
-	{
-		for (int i = 1; i <= MaxClients; i++)
-		{
-			if (IsClientInGame(i) && IsClientInBuiltinVotePool(i))
-				hiddenPanel[i] = true;
-		}
-	}
-	else
-	{
-		for (int i = 1; i <= MaxClients; i++)
-		{
-			if (IsClientInGame(i) && !hiddenManually[i])
-				hiddenPanel[i] = false;
-		}
-	}
-	
 	char survivorBuffer[800] = "";
 	char infectedBuffer[800] = "";
 	char casterBuffer[600] = "";
@@ -1157,8 +1157,13 @@ void UpdatePanel()
 
 	for (int client = 1; client <= MaxClients; client++)
 	{
-		if (IsClientInGame(client) && !IsFakeClient(client) && !hiddenPanel[client])
+		if (IsClientInGame(client) && !IsFakeClient(client) && !hiddenPanel[client]) 
 		{
+			if (BuiltinVote_IsVoteInProgress() && IsClientInBuiltinVotePool(client))
+			{
+				continue;
+			}
+			
 			menuPanel.Send(client, DummyHandler, 1);
 		}
 	}
@@ -1206,10 +1211,6 @@ void InitiateReadyUp()
 	}
 	footerCounter = 0;
 	
-	AddCommandListener(Say_Callback, "say");
-	AddCommandListener(Say_Callback, "say_team");
-	AddCommandListener(Vote_Callback, "Vote");
-
 	if (IsScavenge())
 	{
 		CreateTimer(0.1, Timer_RemoveCountdown, .flags = TIMER_FLAG_NO_MAPCHANGE);
@@ -1218,6 +1219,8 @@ void InitiateReadyUp()
 	{
 		L4D2_CTimerStart(L4D2CT_VersusStartTimer, 99999.0);
 	}
+	
+	ToggleCommandListeners(true);
 	
 	if (isAutoStartMode)
 	{
@@ -1329,10 +1332,8 @@ void InitiateLive(bool real = true)
 		GameRules_SetProp("m_iVersusDistancePerSurvivor", 0, _,
 				i + 4 * GameRules_GetProp("m_bAreTeamsFlipped"));
 	}
-
-	RemoveCommandListener(Say_Callback, "say");
-	RemoveCommandListener(Say_Callback, "say_team");
-	RemoveCommandListener(Vote_Callback, "Vote");
+	
+	ToggleCommandListeners(false);
 
 	if (real)
 	{
@@ -1433,6 +1434,7 @@ void CancelFullReady(int client, disruptType type)
 			case readyStatus: CPrintToChatAllEx(client, "%t", "DisruptReadyStatus", client);
 			case teamShuffle: CPrintToChatAllEx(client, "%t", "DisruptTeamShuffle", client);
 			case playerDisconn: CPrintToChatAllEx(client, "%t", "DisruptPlayerDisc", client);
+			case forceStartAbort: CPrintToChatAll("%t", "DisruptForceStartAbort", client);
 		}
 	}
 }

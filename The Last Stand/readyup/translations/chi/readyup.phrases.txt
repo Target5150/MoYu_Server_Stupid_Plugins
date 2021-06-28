@@ -1,57 +1,5 @@
 "Phrases"
 {
-// The following uses default color tags (\x01 - \x05)
-	"RegCasterReply"
-	{
-		"#format"	"{1:N}"
-		"chi"		"认证了 \x05{1} \x01为解说"
-	}
-	
-	"CasterSteamIDError"
-	{
-		"chi"		"\x04Steam ID\x01查询失败。  请检查拼写错误，等待玩家加载。"
-	}
-
-	"UnregCasterNonAdmin"
-	{
-		"chi"		"只有 \x03管理员 \x01可以撤销其他人的解说身份。 输入不带参数的 \x04sm_notcasting \x01以解除解说身份。"
-	}
-
-	"UnregCasterSuccess"
-	{
-		"#format"	"{1:N}"
-		"chi"		"\x04{1} \x01已不再是解说。"
-	}
-	
-	"CasterDBReset"
-	{
-		"chi"		"[casters_database] 重置成功"
-	}
-	
-	"CasterDBAdd"
-	{
-		"#format"	"{1:s}"
-		"chi"		"[casters_database] 添加了 '{1}'"
-	}
-	
-	"CasterDBRemove"
-	{
-		"#format"	"{1:s}"
-		"chi"		"[casters_database] 移除了 '{1}'"
-	}
-	
-	"CasterDBFound"
-	{
-		"#format"	"{1:s}"
-		"chi"		"[casters_database] '{1}' 已存在"
-	}
-	
-	"CasterDBError"
-	{
-		"chi"		"[casters_database] 缺少参数 / 空字符串"
-	}
-	
-	
 // The following uses bracket style color tags (see colors.inc)
 	"SelfCastNotAllowed"
 	{
@@ -146,8 +94,64 @@
 		"chi"		"{default}[{green}!{default}] {green}倒数中止！ {default}({teamcolor}{1} {green}离开了游戏{default})"
 	}
 	
+	"DisruptForceStartAbort"
+	{
+		"#format"	"{1:N}"
+		"en"		"{default}[{green}!{default}] {green}叫停强制开始！ {default}({green}由 {olive}{1} {green}负责{default})"
+	}
+	
 	
 // The following are not allowed to use any color tag
+	"RegCasterReply"
+	{
+		"#format"	"{1:N}"
+		"chi"		"认证了 {1} 为解说"
+	}
+	
+	"CasterSteamIDError"
+	{
+		"chi"		"Steam ID查询失败。  请检查拼写错误，等待玩家加载。"
+	}
+
+	"UnregCasterNonAdmin"
+	{
+		"chi"		"只有管理员可以撤销其他人的解说身份。 输入不带参数的 sm_notcasting 以解除解说身份。"
+	}
+
+	"UnregCasterSuccess"
+	{
+		"#format"	"{1:N}"
+		"chi"		"{1} 已不再是解说。"
+	}
+	
+	"CasterDBReset"
+	{
+		"chi"		"[casters_database] 重置成功"
+	}
+	
+	"CasterDBAdd"
+	{
+		"#format"	"{1:s}"
+		"chi"		"[casters_database] 添加了 '{1}'"
+	}
+	
+	"CasterDBRemove"
+	{
+		"#format"	"{1:s}"
+		"chi"		"[casters_database] 移除了 '{1}'"
+	}
+	
+	"CasterDBFound"
+	{
+		"#format"	"{1:s}"
+		"chi"		"[casters_database] '{1}' 已存在"
+	}
+	
+	"CasterDBError"
+	{
+		"chi"		"[casters_database] 缺少参数 / 空字符串"
+	}
+	
 	"KickSpecsVoteTitle"
 	{
 		"chi"		"踢出所有非管理员和解说的旁观？"
