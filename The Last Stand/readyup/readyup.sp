@@ -7,7 +7,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "9.2.2"
+#define PLUGIN_VERSION "9.2.3"
 
 public Plugin myinfo =
 {
@@ -236,6 +236,8 @@ public void OnPluginStart()
 
 	readySurvFreeze = l4d_ready_survivor_freeze.BoolValue;
 	l4d_ready_survivor_freeze.AddChangeHook(SurvFreezeChange);
+	
+	l4d_ready_server_cvar.AddChangeHook(view_as<ConVarChanged>(FillServerNamer));
 }
 
 public void OnPluginEnd()
@@ -267,7 +269,7 @@ void LoadTranslation()
 	LoadTranslations(TRANSLATION_READYUP);
 }
 
-void FillServerNamer()
+public void FillServerNamer()
 {
 	char buffer[64];
 	l4d_ready_server_cvar.GetString(buffer, sizeof buffer);
@@ -453,7 +455,14 @@ public Action OnPlayerRunCmd(int client, int& buttons, int& impulse, float vel[3
 			}
 			else
 			{
-				if (GetEntityFlags(client) & FL_INWATER)
+				/* Check how much the player is submerged
+				- Possible states:
+			    WL_NotInWater=0,
+			    WL_Feet,
+			    WL_Waist,
+			    WL_Eyes 
+			    */
+				if (GetEntProp(client, Prop_Send, "m_nWaterLevel") == 3)
 				{
 					ReturnPlayerToSaferoom(client, false);
 				}
