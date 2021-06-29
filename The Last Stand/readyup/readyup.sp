@@ -556,6 +556,7 @@ public Action Unready_Cmd(int client, int args)
 		{
 			if (!hasflag) return Plugin_Handled;
 			CancelFullReady(client, forceStartAbort);
+			isForceStart = false;
 		}
 		else
 		{
