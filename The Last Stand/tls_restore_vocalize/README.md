@@ -14,6 +14,9 @@
 <hr>
 
 ### Changelog
+- (V1.2.11 2021/7/16)
+	- Address out-of-bound issue of Restore Vocalize
+
 - (V1.2.10 2021/6/2)
 	- Restored previously removed checking to restrict usage.
 	- Replaced `l4d2util` dependency with required functionalites only.
