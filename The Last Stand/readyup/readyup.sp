@@ -7,7 +7,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "9.2.4"
+#define PLUGIN_VERSION "9.2.5"
 
 public Plugin myinfo =
 {
@@ -113,6 +113,7 @@ GlobalForward
 bool
 	isAutoStartMode,
 	inAutoStart;
+	isPlayerInGame[MAXPLAYERS+1];
 Handle
 	autoStartTimer;
 char
@@ -308,11 +309,15 @@ public void PlayerTeam_Event(Event event, const char[] name, bool dontBroadcast)
 	isPlayerReady[client] = false;
 	SetEngineTime(client);
 	
+	int team = event.GetInt("team");
+	int oldteam = event.GetInt("oldteam");
+	
+	if (team != L4D2Team_None)
+		isPlayerInGame[client] = true;
+	
 	if (isAutoStartMode || isForceStart)
 		return;
 	
-	int team = event.GetInt("team");
-	int oldteam = event.GetInt("oldteam");
 	if (team == L4D2Team_None && oldteam != L4D2Team_Spectator) // Player disconnecting
 	{
 		CancelFullReady(client, playerDisconn);
@@ -422,6 +427,7 @@ public void OnClientDisconnect(int client)
 {
 	hiddenPanel[client] = false;
 	isPlayerReady[client] = false;
+	isPlayerInGame[client] = false;
 	g_fButtonTime[client] = 0.0;
 	g_hChangeTeamTimer[client] = null;
 }
@@ -1188,6 +1194,7 @@ void InitiateReadyUp()
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		isPlayerReady[i] = false;
+		isPlayerInGame[i] = false;
 		SetEngineTime(i);
 	}
 
@@ -1600,16 +1607,19 @@ public Action killSound(Handle timer)
 
 public int Native_AddStringToReadyFooter(Handle plugin, int numParams)
 {
-	char footer[MAX_FOOTER_LEN];
-	GetNativeString(1, footer, sizeof(footer));
-	if (footerCounter < MAX_FOOTERS)
+	if (inReadyUp)
 	{
-		int len = strlen(footer);
-		if (0 < len < MAX_FOOTER_LEN && !IsEmptyString(footer, len))
+		char footer[MAX_FOOTER_LEN];
+		GetNativeString(1, footer, sizeof(footer));
+		if (footerCounter < MAX_FOOTERS)
 		{
-			strcopy(readyFooter[footerCounter], MAX_FOOTER_LEN, footer);
-			footerCounter++;
-			return footerCounter-1;
+			int len = strlen(footer);
+			if (0 < len < MAX_FOOTER_LEN && !IsEmptyString(footer, len))
+			{
+				strcopy(readyFooter[footerCounter], MAX_FOOTER_LEN, footer);
+				footerCounter++;
+				return footerCounter-1;
+			}
 		}
 	}
 	return -1;
@@ -1617,16 +1627,19 @@ public int Native_AddStringToReadyFooter(Handle plugin, int numParams)
 
 public int Native_EditFooterStringAtIndex(Handle plugin, int numParams)
 {
-	char newString[MAX_FOOTER_LEN];
-	GetNativeString(2, newString, sizeof(newString));
-	int index = GetNativeCell(1);
-	
-	if (footerCounter < MAX_FOOTERS)
+	if (inReadyUp)
 	{
-		if (strlen(newString) < MAX_FOOTER_LEN)
+		char newString[MAX_FOOTER_LEN];
+		GetNativeString(2, newString, sizeof(newString));
+		int index = GetNativeCell(1);
+		
+		if (footerCounter < MAX_FOOTERS)
 		{
-			readyFooter[index] = newString;
-			return true;
+			if (strlen(newString) < MAX_FOOTER_LEN)
+			{
+				readyFooter[index] = newString;
+				return true;
+			}
 		}
 	}
 	return false;
@@ -1634,30 +1647,35 @@ public int Native_EditFooterStringAtIndex(Handle plugin, int numParams)
 
 public int Native_FindIndexOfFooterString(Handle plugin, int numParams)
 {
-	char stringToSearchFor[MAX_FOOTER_LEN];
-	GetNativeString(1, stringToSearchFor, sizeof(stringToSearchFor));
-	
-	for (int i = 0; i < footerCounter; i++){
-		if (strlen(readyFooter[i]) == 0) continue;
+	if (inReadyUp)
+	{
+		char stringToSearchFor[MAX_FOOTER_LEN];
+		GetNativeString(1, stringToSearchFor, sizeof(stringToSearchFor));
 		
-		if (StrContains(readyFooter[i], stringToSearchFor, false) > -1){
-			return i;
+		for (int i = 0; i < footerCounter; i++){
+			if (strlen(readyFooter[i]) == 0) continue;
+			
+			if (StrContains(readyFooter[i], stringToSearchFor, false) > -1){
+				return i;
+			}
 		}
 	}
-	
 	return -1;
 }
 
 public int Native_GetFooterStringAtIndex(Handle plugin, int numParams)
 {
-	int index = GetNativeCell(1), maxlen = GetNativeCell(3);
-	char buffer[MAX_FOOTER_LEN];
-	
-	if (index < MAX_FOOTERS) {
-		strcopy(buffer, sizeof(buffer), readyFooter[index]);
+	if (inReadyUp)
+	{
+		int index = GetNativeCell(1), maxlen = GetNativeCell(3);
+		char buffer[MAX_FOOTER_LEN];
+		
+		if (index < MAX_FOOTERS) {
+			strcopy(buffer, sizeof(buffer), readyFooter[index]);
+		}
+		
+		SetNativeString(2, buffer, maxlen, true);
 	}
-	
-	SetNativeString(2, buffer, maxlen, true);
 }
 
 public int Native_IsInReady(Handle plugin, int numParams)
@@ -1717,7 +1735,7 @@ stock bool IsAnyPlayerLoading()
 {
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (IsClientConnected(i) && (!IsClientInGame(i) || GetClientTeam(i) == L4D2Team_None))
+		if (IsClientConnected(i) && !isPlayerInGame[i] /*(!IsClientInGame(i) || GetClientTeam(i) == L4D2Team_None)*/)
 		{
 			return true;
 		}
@@ -1731,9 +1749,13 @@ stock int GetSeriousClientCount(bool inGame = false)
 	
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if ((inGame ? IsClientInGame(i) : IsClientConnected(i)))
+		if (inGame)
 		{
-			if (!IsFakeClient(i)) clients++;
+			if (isPlayerInGame[i] && !IsFakeClient(i)) clients++;
+		}
+		else
+		{
+			if (IsClientConnected(i) && !IsFakeClient(i)) clients++;
 		}
 	}
 	

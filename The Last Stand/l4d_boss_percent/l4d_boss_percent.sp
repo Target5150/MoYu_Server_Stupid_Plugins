@@ -24,7 +24,7 @@ out what's going on :D Kinda makes my other plugins look bad huh :/
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "3.2.1"
+#define PLUGIN_VERSION "3.2.2"
 
 public Plugin myinfo =
 {
@@ -56,6 +56,11 @@ ConVar g_hCvarGlobalPercent;											// Determines if Percents will be display
 ConVar g_hCvarTankPercent; 												// Determines if Tank Percents will be displayed on ready-up and when boss percentage command is used
 ConVar g_hCvarWitchPercent; 											// Determines if Witch Percents will be displayed on ready-up and when boss percentage command is used
 ConVar g_hCvarBossVoting; 												// Determines if boss voting will be enabled
+
+// ConVar Storages
+bool g_bCvarGlobalPercent;
+bool g_bCvarTankPercent;
+bool g_bCvarWitchPercent;
 
 // Handles
 //ConVar g_hVsBossBuffer; 												// Boss Buffer
@@ -91,6 +96,8 @@ int bv_iWitch;															// Where we will keep our requested Witch percentag
 // Percent Variables
 int g_fWitchPercent;													// Stores current Witch Percent
 int g_fTankPercent;														// Stores current Tank Percent
+char g_sWitchString[80];
+char g_sTankString[80];
 
 public void OnPluginStart()
 {
@@ -98,11 +105,11 @@ public void OnPluginStart()
 	//g_hVsBossBuffer = FindConVar("versus_boss_buffer"); // Get the boss buffer
 	g_hVsBossFlowMin = FindConVar("versus_boss_flow_min"); // Get boss flow min
 	g_hVsBossFlowMax = FindConVar("versus_boss_flow_max"); // Get boss flow max
-	g_hStaticWitchMaps = CreateTrie(); // Create list of static witch maps
-	g_hStaticTankMaps = CreateTrie(); // Create list of static tank maps
+	g_hStaticWitchMaps = new StringMap(); // Create list of static witch maps
+	g_hStaticTankMaps = new StringMap(); // Create list of static tank maps
 	
 	// Forwards
-	g_forwardUpdateBosses = CreateGlobalForward("OnUpdateBosses", ET_Event);
+	g_forwardUpdateBosses = new GlobalForward("OnUpdateBosses", ET_Event);
 
 	// ConVars
 	g_hCvarGlobalPercent = CreateConVar("l4d_global_percent", "0", "Display boss percentages to entire team when using commands"); // Sets if Percents will be displayed to entire team when boss percentage command is used
@@ -110,6 +117,12 @@ public void OnPluginStart()
 	g_hCvarWitchPercent = CreateConVar("l4d_witch_percent", "1", "Display Witch flow percentage in chat"); // Sets if Witch Percents will be displayed on ready-up and when boss percentage command is used
 	g_hCvarBossVoting = CreateConVar("l4d_boss_vote", "1", "Enable boss voting"); // Sets if boss voting is enabled or disabled
 
+	g_hCvarGlobalPercent.AddChangeHook(view_as<ConVarChanged>(GetCvars));
+	g_hCvarTankPercent.AddChangeHook(view_as<ConVarChanged>(GetCvars));
+	g_hCvarWitchPercent.AddChangeHook(view_as<ConVarChanged>(GetCvars));
+	
+	GetCvars();
+	
 	// Commands
 	RegConsoleCmd("sm_boss", BossCmd); // Used to see percentages of both bosses
 	RegConsoleCmd("sm_tank", BossCmd); // Used to see percentages of both bosses
@@ -131,6 +144,13 @@ public void OnPluginStart()
 	HookEvent("player_say", DKRWorkaround, EventHookMode_Post); // Called when a message is sent in chat. Used to grab the Dark Carnival: Remix boss percentages.
 }
 
+public void GetCvars()
+{
+	g_bCvarGlobalPercent = g_hCvarGlobalPercent.BoolValue;
+	g_bCvarTankPercent = g_hCvarTankPercent.BoolValue;
+	g_bCvarWitchPercent = g_hCvarWitchPercent.BoolValue;
+}
+
 /* ========================================================
 // ====================== Section #1 ======================
 // ======================= Natives ========================
@@ -145,8 +165,7 @@ public void OnPluginStart()
 // Allows other plugins to update boss percentages
 public int Native_UpdateBossPercents(Handle plugin, int numParams){
 	CreateTimer(0.1, GetBossPercents);
-	if (!g_hUpdateFooterTimer)
-		g_hUpdateFooterTimer = CreateTimer(0.2, UpdateReadyUpFooter);
+	UpdateReadyUpFooter(0.2);
 }
 
 // Allows other plugins to check if the current map contains a static witch spawn
@@ -168,18 +187,14 @@ public int Native_IsDarkCarniRemix(Handle plugin, int numParams){
 // YOU NEED TO SET THIS EVERY MAP
 public int Native_SetWitchDisabled(Handle plugin, int numParams){
 	g_bWitchDisabled = view_as<bool>(GetNativeCell(1));
-	 
-	if (!g_hUpdateFooterTimer)
-		g_hUpdateFooterTimer = CreateTimer(0.2, UpdateReadyUpFooter);
+	UpdateReadyUpFooter();
 }
 
 // Other plugins can use this to set the tank as "disabled" on the ready up, and when the !boss command is used
 // YOU NEED TO SET THIS EVERY MAP
 public int Native_SetTankDisabled(Handle plugin, int numParams){
 	g_bTankDisabled = view_as<bool>(GetNativeCell(1));
-	
-	if (!g_hUpdateFooterTimer)
-		g_hUpdateFooterTimer = CreateTimer(0.1, UpdateReadyUpFooter);
+	UpdateReadyUpFooter();
 }
 
 // Used for other plugins to get the stored witch percent
@@ -201,9 +216,7 @@ public int Native_GetReadyUpFooterIndex(Handle plugin, int numParams){
 // Used for other plugins to refresh the boss percents on the ready up
 public int Native_RefreshReadyUp(Handle plugin, int numParams){
 	if (g_ReadyUpAvailable) {
-		if (!g_hUpdateFooterTimer)
-			g_hUpdateFooterTimer = CreateTimer(0.1, UpdateReadyUpFooter);
-			
+		UpdateReadyUpFooter();
 		return true;
 	}
 	else return false;
@@ -250,7 +263,7 @@ public void OnLibraryAdded(const char[] name)
 
 // Called when a new map is loaded
 public void OnMapStart()
-{		
+{
 
 	// Get Current Map
 	GetCurrentMap(g_sCurrentMap, sizeof(g_sCurrentMap));
@@ -281,13 +294,7 @@ public void OnMapEnd()
 public void LeftStartAreaEvent(Event event, const char[] name, bool dontBroadcast)
 {
 	if (!g_ReadyUpAvailable) {
-		for (int client = 1; client <= MaxClients; client++)
-		{
-			if (IsClientInGame(client)) 
-			{
-				PrintBossMiddleMan(client);
-			}
-		}
+		PrintBossPercents();
 		
 		// If it's the first round of a Dark Carnival: Remix map, we want to save our boss percentages so we can set them next round
 		if (g_bIsRemix && !InSecondHalfOfRound()) {
@@ -304,13 +311,7 @@ public void LeftStartAreaEvent(Event event, const char[] name, bool dontBroadcas
 */
 public void OnRoundIsLive()
 {
-	for (int client = 1; client <= MaxClients; client++)
-	{
-		if (IsClientInGame(client)) 
-		{
-			PrintBossMiddleMan(client);
-		}
-	}
+	PrintBossPercents();
 	
 	// If it's the first round of a Dark Carnival: Remix map, we want to save our boss percentages so we can set them next round
 	if (g_bIsRemix && !InSecondHalfOfRound()) {
@@ -333,8 +334,7 @@ public void RoundStartEvent(Event event, const char[] name, bool dontBroadcast)
 	
 	// Find percentages and update readyup footer
 	CreateTimer(5.0, GetBossPercents);
-	if (!g_hUpdateFooterTimer)
-		g_hUpdateFooterTimer = CreateTimer(6.0, UpdateReadyUpFooter);
+	UpdateReadyUpFooter(6.0);
 }
 
 /* ========================================================
@@ -365,27 +365,17 @@ public Action StaticTankMap_Command(int args)
 }
 
 // Checks the static witch map list to see if the current map contains a static witch spawn
-public bool IsStaticWitchMap()
+bool IsStaticWitchMap()
 {
 	bool tempValue;
-	if (GetTrieValue(g_hStaticWitchMaps, g_sCurrentMap, tempValue)) {
-		return true;				
-	}
-	else {
-		return false;
-	}
+	return GetTrieValue(g_hStaticWitchMaps, g_sCurrentMap, tempValue);
 }
 
 // Checks the static tank map list to see if the current map contains a static tank spawn
-public bool IsStaticTankMap()
+bool IsStaticTankMap()
 {
 	bool tempValue;
-	if (GetTrieValue(g_hStaticTankMaps, g_sCurrentMap, tempValue)) {
-		return true;				
-	}
-	else {
-		return false;
-	}
+	return GetTrieValue(g_hStaticTankMaps, g_sCurrentMap, tempValue);
 }
 
 /* ========================================================
@@ -403,7 +393,7 @@ public bool IsStaticTankMap()
 */
 
 // Check if the current map name is equal to and of the Dark Carnival: Remix map names
-public bool IsDKR()
+bool IsDKR()
 {
 	if (StrEqual(g_sCurrentMap, "dkr_m1_motel", true) || StrEqual(g_sCurrentMap, "dkr_m2_carnival", true) || StrEqual(g_sCurrentMap, "dkr_m3_tunneloflove", true) || StrEqual(g_sCurrentMap, "dkr_m4_ferris", true) || StrEqual(g_sCurrentMap, "dkr_m5_stadium", true))
 	{
@@ -414,7 +404,7 @@ public bool IsDKR()
 }
 
 // Finds a percentage from a string
-public int GetPercentageFromText(const char[] text)
+int GetPercentageFromText(const char[] text)
 {
 	// Check to see if text contains '%' - Store the index if it does
 	int index = StrContains(text, "%", false);
@@ -450,7 +440,7 @@ public int GetPercentageFromText(const char[] text)
  * From there we can add them to our Ready Up menu and to our !boss commands
  *
  */
-public Action DKRWorkaround(Event event, const char[] name, bool dontBroadcast)
+public void DKRWorkaround(Event event, const char[] name, bool dontBroadcast)
 {
 	// If the current map is not part of the Dark Carnival: Remix campaign, don't continue
 	if (!g_bIsRemix) return;
@@ -514,8 +504,7 @@ public Action DKRWorkaround(Event event, const char[] name, bool dontBroadcast)
 		//	g_bDKRFirstRoundBossesSet = true;
 		//}
 		
-		if (!g_hUpdateFooterTimer)
-			g_hUpdateFooterTimer = CreateTimer(0.1, UpdateReadyUpFooter);
+		UpdateReadyUpFooter();
 	}
 }
 
@@ -645,6 +634,9 @@ public Action GetBossPercents(Handle timer)
 			
 		}
 	}
+	
+	// Finally build up our string for effiency, yea.
+	ProcessBossString();
 }
 
 /* 
@@ -654,7 +646,24 @@ public Action GetBossPercents(Handle timer)
  * This method will be called upon every new round
  *
  */
-public Action UpdateReadyUpFooter(Handle timer) 
+void UpdateReadyUpFooter(float interval = 0.1)
+{
+	static float fPrevTime = 0.0;
+	
+	if (fPrevTime == 0.0)
+		fPrevTime = GetEngineTime();
+	
+	float fTime = GetEngineTime() + interval;
+	if (fTime < fPrevTime)
+		return;
+	
+	fPrevTime = fTime;
+	
+	if (g_hUpdateFooterTimer == null)
+		g_hUpdateFooterTimer = CreateTimer(interval, Timer_UpdateReadyUpFooter);
+}
+
+public Action Timer_UpdateReadyUpFooter(Handle timer) 
 {
 	g_hUpdateFooterTimer = null;
 	
@@ -713,15 +722,15 @@ public Action UpdateReadyUpFooter(Handle timer)
 		}
 		
 		// Combine our Tank and Witch strings together
-		if (GetConVarBool(g_hCvarWitchPercent) && GetConVarBool(g_hCvarTankPercent)) // Display Both Tank and Witch Percent
+		if (g_bCvarWitchPercent && g_bCvarTankPercent) // Display Both Tank and Witch Percent
 		{
 			Format(p_sNewFooter, sizeof(p_sNewFooter), "%s, %s", p_sTankString, p_sWitchString);
 		}
-		else if (GetConVarBool(g_hCvarWitchPercent)) // Display just Witch Percent
+		else if (g_bCvarWitchPercent) // Display just Witch Percent
 		{
 			Format(p_sNewFooter, sizeof(p_sNewFooter), "%s", p_sWitchString);
 		}
-		else if (GetConVarBool(g_hCvarTankPercent)) // Display just Tank Percent
+		else if (g_bCvarTankPercent) // Display just Tank Percent
 		{
 			Format(p_sNewFooter, sizeof(p_sNewFooter), "%s", p_sTankString);
 		}	
@@ -754,24 +763,21 @@ public Action UpdateReadyUpFooter(Handle timer)
 public Action BossCmd(int client, int args)
 {
 	// Show our boss percents
-	PrintBossPercents(INVALID_HANDLE, client);
-	CreateTimer(0.1, PrintCurrent, client);
+	if (client)
+	{
+		PrintBossPercents(client);
+		RequestFrame(PrintCurrent, GetClientUserId(client));
+	}
 }
 
-public Action PrintCurrent(Handle timer, int client) {
-	FakeClientCommand(client, "say /current");
+public void PrintCurrent(int userid) {
+	int client = GetClientOfUserId(userid);
+	if (client) FakeClientCommand(client, "say /current");
 }
 
-public void PrintBossMiddleMan(int client) {
-	// Show our boss percents
-	PrintBossPercents(INVALID_HANDLE, client);
-}
-
-public Action PrintBossPercents(Handle timer, int client)
+void ProcessBossString()
 {
 	// Create some variables
-	char p_sTankString[80]; // Private Variable - Where our formatted Tank string will be kept
-	char p_sWitchString[80]; // Private Variable - Where our formatted Witch string will be kept
 	bool p_bStaticTank; // Private Variable - Stores if current map contains static tank spawn
 	bool p_bStaticWitch; // Private Variable - Stores if current map contains static witch spawn
 
@@ -787,71 +793,85 @@ public Action PrintBossPercents(Handle timer, int client)
 	// Format String For Tank
 	if (g_fTankPercent > 0) // If Tank percent is not equal to 0
 	{
-		Format(p_sTankString, sizeof(p_sTankString), "<{olive}Tank{default}> {red}%d%%", g_fTankPercent);
+		Format(g_sTankString, sizeof(g_sTankString), "<{olive}Tank{default}> {red}%d%%", g_fTankPercent);
 	}  
 	else if (g_bTankDisabled) // If another plugin has disabled the tank
 	{
-		Format(p_sTankString, sizeof(p_sTankString), "<{olive}Tank{default}> {red}Disabled");
+		Format(g_sTankString, sizeof(g_sTankString), "<{olive}Tank{default}> {red}Disabled");
 	} 
 	else if (p_bStaticTank) // If current map has static Tank spawn
 	{
-		Format(p_sTankString, sizeof(p_sTankString), "<{olive}Tank{default}> {red}Static Spawn");
+		Format(g_sTankString, sizeof(g_sTankString), "<{olive}Tank{default}> {red}Static Spawn");
 	} 
 	else // There is no Tank
 	{
-		Format(p_sTankString, sizeof(p_sTankString), "<{olive}Tank{default}> {red}None");
+		Format(g_sTankString, sizeof(g_sTankString), "<{olive}Tank{default}> {red}None");
 	}
 	
 	// Format String For Witch
 	if (g_fWitchPercent > 0) // If Witch percent is not equal to 0
 	{
-		Format(p_sWitchString, sizeof(p_sWitchString), "<{olive}Witch{default}> {red}%d%%", g_fWitchPercent);
+		Format(g_sWitchString, sizeof(g_sWitchString), "<{olive}Witch{default}> {red}%d%%", g_fWitchPercent);
 	}  
 	else if (g_bWitchDisabled) // If another plugin has disabled the witch
 	{
-		Format(p_sWitchString, sizeof(p_sWitchString), "<{olive}Witch{default}> {red}Disabled");
+		Format(g_sWitchString, sizeof(g_sWitchString), "<{olive}Witch{default}> {red}Disabled");
 	} 
 	else if (p_bStaticWitch) // If current map has static Witch spawn
 	{
-		Format(p_sWitchString, sizeof(p_sWitchString), "<{olive}Witch{default}> {red}Static Spawn");
+		Format(g_sWitchString, sizeof(g_sWitchString), "<{olive}Witch{default}> {red}Static Spawn");
 	} 
 	else // There is no Witch
 	{
-		Format(p_sWitchString, sizeof(p_sWitchString), "<{olive}Witch{default}> {red}None");
+		Format(g_sWitchString, sizeof(g_sWitchString), "<{olive}Witch{default}> {red}None");
 	}
-	
+}
+
+void PrintBossPercents(int client = 0)
+{
 	// Print Messages to client
 	
-	if (GetConVarBool(g_hCvarTankPercent))
+	int teamflag = 0;
+	
+	if (!client)
 	{
-		if (GetConVarBool(g_hCvarGlobalPercent))
+		teamflag = (1 << 4) - 2; // without team 0
+	}
+	else if (g_bCvarGlobalPercent)
+	{
+		int team = GetClientTeam(client);
+		if (team > 1)
+			teamflag = (1 << team);
+	}
+	
+	if (g_bCvarTankPercent)
+	{
+		if (teamflag > 0)
 		{
-			int team = GetClientTeam(client);
 			for (int i = 1; i <= MaxClients; i++)
 			{
-				if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) == team)
-					CPrintToChat(i, p_sTankString);
+				if (IsClientInGame(i) && !IsFakeClient(i) && (teamflag & (1 << GetClientTeam(i))))
+					CPrintToChat(i, g_sTankString);
 			}
 		}
 		else
 		{
-			if (IsClientInGame(client)) CPrintToChat(client, p_sTankString);
+			CPrintToChat(client, g_sTankString);
 		}
 	}
-	if (GetConVarBool(g_hCvarWitchPercent))
+	if (g_bCvarWitchPercent)
 	{
-		if (GetConVarBool(g_hCvarGlobalPercent))
+		if (teamflag > 0)
 		{
-			int team = GetClientTeam(client);
 			for (int i = 1; i <= MaxClients; i++)
 			{
-				if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) == team)
-					CPrintToChat(i, p_sWitchString);
+				if (IsClientInGame(i) && !IsFakeClient(i) && (teamflag & (1 << GetClientTeam(i))))
+					CPrintToChat(i, g_sWitchString);
 			}
 		}
 		else
 		{
-			if (IsClientInGame(client)) CPrintToChat(client, p_sWitchString);
+			CPrintToChat(client, g_sWitchString);
 		}
 	}
 }
@@ -872,19 +892,23 @@ public Action UpdatedForward(Handle timer)
 	Call_Finish();
 }
 
-public bool IsInteger(const char[] buffer)
+bool IsInteger(const char[] buffer)
 {
-    int len = strlen(buffer);
-    for (int i = 0; i < len; i++)
-    {
-        if ( !IsCharNumeric(buffer[i]) )
-            return false;
-    }
+	// negative check
+	if ( !IsCharNumeric(buffer[0]) && buffer[0] != '-' )
+		return false;
+	
+	int len = strlen(buffer);
+	for (int i = 1; i < len; i++)
+	{
+		if ( !IsCharNumeric(buffer[i]) )
+			return false;
+	}
 
-    return true;    
+	return true;
 }
 
-public bool RunVoteChecks(int client)
+bool RunVoteChecks(int client)
 {
 	if (g_bIsRemix)
 	{
@@ -904,6 +928,11 @@ public bool RunVoteChecks(int client)
 	if (GetClientTeam(client) == 1)
 	{
 		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Boss voting is not available for spectators.");
+		return false;
+	}
+	if (!IsNewBuiltinVoteAllowed())
+	{
+		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Boss Vote cannot be called right now...");
 		return false;
 	}
 	return true;
@@ -933,15 +962,18 @@ public Action VoteBossCmd(int client, int args)
 	}
 	
 	// Get Requested Boss Percents
-	char bv_sTank[32];
-	char bv_sWitch[32];
-	GetCmdArg(1, bv_sTank, 32);
-	GetCmdArg(2, bv_sWitch, 32);
+	char bv_sTank[8];
+	char bv_sWitch[8];
+	GetCmdArg(1, bv_sTank, 8);
+	GetCmdArg(2, bv_sWitch, 8);
+	
+	bv_iTank = -1;
+	bv_iWitch = -1;
 	
 	// Make sure the args are actual numbers
 	if (!IsInteger(bv_sTank) || !IsInteger(bv_sWitch))
 	{
-		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Boss percentages are {olive}Invalid{default}.");
+		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Percentages are {olive}invalid{default}.");
 		return;
 	}
 	
@@ -969,60 +1001,66 @@ public Action VoteBossCmd(int client, int args)
 	// Check if percent is within limits
 	if (!ValidateFlow(bv_iTank, bv_iWitch, bv_bTank, bv_bWitch))
 	{
-		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Boss percentages are {olive}Invalid{default} or {olive}Banned{default}.");
+		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Percentages are {blue}banned{default}.");
 		return;
 	}
 	
-	// Check if a new vote is allowed to be called
-	if (IsNewBuiltinVoteAllowed())
+	char bv_voteTitle[64];
+	
+	// Set vote title
+	if (bv_bTank && bv_bWitch)	// Both Tank and Witch can be changed 
 	{
-		char bv_voteTitle[64];
-		
-		// Set vote title
-		if (bv_bTank && bv_bWitch)	// Both Tank and Witch can be changed 
+		Format(bv_voteTitle, 64, "Set Tank to: %s and Witch to: %s?", bv_sTank, bv_sWitch);
+	}
+	else if (bv_bTank)	// Only Tank can be changed
+	{
+		if (bv_iWitch == 0)
 		{
-			Format(bv_voteTitle, 64, "Set Tank to: %s and Witch to: %s?", bv_sTank, bv_sWitch);
+			Format(bv_voteTitle, 64, "Set Tank to: %s and Witch to: Disabled?", bv_sTank);
 		}
-		else if (bv_bTank)	// Only Tank can be changed
+		else
 		{
-			if (bv_iWitch == 0)
-			{
-				Format(bv_voteTitle, 64, "Set Tank to: %s and Witch to: Disabled?", bv_sTank);
-			}
-			else
-			{
-				Format(bv_voteTitle, 64, "Set Tank to: %s?", bv_sTank);
-			}
+			Format(bv_voteTitle, 64, "Set Tank to: %s?", bv_sTank);
 		}
-		else if (bv_bWitch) // Only Witch can be changed
+	}
+	else if (bv_bWitch) // Only Witch can be changed
+	{
+		if (bv_iTank == 0)
 		{
-			if (bv_iTank == 0)
-			{
-				Format(bv_voteTitle, 64, "Set Tank to: Disabled and Witch to: %s?", bv_sWitch);
-			}
-			else
-			{
-				Format(bv_voteTitle, 64, "Set Witch to: %s?", bv_sWitch);
-			}
+			Format(bv_voteTitle, 64, "Set Tank to: Disabled and Witch to: %s?", bv_sWitch);
 		}
-		else // Neither can be changed... ok...
+		else
+		{
+			Format(bv_voteTitle, 64, "Set Witch to: %s?", bv_sWitch);
+		}
+	}
+	else // Neither can be changed... ok...
+	{
+		if (bv_iTank == 0 && bv_iWitch == 0)
 		{
 			Format(bv_voteTitle, 64, "Set Bosses to: Disabled?");
 		}
-		
-		// Start the vote!
-		bv_hVote = CreateBuiltinVote(BossVoteActionHandler, BuiltinVoteType_Custom_YesNo, BuiltinVoteAction_Cancel | BuiltinVoteAction_VoteEnd | BuiltinVoteAction_End);
-		SetBuiltinVoteArgument(bv_hVote, bv_voteTitle);
-		SetBuiltinVoteInitiator(bv_hVote, client);
-		SetBuiltinVoteResultCallback(bv_hVote, BossVoteResultHandler);
-		DisplayBuiltinVote(bv_hVote, iPlayers, iNumPlayers, 20);
-		FakeClientCommand(client, "Vote Yes");
+		else if (bv_iTank == 0)
+		{
+			Format(bv_voteTitle, 64, "Set Tank to: Disabled?");
+		}
+		else if (bv_iWitch == 0)
+		{
+			Format(bv_voteTitle, 64, "Set Witch to: Disabled?");
+		}
+		else // Probably not.
+		{
+			return;
+		}
 	}
-	else
-	{
-		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Boss Vote cannot be called right now...");
-		return;
-	}
+	
+	// Start the vote!
+	bv_hVote = CreateBuiltinVote(BossVoteActionHandler, BuiltinVoteType_Custom_YesNo, BuiltinVoteAction_Cancel | BuiltinVoteAction_VoteEnd | BuiltinVoteAction_End);
+	SetBuiltinVoteArgument(bv_hVote, bv_voteTitle);
+	SetBuiltinVoteInitiator(bv_hVote, client);
+	SetBuiltinVoteResultCallback(bv_hVote, BossVoteResultHandler);
+	DisplayBuiltinVote(bv_hVote, iPlayers, iNumPlayers, 20);
+	FakeClientCommand(client, "Vote Yes");
 }
 
 public void BossVoteActionHandler(Handle vote, BuiltinVoteAction action, int param1, int param2)
@@ -1041,7 +1079,7 @@ public void BossVoteActionHandler(Handle vote, BuiltinVoteAction action, int par
 	}
 }
 
-public int BossVoteResultHandler(Handle vote, int num_votes, int num_clients, const int[][] client_info, int num_items, const int[][] item_info)
+public void BossVoteResultHandler(Handle vote, int num_votes, int num_clients, const int[][] client_info, int num_items, const int[][] item_info)
 {
 	for (int i=0; i<num_items; i++)
 	{
@@ -1060,32 +1098,26 @@ public int BossVoteResultHandler(Handle vote, int num_votes, int num_clients, co
 				if (bv_bTank && bv_bWitch)	// Both Tank and Witch can be changed 
 				{
 					DisplayBuiltinVotePass(vote, "Setting Boss Spawns...");
-					SetTankPercent(bv_iTank);
-					SetWitchPercent(bv_iWitch);
 				}
 				else if (bv_bTank)	// Only Tank can be changed -- Witch must be static
 				{
 					DisplayBuiltinVotePass(vote, "Setting Tank Spawn...");
-					SetTankPercent(bv_iTank);
-					if (!IsStaticWitchMap()) SetWitchPercent(0);
 				}
 				else if (bv_bWitch) // Only Witch can be changed -- Tank must be static
 				{
 					DisplayBuiltinVotePass(vote, "Setting Witch Spawn...");
-					if (!IsStaticTankMap()) SetTankPercent(0);
-					SetWitchPercent(bv_iWitch);
 				}
 				else // Neither can be changed... ok...
 				{
 					DisplayBuiltinVotePass(vote, "Setting Boss Disabled...");
-					if (!IsStaticTankMap()) SetTankPercent(0);
-					if (!IsStaticWitchMap()) SetWitchPercent(0);
 				}
+				
+				SetTankPercent(bv_iTank);
+				SetWitchPercent(bv_iWitch);
 				
 				// Update our shiz yo
 				CreateTimer(0.1, GetBossPercents);
-				if (!g_hUpdateFooterTimer)
-					g_hUpdateFooterTimer = CreateTimer(0.2, UpdateReadyUpFooter);
+				UpdateReadyUpFooter(0.2);
 				
 				// Forward da message man :)
 				Call_StartForward(g_forwardUpdateBosses);
@@ -1102,7 +1134,10 @@ public int BossVoteResultHandler(Handle vote, int num_votes, int num_clients, co
 }
 
 // credit to SirPlease
-bool ValidateFlow(int iTank = -1, int iWitch = -1, bool bTank = false, bool bWitch = false)
+bool ValidateFlow(int iTankFlow = -1,
+				int iWitchFlow = -1,
+				bool bCheckTank = false,
+				bool bCheckWitch = false)
 {
 	int iBossMinFlow = RoundToCeil(GetConVarFloat(g_hVsBossFlowMin) * 100);
 	int iBossMaxFlow = RoundToFloor(GetConVarFloat(g_hVsBossFlowMax) * 100);
@@ -1111,49 +1146,56 @@ bool ValidateFlow(int iTank = -1, int iWitch = -1, bool bTank = false, bool bWit
 	iBossMinFlow = L4D2_GetMapValueInt("versus_boss_flow_min", iBossMinFlow);
 	iBossMaxFlow = L4D2_GetMapValueInt("versus_boss_flow_max", iBossMaxFlow);
 
-	if (bTank)
+	if (bCheckTank)
 	{
-		int iMinBanFlow = L4D2_GetMapValueInt("tank_ban_flow_min", -1);
-		int iMaxBanFlow = L4D2_GetMapValueInt("tank_ban_flow_max", -1);
-		int iMinBanFlowB = L4D2_GetMapValueInt("tank_ban_flow_min_b", -1);
-		int iMaxBanFlowB = L4D2_GetMapValueInt("tank_ban_flow_max_b", -1);
-		int iMinBanFlowC = L4D2_GetMapValueInt("tank_ban_flow_min_c", -1);
-		int iMaxBanFlowC = L4D2_GetMapValueInt("tank_ban_flow_max_c", -1);
+		if (iTankFlow < iBossMinFlow || iBossMaxFlow < iTankFlow)
+			return false;
 		
-		if (!(iBossMinFlow <= iTank && iTank <= iBossMaxFlow)
-				|| (iMinBanFlow <= iTank && iTank <= iMaxBanFlow)
-				|| (iMinBanFlowB <= iTank && iTank <= iMaxBanFlowB)
-				|| (iMinBanFlowC <= iTank && iTank <= iMaxBanFlowC))
+		int iMinBanFlow = L4D2_GetMapValueInt("tank_ban_flow_min", 101);
+		int iMaxBanFlow = L4D2_GetMapValueInt("tank_ban_flow_max", 101);
+		int iMinBanFlowB = L4D2_GetMapValueInt("tank_ban_flow_min_b", 101);
+		int iMaxBanFlowB = L4D2_GetMapValueInt("tank_ban_flow_max_b", 101);
+		int iMinBanFlowC = L4D2_GetMapValueInt("tank_ban_flow_min_c", 101);
+		int iMaxBanFlowC = L4D2_GetMapValueInt("tank_ban_flow_max_c", 101);
+		
+		if ((iMinBanFlow <= iTankFlow <= iMaxBanFlow)
+		|| (iMinBanFlowB <= iTankFlow <= iMaxBanFlowB)
+		|| (iMinBanFlowC <= iTankFlow <= iMaxBanFlowC))
 			return false;
 	}
 	
-	if (bWitch)
+	if (bCheckWitch)
 	{
 		iBossMinFlow = L4D2_GetMapValueInt("witch_flow_min", iBossMinFlow);
 		iBossMaxFlow = L4D2_GetMapValueInt("witch_flow_max", iBossMaxFlow);
 		
-		if (iWitch < iBossMinFlow || iBossMaxFlow < iWitch)
+		if (iWitchFlow < iBossMinFlow || iBossMaxFlow < iWitchFlow)
 			return false;
 	}
 	
-	// 1. Any boss change is requested and passes validation
-	// 2. Neither is requested and voter wants both to be disabled
-	return (bTank || bWitch) ^ (iTank == 0 || iWitch == 0);
+	// Any boss change is requested and passes validation
+	// Any boss disabling is requested
+	return bCheckTank || bCheckWitch || iTankFlow == 0 || iWitchFlow == 0;
 }
 
-public void SetWitchPercent(int percent)
+void SetWitchPercent(int percent)
 {
-	float p_newPercent;
-	p_newPercent = float(percent);
+	if (IsStaticWitchMap())
+		return;
 	
-	if (p_newPercent == 0)
+	if (percent == -1)
+		return;
+	
+	g_bWitchDisabled = (percent == 0);
+	
+	if (percent == 0)
 	{
 		L4D2Direct_SetVSWitchFlowPercent(0, 0.0);
 		L4D2Direct_SetVSWitchFlowPercent(1, 0.0);
 		L4D2Direct_SetVSWitchToSpawnThisRound(0, false);
 		L4D2Direct_SetVSWitchToSpawnThisRound(1, false);
 	}
-	else if (p_newPercent == 100.0)
+	else if (percent == 100)
 	{
 		L4D2Direct_SetVSWitchFlowPercent(0, 1.0);
 		L4D2Direct_SetVSWitchFlowPercent(1, 1.0);
@@ -1162,7 +1204,7 @@ public void SetWitchPercent(int percent)
 	}
 	else
 	{
-		p_newPercent = (p_newPercent/100);
+		float p_newPercent = (float(percent)/100);
 		L4D2Direct_SetVSWitchFlowPercent(0, p_newPercent);
 		L4D2Direct_SetVSWitchFlowPercent(1, p_newPercent);
 		L4D2Direct_SetVSWitchToSpawnThisRound(0, true);
@@ -1170,19 +1212,24 @@ public void SetWitchPercent(int percent)
 	}
 }
 
-public void SetTankPercent(int percent)
+void SetTankPercent(int percent)
 {
-	float p_newPercent;
-	p_newPercent = float(percent);
-
-	if (p_newPercent == 0.0)
+	if (IsStaticTankMap())
+		return;
+	
+	if (percent == -1)
+		return;
+		
+	g_bTankDisabled = (percent == 0);
+	
+	if (percent == 0)
 	{
 		L4D2Direct_SetVSTankFlowPercent(0, 0.0);
 		L4D2Direct_SetVSTankFlowPercent(1, 0.0);
 		L4D2Direct_SetVSTankToSpawnThisRound(0, false);
 		L4D2Direct_SetVSTankToSpawnThisRound(1, false);
 	}
-	else if (p_newPercent == 100.0)
+	else if (percent == 100)
 	{
 		L4D2Direct_SetVSTankFlowPercent(0, 1.0);
 		L4D2Direct_SetVSTankFlowPercent(1, 1.0);
@@ -1191,7 +1238,7 @@ public void SetTankPercent(int percent)
 	}
 	else
 	{
-		p_newPercent = (p_newPercent/100);
+		float p_newPercent = (float(percent)/100);
 		L4D2Direct_SetVSTankFlowPercent(0, p_newPercent);
 		L4D2Direct_SetVSTankFlowPercent(1, p_newPercent);
 		L4D2Direct_SetVSTankToSpawnThisRound(0, true);
@@ -1239,13 +1286,18 @@ public Action ForceTankCommand(int client, int args)
 		return;
 	
 	// Convert it to in int boy
-	int p_iRequestedPercent;
-	p_iRequestedPercent = StringToInt(bv_sTank);
+	int p_iRequestedPercent = StringToInt(bv_sTank);
+	
+	if (p_iRequestedPercent < 0)
+	{
+		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Percentage is {blue}invalid{default}.");
+		return;
+	}
 	
 	// Check if percent is within limits
-	if (!ValidateFlow(p_iRequestedPercent, _, true))
+	if (!ValidateFlow(p_iRequestedPercent, _, p_iRequestedPercent > 0))
 	{
-		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Boss percentage is {olive}Invalid{default} or {olive}Banned{default}.");
+		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Percentage is {blue}banned{default}.");
 		return;
 	}
 	
@@ -1259,8 +1311,7 @@ public Action ForceTankCommand(int client, int args)
 	
 	// Update our shiz yo
 	CreateTimer(0.1, GetBossPercents);
-	if (!g_hUpdateFooterTimer)
-		g_hUpdateFooterTimer = CreateTimer(0.2, UpdateReadyUpFooter);
+	UpdateReadyUpFooter(0.2);
 	
 	// Forward da message man :)
 	CreateTimer(0.5, UpdatedForward);
@@ -1297,13 +1348,18 @@ public Action ForceWitchCommand(int client, int args)
 		return;
 	
 	// Convert it to in int boy
-	int p_iRequestedPercent;
-	p_iRequestedPercent = StringToInt(bv_sWitch);
+	int p_iRequestedPercent = StringToInt(bv_sWitch);
+	
+	if (p_iRequestedPercent < 0)
+	{
+		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Percentage is {blue}invalid{default}.");
+		return;
+	}
 	
 	// Check if percent is within limits
-	if (!ValidateFlow(_, p_iRequestedPercent, _, true))
+	if (!ValidateFlow(_, p_iRequestedPercent, _, p_iRequestedPercent > 0))
 	{
-		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Boss percentage is {olive}Invalid{default} or {olive}Banned{default}.");
+		CPrintToChat(client, "{blue}<{green}BossVote{blue}>{default} Percentage is {olive}banned{default}.");
 		return;
 	}
 	
@@ -1317,8 +1373,7 @@ public Action ForceWitchCommand(int client, int args)
 	
 	// Update our shiz yo
 	CreateTimer(0.1, GetBossPercents);
-	if (!g_hUpdateFooterTimer)
-		g_hUpdateFooterTimer = CreateTimer(0.2, UpdateReadyUpFooter);
+	UpdateReadyUpFooter(0.2);
 	
 	// Forward da message man :)
 	CreateTimer(0.5, UpdatedForward);
