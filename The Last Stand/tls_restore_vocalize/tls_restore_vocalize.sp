@@ -5,11 +5,11 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.2.10"
+#define PLUGIN_VERSION "1.2.11"
 
 public Plugin myinfo = 
 {
-	name = "Restore Blocked Vocalize",
+	name = "[L4D2] Restore Blocked Vocalize",
 	author = "Forgetest",
 	description = "Annoyments outside TLS are back.",
 	version = PLUGIN_VERSION,
@@ -21,7 +21,7 @@ public Plugin myinfo =
 //  Vocalize Enumeration
 // ============================
 
-#define NULL_VOCALIZE (view_as<Vocalize>(-1))
+#define NULL_VOCALIZE view_as<Vocalize>(-1)
 enum Vocalize
 {
 	Vocal_PlayerLaugh,
@@ -34,8 +34,8 @@ static const char g_szVocalizeNames[Vocalize][] =
 	"PlayerLaugh", "PlayerTaunt", "Playerdeath"
 };
 
+#define SC_NONE view_as<SurvivorCharacter>(-1)
 enum SurvivorCharacter {
-    SC_NONE=-1,
     SC_COACH=0,
     SC_NICK,
     SC_ROCHELLE,
