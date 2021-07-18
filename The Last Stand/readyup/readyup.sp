@@ -7,7 +7,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "9.2.5"
+#define PLUGIN_VERSION "9.2.6"
 
 public Plugin myinfo =
 {
@@ -307,16 +307,14 @@ public void PlayerTeam_Event(Event event, const char[] name, bool dontBroadcast)
 		return;
 	
 	isPlayerReady[client] = false;
+	isPlayerInGame[client] = !event.GetBool("disconnect");
 	SetEngineTime(client);
-	
-	int team = event.GetInt("team");
-	int oldteam = event.GetInt("oldteam");
-	
-	if (team != L4D2Team_None)
-		isPlayerInGame[client] = true;
 	
 	if (isAutoStartMode || isForceStart)
 		return;
+	
+	int team = event.GetInt("team");
+	int oldteam = event.GetInt("oldteam");
 	
 	if (team == L4D2Team_None && oldteam != L4D2Team_Spectator) // Player disconnecting
 	{
@@ -1735,7 +1733,7 @@ stock bool IsAnyPlayerLoading()
 {
 	for (int i = 1; i <= MaxClients; i++)
 	{
-		if (IsClientConnected(i) && !isPlayerInGame[i] /*(!IsClientInGame(i) || GetClientTeam(i) == L4D2Team_None)*/)
+		if (IsClientConnected(i) && !IsFakeClient(i) && !isPlayerInGame[i] /*(!IsClientInGame(i) || GetClientTeam(i) == L4D2Team_None)*/)
 		{
 			return true;
 		}

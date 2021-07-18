@@ -24,7 +24,7 @@ out what's going on :D Kinda makes my other plugins look bad huh :/
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "3.2.2"
+#define PLUGIN_VERSION "3.2.3"
 
 public Plugin myinfo =
 {
@@ -330,7 +330,7 @@ public void RoundStartEvent(Event event, const char[] name, bool dontBroadcast)
 	g_iReadyUpFooterIndex = -1;
 	
 	// Check if the current map is part of the Dark Carnival: Remix Campaign -- and save it
-	g_bIsRemix = IsDKR();
+	//g_bIsRemix = IsDKR();
 	
 	// Find percentages and update readyup footer
 	CreateTimer(5.0, GetBossPercents);
@@ -504,6 +504,7 @@ public void DKRWorkaround(Event event, const char[] name, bool dontBroadcast)
 		//	g_bDKRFirstRoundBossesSet = true;
 		//}
 		
+		ProcessBossString();
 		UpdateReadyUpFooter();
 	}
 }
