@@ -7,7 +7,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "9.2.6"
+#define PLUGIN_VERSION "9.2.7"
 
 public Plugin myinfo =
 {
@@ -43,6 +43,8 @@ public Plugin myinfo =
 
 #define READY_MODE_MANUAL 1
 #define READY_MODE_AUTOSTART 2
+
+#define AFK_DURATION 15.0
 
 #define DEBUG 0
 
@@ -188,8 +190,8 @@ public void OnPluginStart()
 	l4d_ready_unbalanced_start	= CreateConVar("l4d_ready_unbalanced_start", "0", "Allow game to go live when teams are not full.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	l4d_ready_unbalanced_min	= CreateConVar("l4d_ready_unbalanced_min", "2", "Minimum of players in each team to allow a unbalanced start.", FCVAR_NOTIFY, true, 0.0);
 	
-	HookEvent("round_start", RoundStart_Event, EventHookMode_PostNoCopy);
-	HookEvent("player_team", PlayerTeam_Event, EventHookMode_Pre);
+	HookEvent("round_start", RoundStart_Event, EventHookMode_Pre);
+	HookEvent("player_team", PlayerTeam_Event, EventHookMode_Post);
 	HookEvent("gameinstructor_draw", GameInstructorDraw_Event, EventHookMode_PostNoCopy);
 
 	casterTrie = new StringMap();
@@ -299,8 +301,6 @@ public void GameInstructorDraw_Event(Event event, const char[] name, bool dontBr
 
 public void PlayerTeam_Event(Event event, const char[] name, bool dontBroadcast)
 {
-	if (!inReadyUp) return;
-	
 	int userid = event.GetInt("userid");
 	int client = GetClientOfUserId(userid);
 	if (!client || IsFakeClient(client))
@@ -309,6 +309,10 @@ public void PlayerTeam_Event(Event event, const char[] name, bool dontBroadcast)
 	isPlayerReady[client] = false;
 	isPlayerInGame[client] = !event.GetBool("disconnect");
 	SetEngineTime(client);
+	
+	//PrintToChatAll("\x03%N \x01- [\x04%i \x01-> \x05%i\x01] %s %s", client, oldteam, team, event.GetBool("disconnect") ? "[\x04disconnect\x01]" : "", isPlayerInGame[client] ? "[\x03in-game\x01]" : "");
+	
+	if (!inReadyUp) return;
 	
 	if (isAutoStartMode || isForceStart)
 		return;
@@ -1192,8 +1196,6 @@ void InitiateReadyUp()
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		isPlayerReady[i] = false;
-		isPlayerInGame[i] = false;
-		SetEngineTime(i);
 	}
 
 	UpdatePanel();
@@ -1767,7 +1769,7 @@ stock int SetClientFrozen(int client, bool freeze)
 
 stock bool IsPlayerAfk(int client)
 {
-	return GetEngineTime() - g_fButtonTime[client] > 15.0;
+	return GetEngineTime() - g_fButtonTime[client] > AFK_DURATION;
 }
 
 stock bool IsPlayer(int client)

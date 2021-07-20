@@ -4,18 +4,11 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "0.1.3"
-
-enum L4D2Gamemode
-{
-	Coop		= (1 << 0),
-	Versus		= (1 << 1),
-	Survival	= (1 << 2),
-	Scavenge	= (1 << 3)
-}
+#define PLUGIN_VERSION "0.1.4"
 
 float g_fSurvivorStart[3];
-L4D2Gamemode g_eGamemode;
+bool g_bMapStarted;
+int g_iGamemode;
 
 public Plugin myinfo = 
 {
@@ -44,9 +37,26 @@ public void OnPluginStart()
 	HookEvent("round_start", Event_RoundStart, EventHookMode_Post);
 }
 
-// credit to SilverShot
-void IsAllowedGamemode()
+public void OnMapStart()
 {
+	g_bMapStarted = true;
+}
+
+public void OnMapEnd()
+{
+	g_bMapStarted = false;
+}
+
+// credit to SilverShot
+bool IsSingleChapterGamemode()
+{
+	g_iGamemode = 0;
+	
+	if (!g_bMapStarted)
+	{
+		return false;
+	}
+	
 	int entity = CreateEntityByName("info_gamemode");
 	if( IsValidEntity(entity) )
 	{
@@ -60,22 +70,29 @@ void IsAllowedGamemode()
 		if( IsValidEntity(entity) ) // Because sometimes "PostSpawnActivate" seems to kill the ent.
 			RemoveEdict(entity); // Because multiple plugins creating at once, avoid too many duplicate ents in the same frame
 	}
+	
+	return !!(g_iGamemode & 12);
 }
 
 public void OnGamemode(const char[] output, int caller, int activator, float delay)
 {
 	if( strcmp(output, "OnCoop") == 0 )
-		g_eGamemode = Coop;
+		g_iGamemode = 1;
 	else if( strcmp(output, "OnVersus") == 0 )
-		g_eGamemode = Versus;
+		g_iGamemode = 2;
 	else if( strcmp(output, "OnSurvival") == 0 )
-		g_eGamemode = Survival;
+		g_iGamemode = 4;
 	else if( strcmp(output, "OnScavenge") == 0 )
-		g_eGamemode = Scavenge;
+		g_iGamemode = 8;
 }
 
 //On every round,
 public Action Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
+{
+	CreateTimer(0.1, Timer_RoundStart);
+}
+
+public Action Timer_RoundStart(Handle timer)
 {
 	//find where the survivors start so we know which medkits to replace,
 	FindSurvivorStart();
@@ -89,9 +106,7 @@ void FindSurvivorStart()
 	char szEdictClassName[64];
 	float fLocation[3];
 
-	IsAllowedGamemode();
-	
-	if (g_eGamemode & (Coop | Versus))
+	if (!IsSingleChapterGamemode())
 	{
 		//Search entities for either a locked saferoom door,
 		for (int i = MaxClients+1; i <= iEntityCount; i++)
