@@ -1,13 +1,13 @@
+#pragma semicolon 1
+#pragma newdecls required
+
 #include <sourcemod>
 #include <sdktools>
 #include <left4dhooks>
 #include <builtinvotes>
 #include <colors>
 
-#pragma semicolon 1
-#pragma newdecls required
-
-#define PLUGIN_VERSION "9.2.7"
+#define PLUGIN_VERSION "9.2.8"
 
 public Plugin myinfo =
 {
@@ -22,7 +22,6 @@ public Plugin myinfo =
 //  Defines
 // ========================
 #define NULL_VELOCITY view_as<float>({0.0, 0.0, 0.0})
-#define MIN(%0,%1) ((%0) < (%1) ? (%0) : (%1))
 
 #define L4D2Team_None		0
 #define L4D2Team_Spectator	1
@@ -58,8 +57,7 @@ ConVar
 	sb_stop,
 	survivor_limit,
 	z_max_player_zombies,
-	sv_infinite_primary_ammo,
-	scavenge_round_setup_time;
+	sv_infinite_primary_ammo;
 
 // Plugin Cvars
 ConVar
@@ -164,7 +162,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("IsInReady",				Native_IsInReady);
 	CreateNative("IsClientCaster", 			Native_IsClientCaster);
 	CreateNative("IsIDCaster", 				Native_IsIDCaster);
-	liveForward = new GlobalForward("OnRoundIsLive", ET_Event);
+	liveForward = new GlobalForward("OnRoundIsLive", ET_Ignore);
 	RegPluginLibrary("readyup");
 	return APLRes_Success;
 }
@@ -203,7 +201,6 @@ public void OnPluginStart()
 	survivor_limit = FindConVar("survivor_limit");
 	z_max_player_zombies = FindConVar("z_max_player_zombies");
 	sv_infinite_primary_ammo = FindConVar("sv_infinite_primary_ammo");
-	scavenge_round_setup_time = FindConVar("scavenge_round_setup_time");
 
 	// Ready Commands
 	RegConsoleCmd("sm_ready",			Ready_Cmd, "Mark yourself as ready for the round to go live");
@@ -240,9 +237,9 @@ public void OnPluginStart()
 	LoadTranslation();
 
 	readySurvFreeze = l4d_ready_survivor_freeze.BoolValue;
-	l4d_ready_survivor_freeze.AddChangeHook(SurvFreezeChange);
+	l4d_ready_survivor_freeze.AddChangeHook(SurvFreezeChanged);
 	
-	l4d_ready_server_cvar.AddChangeHook(view_as<ConVarChanged>(FillServerNamer));
+	l4d_ready_server_cvar.AddChangeHook(ServerCvarChanged);
 }
 
 public void OnPluginEnd()
@@ -274,12 +271,34 @@ void LoadTranslation()
 	LoadTranslations(TRANSLATION_READYUP);
 }
 
-public void FillServerNamer()
+void FillServerNamer()
 {
 	char buffer[64];
 	l4d_ready_server_cvar.GetString(buffer, sizeof buffer);
 	if ((ServerNamer = FindConVar(buffer)) == null)
 		ServerNamer = FindConVar("hostname");
+}
+
+
+
+// ========================
+//  ConVar Change
+// ========================
+
+public void SurvFreezeChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	readySurvFreeze = convar.BoolValue;
+	
+	if (inReadyUp)
+	{
+		ReturnTeamToSaferoom(L4D2Team_Survivor);
+		SetTeamFrozen(L4D2Team_Survivor, readySurvFreeze);
+	}
+}
+
+public void ServerCvarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	FillServerNamer();
 }
 
 
@@ -295,8 +314,8 @@ public void RoundStart_Event(Event event, const char[] name, bool dontBroadcast)
 
 public void GameInstructorDraw_Event(Event event, const char[] name, bool dontBroadcast)
 {
-	// Workaround for remove countdown after scavenge intro
-	CreateTimer(0.1, Timer_RemoveCountdown, .flags = TIMER_FLAG_NO_MAPCHANGE);
+	// Workaround for restarting countdown after scavenge intro
+	CreateTimer(0.1, Timer_RestartCountdowns, false, TIMER_FLAG_NO_MAPCHANGE);
 }
 
 public void PlayerTeam_Event(Event event, const char[] name, bool dontBroadcast)
@@ -485,10 +504,17 @@ public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 {
 	if (inReadyUp)
 	{
+		// Mob timer is set after survivor leaving saferoom
+		CreateTimer(0.1, Timer_RestartMob, _, TIMER_FLAG_NO_MAPCHANGE);
 		ReturnPlayerToSaferoom(client, false);
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
+}
+
+public Action Timer_RestartMob(Handle timer)
+{
+	RestartMobCountdown(false);
 }
 
 
@@ -514,23 +540,6 @@ public Action Vote_Callback(int client, const char[] command, int argc)
 		Ready_Cmd(client, 0);
 	else if (strcmp(sArg, "No", false) == 0)
 		Unready_Cmd(client, 0);
-}
-
-
-
-// ========================
-//  ConVar Change
-// ========================
-
-public void SurvFreezeChange(ConVar convar, const char[] oldValue, const char[] newValue)
-{
-	readySurvFreeze = convar.BoolValue;
-	
-	if (inReadyUp)
-	{
-		ReturnTeamToSaferoom(L4D2Team_Survivor);
-		SetTeamFrozen(L4D2Team_Survivor, readySurvFreeze);
-	}
 }
 
 
@@ -1123,7 +1132,6 @@ void UpdatePanel()
 	if (bufLen != 0)
 	{
 		survivorBuffer[bufLen] = '\0';
-		ReplaceString(survivorBuffer, sizeof(survivorBuffer), "#buy", "<- TROLL");
 		ReplaceString(survivorBuffer, sizeof(survivorBuffer), "#", "_");
 		Format(nameBuf, sizeof(nameBuf), "->%d. Survivors", ++textCount);
 		menuPanel.DrawText(nameBuf);
@@ -1134,7 +1142,6 @@ void UpdatePanel()
 	if (bufLen != 0)
 	{
 		infectedBuffer[bufLen] = '\0';
-		ReplaceString(infectedBuffer, sizeof(infectedBuffer), "#buy", "<- TROLL");
 		ReplaceString(infectedBuffer, sizeof(infectedBuffer), "#", "_");
 		Format(nameBuf, sizeof(nameBuf), "->%d. Infected", ++textCount);
 		menuPanel.DrawText(nameBuf);
@@ -1230,15 +1237,8 @@ void InitiateReadyUp()
 	}
 	footerCounter = 0;
 	
-	if (IsScavenge())
-	{
-		CreateTimer(0.1, Timer_RemoveCountdown, .flags = TIMER_FLAG_NO_MAPCHANGE);
-	}
-	else
-	{
-		L4D2_CTimerStart(L4D2CT_VersusStartTimer, 99999.0);
-	}
-	
+	CreateTimer(0.3, Timer_RestartCountdowns, false, TIMER_FLAG_NO_MAPCHANGE);
+		
 	ToggleCommandListeners(true);
 	
 	if (isAutoStartMode)
@@ -1248,9 +1248,42 @@ void InitiateReadyUp()
 	}
 }
 
-public Action Timer_RemoveCountdown(Handle timer)
+void InitiateLive(bool real = true)
 {
-	RestartScavengeCountdown(99999.0, false);
+	inReadyUp = false;
+	inLiveCountdown = false;
+	isForceStart = false;
+
+	SetTeamFrozen(L4D2Team_Survivor, false);
+
+	sv_infinite_primary_ammo.Flags &= ~FCVAR_NOTIFY;
+	sv_infinite_primary_ammo.SetBool(false);
+	sv_infinite_primary_ammo.Flags |= FCVAR_NOTIFY;
+	director_no_specials.SetBool(false);
+	god.Flags &= ~FCVAR_NOTIFY;
+	god.SetBool(false);
+	god.Flags |= FCVAR_NOTIFY;
+	sb_stop.SetBool(false);
+	
+	CreateTimer(0.1, Timer_RestartCountdowns, true, TIMER_FLAG_NO_MAPCHANGE);
+	
+	for (int i = 0; i < 4; i++)
+	{
+		GameRules_SetProp("m_iVersusDistancePerSurvivor", 0, _,
+				i + 4 * GameRules_GetProp("m_bAreTeamsFlipped"));
+	}
+	
+	ToggleCommandListeners(false);
+
+	if (real)
+	{
+		Call_StartForward(liveForward);
+		Call_Finish();
+	}
+	else
+	{
+		readyCountdownTimer = null;
+	}
 }
 
 public Action Timer_AutoStartHelper(Handle timer)
@@ -1320,53 +1353,6 @@ public Action AutoStartDelay_Timer(Handle timer)
 	return Plugin_Continue;
 }
 
-void InitiateLive(bool real = true)
-{
-	inReadyUp = false;
-	inLiveCountdown = false;
-	isForceStart = false;
-
-	SetTeamFrozen(L4D2Team_Survivor, false);
-
-	sv_infinite_primary_ammo.Flags &= ~FCVAR_NOTIFY;
-	sv_infinite_primary_ammo.SetBool(false);
-	sv_infinite_primary_ammo.Flags |= FCVAR_NOTIFY;
-	director_no_specials.SetBool(false);
-	god.Flags &= ~FCVAR_NOTIFY;
-	god.SetBool(false);
-	god.Flags |= FCVAR_NOTIFY;
-	sb_stop.SetBool(false);
-	
-	if (IsScavenge())
-	{
-		RestartScavengeCountdown(scavenge_round_setup_time.FloatValue, true);
-	}
-	else
-	{
-		L4D2_CTimerStart(L4D2CT_VersusStartTimer, 60.0);
-	}
-
-	for (int i = 0; i < 4; i++)
-	{
-		GameRules_SetProp("m_iVersusDistancePerSurvivor", 0, _,
-				i + 4 * GameRules_GetProp("m_bAreTeamsFlipped"));
-	}
-	
-	ToggleCommandListeners(false);
-
-	if (real)
-	{
-		Call_StartForward(liveForward);
-		Call_Finish();
-	}
-	else
-	{
-		// TIMER_FLAG_NO_MAPCHANGE doesn't free the timer handle.
-		// So here manually clear it to prevent issues.
-		if (readyCountdownTimer != null) readyCountdownTimer = null;
-	}
-}
-
 void InitiateLiveCountdown()
 {
 	if (readyCountdownTimer == null)
@@ -1425,16 +1411,21 @@ bool CheckFullReady()
 		}
 	}
 	
-	int iBaseline = l4d_ready_unbalanced_min.IntValue;
-	iBaseline = MIN(MIN(iBaseline, survivor_limit.IntValue), z_max_player_zombies.IntValue);
+	int survLimit = survivor_limit.IntValue;
+	int zombLimit = z_max_player_zombies.IntValue;
+	
 	if (l4d_ready_unbalanced_start.BoolValue)
 	{
-		return survReadyCount >= iBaseline
-			&& infReadyCount >= iBaseline;
+		int iBaseline = l4d_ready_unbalanced_min.IntValue;
+		
+		if (iBaseline > survLimit) iBaseline = survLimit;
+		if (iBaseline > zombLimit) iBaseline = zombLimit;
+		
+		return survReadyCount >= iBaseline && infReadyCount >= iBaseline;
 	}
 	else
 	{
-		return (survReadyCount + infReadyCount) >= survivor_limit.IntValue + z_max_player_zombies.IntValue;
+		return (survReadyCount + infReadyCount) >= survLimit + zombLimit;
 	}
 }
 
@@ -1499,41 +1490,76 @@ void ReturnTeamToSaferoom(int team)
 	SetCommandFlags("warp_to_start_area", warp_flags);
 }
 
-void SetTeamFrozen(int team, bool freezeStatus)
+public Action Timer_RestartCountdowns(Handle timer, bool startOn)
 {
-	for (int client = 1; client <= MaxClients; client++)
+	if (IsScavenge())
 	{
-		if (IsClientInGame(client) && GetClientTeam(client) == team)
+		RestartScvngSetupCountdown(startOn);
+	}
+	else
+	{
+		RestartVersusStartCountdown(startOn);
+	}
+	
+	RestartMobCountdown(startOn);
+}
+
+void RestartVersusStartCountdown(bool startOn)
+{
+	static float fDuration = 0.0;
+	
+	if (startOn)
+	{
+		if (fDuration != 0.0) L4D2_CTimerStart(L4D2CT_VersusStartTimer, fDuration);
+	}
+	else
+	{
+		float temp = L4D2_CTimerGetCountdownDuration(L4D2CT_VersusStartTimer);
+		if (temp != 0.0 && temp != 3600.0)
 		{
-			SetClientFrozen(client, freezeStatus);
+			fDuration = temp;
+			L4D2_CTimerStart(L4D2CT_VersusStartTimer, 3600.0);
 		}
 	}
 }
 
-void SetEngineTime(int client)
+void RestartMobCountdown(bool startOn)
 {
-	g_fButtonTime[client] = GetEngineTime();
+	static float fDuration = 0.0;
+	
+	if (startOn)
+	{
+		if (fDuration != 0.0) L4D2_CTimerStart(L4D2CT_MobSpawnTimer, fDuration);
+	}
+	else
+	{
+		float temp = L4D2_CTimerGetCountdownDuration(L4D2CT_MobSpawnTimer);
+		if (temp != 0.0 && temp != 3600.0)
+		{
+			fDuration = temp;
+			L4D2_CTimerStart(L4D2CT_MobSpawnTimer, 3600.0);
+		}
+	}
 }
 
-bool IsScavenge()
+void RestartScvngSetupCountdown(bool startOn)
 {
-	static ConVar mp_gamemode;
+	static float fDuration = 0.0;
 	
-	if (mp_gamemode == null)
+	if (startOn)
 	{
-		mp_gamemode = FindConVar("mp_gamemode");
+		if (fDuration != 0.0) CTimer_Start(L4D2Direct_GetScavengeRoundSetupTimer(), fDuration);
+	}
+	else
+	{
+		float temp = CTimer_GetCountdownDuration(L4D2Direct_GetScavengeRoundSetupTimer());
+		if (temp != 0.0 && temp != 99999.0)
+		{
+			fDuration = temp;
+			CTimer_Start(L4D2Direct_GetScavengeRoundSetupTimer(), 99999.0);
+		}
 	}
 	
-	char sGamemode[16];
-	mp_gamemode.GetString(sGamemode, sizeof(sGamemode));
-	
-	return strcmp(sGamemode, "scavenge") == 0;
-}
-
-void RestartScavengeCountdown(float duration, bool startOn)
-{
-	CTimer_Invalidate(L4D2Direct_GetScavengeRoundSetupTimer());
-	CTimer_Start(L4D2Direct_GetScavengeRoundSetupTimer(), duration);
 	ToggleCountdownPanel(startOn);
 }
 
@@ -1562,18 +1588,26 @@ void DoSecrets(int client)
 	if (GetClientTeam(client) == L4D2Team_Survivor && !blockSecretSpam[client])
 	{
 		int particle = CreateEntityByName("info_particle_system");
+		if (particle == -1) return;
+		
 		float pos[3];
 		GetClientAbsOrigin(client, pos);
+		
 		pos[2] += 80;
+		
 		TeleportEntity(particle, pos, NULL_VECTOR, NULL_VECTOR);
+		
 		DispatchKeyValue(particle, "effect_name", "achieved");
 		DispatchKeyValue(particle, "targetname", "particle");
 		DispatchSpawn(particle);
 		ActivateEntity(particle);
 		AcceptEntityInput(particle, "start");
-		CreateTimer(5.0, killParticle, particle, TIMER_FLAG_NO_MAPCHANGE);
-		EmitSoundToAll("/level/gnomeftw.wav", client, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
+		
+		CreateTimer(5.0, killParticle, EntIndexToEntRef(particle), TIMER_FLAG_NO_MAPCHANGE);
+		
+		EmitSoundToAll(SECRET_SOUND, client, SNDCHAN_AUTO, SNDLEVEL_NORMAL, SND_NOFLAGS, 0.5);
 		CreateTimer(2.5, killSound);
+		
 		blockSecretSpam[client] = CreateTimer(5.0, SecretSpamDelay, client);
 	}
 	PrintCenterTextAll("\x42\x4f\x4e\x45\x53\x41\x57\x20\x49\x53\x20\x52\x45\x41\x44\x59\x21");
@@ -1584,8 +1618,9 @@ public Action SecretSpamDelay(Handle timer, int client)
 	blockSecretSpam[client] = null;
 }
 
-public Action killParticle(Handle timer, int entity)
+public Action killParticle(Handle timer, int entRef)
 {
+	int entity = EntRefToEntIndex(entRef);
 	if (entity > 0 && IsValidEntity(entity) && IsValidEdict(entity))
 	{
 		AcceptEntityInput(entity, "Kill");
@@ -1696,13 +1731,45 @@ public int Native_IsIDCaster(Handle plugin, int numParams)
 	return IsIDCaster(buffer);
 }
 
+bool IsClientCaster(int client)
+{
+	char buffer[64];
+	return GetClientAuthId(client, AuthId_Steam2, buffer, sizeof(buffer)) && IsIDCaster(buffer);
+}
+
+bool IsIDCaster(const char[] AuthID)
+{
+	bool dummy;
+	return GetTrieValue(casterTrie, AuthID, dummy);
+}
+
 
 
 // ========================
-//  Stocks
+//  Helpers
 // ========================
 
-bool IsEmptyString(const char[] str, int length)
+void SetEngineTime(int client)
+{
+	g_fButtonTime[client] = GetEngineTime();
+}
+
+stock bool IsScavenge()
+{
+	static ConVar mp_gamemode;
+	
+	if (mp_gamemode == null)
+	{
+		mp_gamemode = FindConVar("mp_gamemode");
+	}
+	
+	char sGamemode[16];
+	mp_gamemode.GetString(sGamemode, sizeof(sGamemode));
+	
+	return strcmp(sGamemode, "scavenge") == 0;
+}
+
+stock bool IsEmptyString(const char[] str, int length)
 {
 	for (int i = 0; i < length; ++i)
 	{
@@ -1717,18 +1784,6 @@ bool IsEmptyString(const char[] str, int length)
 		}
 	}
 	return true;
-}
-
-bool IsClientCaster(int client)
-{
-	char buffer[64];
-	return GetClientAuthId(client, AuthId_Steam2, buffer, sizeof(buffer)) && IsIDCaster(buffer);
-}
-
-bool IsIDCaster(const char[] AuthID)
-{
-	bool dummy;
-	return GetTrieValue(casterTrie, AuthID, dummy);
 }
 
 stock bool IsAnyPlayerLoading()
@@ -1760,6 +1815,17 @@ stock int GetSeriousClientCount(bool inGame = false)
 	}
 	
 	return clients;
+}
+
+stock void SetTeamFrozen(int team, bool freezeStatus)
+{
+	for (int client = 1; client <= MaxClients; client++)
+	{
+		if (IsClientInGame(client) && GetClientTeam(client) == team)
+		{
+			SetClientFrozen(client, freezeStatus);
+		}
+	}
 }
 
 stock int SetClientFrozen(int client, bool freeze)
