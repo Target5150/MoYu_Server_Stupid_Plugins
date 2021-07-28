@@ -18,7 +18,7 @@
 #include <l4d_tank_control_eq>
 #include <lerpmonitor>
 
-#define PLUGIN_VERSION	"3.5.6"
+#define PLUGIN_VERSION	"3.5.7"
 
 public Plugin myinfo = 
 {
@@ -44,6 +44,18 @@ enum L4D2Gamemode
 	L4D2Gamemode_Scavenge
 };
 L4D2Gamemode g_Gamemode;
+
+static const SurvivorCharacter orderedSC[SC_SIZE] = 
+{
+	SC_NICK,
+	SC_ROCHELLE,
+	SC_COACH,
+	SC_ELLIS,
+	SC_BILL,
+	SC_ZOEY,
+	SC_LOUIS,
+	SC_FRANCIS
+};
 
 //L4D2_Infected storedClass[MAXPLAYERS+1];
 
@@ -472,8 +484,8 @@ stock void BuildPlayerArrays()
 
 public int SortSurvArray(int elem1, int elem2, const int[] array, Handle hndl)
 {
-	SurvivorCharacter sc1 = IdentifySurvivor(elem1);
-	SurvivorCharacter sc2 = IdentifySurvivor(elem2);
+	SurvivorCharacter sc1 = orderedSC[view_as<int>(IdentifySurvivor(elem1))];
+	SurvivorCharacter sc2 = orderedSC[view_as<int>(IdentifySurvivor(elem2))];
 	
 	if (sc1 > sc2) { return 1; }
 	else if (sc1 < sc2) { return -1; }

@@ -1,6 +1,8 @@
 #include <sourcemod>
 #include <sdkhooks>
 #include <colors>
+#define L4D2UTIL_STOCKS_ONLY
+#include <l4d2util>
 
 #pragma semicolon 1
 #pragma newdecls required
@@ -16,26 +18,7 @@ public Plugin myinfo =
 	url = "?"
 };
 
-enum L4D2_Team
-{
-    L4D2Team_Spectator = 1,
-    L4D2Team_Survivor,
-    L4D2Team_Infected
-};
-
-enum L4D2_Infected
-{
-    L4D2Infected_Smoker = 1,
-    L4D2Infected_Boomer,
-    L4D2Infected_Hunter,
-    L4D2Infected_Spitter,
-    L4D2Infected_Jockey,
-    L4D2Infected_Charger,
-    L4D2Infected_Witch,
-    L4D2Infected_Tank
-};
-
-enum struct TankAtk
+enum struct ITankAttack
 {
 	int Punch;
 	int Rock;
@@ -45,9 +28,9 @@ enum struct TankAtk
 		this.Punch = this.Rock = this.Hittable = 0;
 	}
 }
-static TankAtk		g_TankAttack;
+static ITankAttack		g_eTankAttack;
 
-enum struct AtkResult
+enum struct IAttackResult
 {
 	int Incap;
 	int Death;
@@ -57,7 +40,7 @@ enum struct AtkResult
 		this.Incap = this.Death = this.TotalDamage = 0;
 	}
 }
-static AtkResult	g_TankResult;
+static IAttackResult	g_eTankResult;
 
 
 static int			g_iTankClient						= 0;
@@ -78,8 +61,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_Max
 
 public void OnPluginStart()
 {
-	HookEvent("round_start", view_as<EventHook>(Event_OnRoundStart), EventHookMode_PostNoCopy);
-	HookEvent("round_end", view_as<EventHook>(Event_OnRoundEnd), EventHookMode_PostNoCopy);
+	HookEvent("round_start", Event_OnRoundStart, EventHookMode_PostNoCopy);
+	HookEvent("round_end", Event_OnRoundEnd, EventHookMode_PostNoCopy);
 	
 	HookEvent("tank_spawn", Event_OnTankSpawn);
 	HookEvent("player_hurt", Event_OnPlayerHurt);
@@ -93,9 +76,12 @@ public void OnPluginStart()
 	}
 }
 
-public void Event_OnRoundStart() { ClearStuff(); }
+public void Event_OnRoundStart(Event event, const char[] name, bool dontBroadcast)
+{
+	ClearStuff();
+}
 
-public void Event_OnRoundEnd()
+public void Event_OnRoundEnd(Event event, const char[] name, bool dontBroadcast)
 {
 	if (g_bAnnounceTankFacts) PrintTankSkill();
 	ClearStuff();
@@ -118,9 +104,11 @@ public void OnClientDisconnect(int client)
 
 public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
-	if (!IsValidSurvivor(victim) || !IsValidEdict(attacker) || !IsValidEdict(inflictor)) return Plugin_Continue;
-	
 	if (!g_bTankInPlay) return Plugin_Continue;
+	
+	if (!IsValidEntity(victim) || !attacker || !IsValidEntity(attacker) || !IsValidEdict(inflictor)) return Plugin_Continue;
+	
+	if (!IsSurvivor(victim) || !IsTank(attacker)) return Plugin_Continue;
 	
 	//char classname[64];
 	//GetEdictClassname(inflictor, classname, sizeof(classname));
@@ -156,7 +144,7 @@ public void Event_OnPlayerHurt(Event event, const char[] name, bool dontBroadcas
 	if (!g_bTankInPlay) return;
 	
 	int victim = GetClientOfUserId(GetEventInt(event, "userid"));
-	if (!IsValidSurvivor(victim) || IsIncapacitated(victim)) return;
+	if (!victim || !IsSurvivor(victim) || IsIncapacitated(victim)) return;
 	
 	int attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
 	
@@ -169,15 +157,15 @@ public void Event_OnPlayerHurt(Event event, const char[] name, bool dontBroadcas
 	if (dmg > 0)
 	{
 		if (StrEqual(weapon, "tank_claw")) {
-			g_TankAttack.Punch++;
+			g_eTankAttack.Punch++;
 		} else if (StrEqual(weapon, "tank_rock")) {
-			g_TankAttack.Rock++;
+			g_eTankAttack.Rock++;
 		//} else if (IsTankHittable(weapon)) {
 		} else { // alternation due to l4d2_hittable_control setting 'inflictor' as hittable to 0
-			g_TankAttack.Hittable++;
+			g_eTankAttack.Hittable++;
 		}
 		
-		g_TankResult.TotalDamage += dmg;
+		g_eTankResult.TotalDamage += dmg;
 	}
 }
 
@@ -186,7 +174,7 @@ public void Event_PlayerIncapStart(Event event, const char[] name, bool dontBroa
 	if (!g_bTankInPlay) return;
 	
 	int victim = GetClientOfUserId(GetEventInt(event, "userid"));
-	if (!IsValidSurvivor(victim)) return;
+	if (!victim || !IsSurvivor(victim)) return;
 	
 	int attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
 	
@@ -194,16 +182,16 @@ public void Event_PlayerIncapStart(Event event, const char[] name, bool dontBroa
 	GetEventString(event, "weapon", weapon, sizeof(weapon));
 	
 	if (StrEqual(weapon, "tank_claw")) {
-		g_TankAttack.Punch++;
+		g_eTankAttack.Punch++;
 	} else if (StrEqual(weapon, "tank_rock")) {
-		g_TankAttack.Rock++;
+		g_eTankAttack.Rock++;
 	//} else if (IsTankHittable(weapon)) {
 	} else if (attacker == g_iTankClient) { // alternation due to l4d2_hittable_control setting 'inflictor' as hittable to 0
-		g_TankAttack.Hittable++;
+		g_eTankAttack.Hittable++;
 	}
 	
-	g_TankResult.Incap++;
-	if (attacker == g_iTankClient) g_TankResult.TotalDamage += g_iPlayerLastHealth[victim];
+	g_eTankResult.Incap++;
+	if (attacker == g_iTankClient) g_eTankResult.TotalDamage += g_iPlayerLastHealth[victim];
 }
 
 public void Event_PlayerKilled(Event event, const char[] name, bool dontBroadcast)
@@ -211,10 +199,11 @@ public void Event_PlayerKilled(Event event, const char[] name, bool dontBroadcas
 	if (!g_bTankInPlay) return;
 	
 	int victim = GetClientOfUserId(GetEventInt(event, "userid"));
+	if (!victim) return;
 	
-	if (IsValidSurvivor(victim))
+	if (IsSurvivor(victim))
 	{
-		g_TankResult.Death++;
+		g_eTankResult.Death++;
 	}
 	else if (victim == g_iTankClient)
 	{
@@ -226,7 +215,7 @@ public Action Timer_CheckTank(Handle timer, int oldtankclient)
 {
 	if (g_iTankClient != oldtankclient) return; // Tank passed
 
-	int tankclient = FindTankClient();
+	int tankclient = FindTankClient(-1);
 	if (tankclient && tankclient != oldtankclient)
 	{
 		g_iTankClient = tankclient;
@@ -259,7 +248,7 @@ public void PrintTankSkill()
 	}
 	else
 	{
-		Format(buffer, sizeof(buffer), "%ds", duration);
+		Format(buffer, sizeof(buffer), "%ds", duration > 0 ? duration : 0);
 	}
 	
 	DataPack dp;
@@ -272,11 +261,11 @@ public void PrintTankSkill()
 	
 	FormatEx(info, sizeof(info), "[{green}!{default}] {blue}Facts {default}of the {blue}Tank {default}({olive}%s{default})", name);
 	dp.WriteString(info);
-	FormatEx(info, sizeof(info), "{green}> {default}Punch: {red}%i {green}/ {default}Rock: {red}%i {green}/ {default}Hittable: {red}%i", g_TankAttack.Punch, g_TankAttack.Rock, g_TankAttack.Hittable);
+	FormatEx(info, sizeof(info), "{green}> {default}Punch: {red}%i {green}/ {default}Rock: {red}%i {green}/ {default}Hittable: {red}%i", g_eTankAttack.Punch, g_eTankAttack.Rock, g_eTankAttack.Hittable);
 	dp.WriteString(info);
-	FormatEx(info, sizeof(info), "{green}> {default}Incap: {olive}%i {green}/ {default}Death: {olive}%i {default}from {blue}Survivors", g_TankResult.Incap, g_TankResult.Death);
+	FormatEx(info, sizeof(info), "{green}> {default}Incap: {olive}%i {green}/ {default}Death: {olive}%i {default}from {blue}Survivors", g_eTankResult.Incap, g_eTankResult.Death);
 	dp.WriteString(info);
-	FormatEx(info, sizeof(info), "{green}> {default}Duration: {lightgreen}%s {green}/ {default}Total damage: {lightgreen}%i", buffer, g_TankResult.TotalDamage);
+	FormatEx(info, sizeof(info), "{green}> {default}Duration: {lightgreen}%s {green}/ {default}Total damage: {lightgreen}%i", buffer, g_eTankResult.TotalDamage);
 	dp.WriteString(info);
 }
 
@@ -309,8 +298,8 @@ public void ClearStuff()
 	g_fTankSpawnTime = 0.0;
 	strcopy(g_sLastHumanTankName, sizeof(g_sLastHumanTankName), "");
 	
-	g_TankAttack.Init();
-	g_TankResult.Init();
+	g_eTankAttack.Init();
+	g_eTankResult.Init();
 	
 	for (int i = 1; i <= MaxClients; i++)
 	{
@@ -329,71 +318,10 @@ stock int GetTankClient()
 
 	if (!IsClientInGame(tankclient)) // If tank somehow is no longer in the game (kicked, hence events didn't fire)
 	{
-		tankclient = FindTankClient(); // find the tank client
+		tankclient = FindTankClient(-1); // find the tank client
 		if (!tankclient) return 0;
 		g_iTankClient = tankclient;
 	}
 
 	return tankclient;
-}
-
-stock int FindTankClient()
-{
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (!IsTank(i) || !IsPlayerAlive(i))
-			continue;
-
-		return i; // Found tank, return
-	}
-	return 0;
-}
-
-stock int GetSurvivorPermanentHealth(int client)
-{
-	return GetEntProp(client, Prop_Send, "m_iHealth");
-}
-
-stock int GetSurvivorTemporaryHealth(int client)
-{
-	float fDecayRate = GetConVarFloat(FindConVar("pain_pills_decay_rate"));
-	float fHealthBuffer = GetEntPropFloat(client, Prop_Send, "m_healthBuffer");
-	float fHealthBufferTime = GetEntPropFloat(client, Prop_Send, "m_healthBufferTime");
-	int iTempHp = RoundToCeil(fHealthBuffer - ((GetGameTime() - fHealthBufferTime) * fDecayRate)) - 1;
-	return iTempHp > 0 ? iTempHp : 0;
-}
-
-//stock bool IsTankHittable(const char[] sClassname)
-//{
-//    return StrEqual(sClassname, "prop_physics") || StrEqual(sClassname, "prop_car_alarm");
-//}
-
-stock bool IsIncapacitated(int client)
-{
-    return view_as<bool>(GetEntProp(client, Prop_Send, "m_isIncapacitated"));
-}
-
-stock bool IsValidSurvivor(int client)
-{
-	return IsValidClient(client) && view_as<L4D2_Team>(GetClientTeam(client)) == L4D2Team_Survivor;
-}
-
-stock bool IsValidInfected(int client)
-{
-    return IsValidClient(client) && view_as<L4D2_Team>(GetClientTeam(client)) == L4D2Team_Infected;
-}
-
-stock bool IsTank(int client)
-{
-    return IsValidInfected(client) && GetInfectedClass(client) == L4D2Infected_Tank;
-}
-
-stock L4D2_Infected GetInfectedClass(int client)
-{
-    return view_as<L4D2_Infected>(GetEntProp(client, Prop_Send, "m_zombieClass"));
-}
-
-stock bool IsValidClient(int client)
-{
-	return client > 0 && client <= MaxClients && IsClientInGame(client);
 }

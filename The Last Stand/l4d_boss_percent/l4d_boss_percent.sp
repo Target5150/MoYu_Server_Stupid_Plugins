@@ -19,13 +19,14 @@ out what's going on :D Kinda makes my other plugins look bad huh :/
 #include <sourcemod>
 #include <builtinvotes>
 #include <left4dhooks>
+#include <colors>
 #define L4D2UTIL_STOCKS_ONLY
 #include <l4d2util_rounds>
+#undef REQUIRE_PLUGIN
 #include <confogl>
 #include <readyup>
-#include <colors>
 
-#define PLUGIN_VERSION "3.2.4"
+#define PLUGIN_VERSION "3.2.4a"
 
 public Plugin myinfo =
 {

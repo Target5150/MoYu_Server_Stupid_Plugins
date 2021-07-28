@@ -40,8 +40,13 @@ public Action PlayerDecal(const char[] te_name, const int[] Players, int numClie
 		return Plugin_Handled;
 	}
 
+	if( GetClientTeam(client) != 2 || !IsPlayerAlive(client) )
+	{
+		return Plugin_Continue;
+	}
+	
 	// Functions only on Survivors who are incapped or hanging
-	if( GetClientTeam(client) != 2 || !IsPlayerAlive(client) || !(IsPlayerIncap(client) || IsPlayerLedged(client)) )
+	if( !GetEntProp(client, Prop_Send, "m_isIncapacitated") && !GetEntProp(client, Prop_Send, "m_isHangingFromLedge") )
 	{
 		return Plugin_Continue;
 	}
@@ -62,14 +67,14 @@ stock bool GetPlayerEyeViewPoint(int iClient, float fPosition[3])
 	GetClientEyeAngles(iClient, fAngles);
 	GetClientEyePosition(iClient, fOrigin);
 
-	Handle hTrace = TR_TraceRayFilterEx(fOrigin, fAngles, MASK_SHOT, RayType_Infinite, TraceEntityFilterPlayer);
+	Handle hTrace = TR_TraceRayFilterEx(fOrigin, fAngles, MASK_SOLID, RayType_Infinite, TraceEntityFilterPlayer);
 	if( TR_DidHit(hTrace) )
 	{
 		TR_GetEndPosition(fPosition, hTrace);
-		CloseHandle(hTrace);
+		delete hTrace;
 		return true;
 	}
-	CloseHandle(hTrace);
+	delete hTrace;
 	return false;
 }
 
@@ -77,14 +82,3 @@ public bool TraceEntityFilterPlayer(int iEntity, int iContentsMask)
 {
 	return iEntity > MaxClients;
 }
-
-stock bool IsPlayerIncap(int client)
-{
-	return view_as<bool>(GetEntProp(client, Prop_Send, "m_isIncapacitated"));
-}
-
-stock bool IsPlayerLedged(int client)
-{
-	return view_as<bool>(GetEntProp(client, Prop_Send, "m_isHangingFromLedge"));
-}
-

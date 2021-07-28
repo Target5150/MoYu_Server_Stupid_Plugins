@@ -505,7 +505,7 @@ public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 	if (inReadyUp)
 	{
 		// Mob timer is set after survivor leaving saferoom
-		CreateTimer(0.1, Timer_RestartMob, _, TIMER_FLAG_NO_MAPCHANGE);
+		CreateTimer(0.3, Timer_RestartMob, _, TIMER_FLAG_NO_MAPCHANGE);
 		ReturnPlayerToSaferoom(client, false);
 		return Plugin_Handled;
 	}

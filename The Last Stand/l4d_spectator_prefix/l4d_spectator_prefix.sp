@@ -45,13 +45,15 @@ bool readyupAvailable;
 
 public void OnPluginStart()
 {
-	g_cvPrefixType			= CreateConVar("sp_prefix_type",		"(S)",	"Determine your preferred type of Spectator Prefix");
-	g_cvPrefixTypeCaster 	= CreateConVar("sp_prefix_type_caster",	"(C)",	"Determine your preferred type of Spectator Prefix");
+	g_cvPrefixType			= CreateConVar("sp_prefix_type",		"(S)",	"Determine your preferred type of Spectator Prefix", FCVAR_PRINTABLEONLY);
+	g_cvPrefixTypeCaster 	= CreateConVar("sp_prefix_type_caster",	"(C)",	"Determine your preferred type of Spectator Prefix", FCVAR_PRINTABLEONLY);
 	g_cvSupressMsg			= CreateConVar("sp_supress_msg",		"1",	"Determine whether to supress message of prefixing name", _, true, 0.0, true, 1.0);
 	
 	g_cvPrefixType.AddChangeHook(OnConVarChanged);
 	g_cvPrefixTypeCaster.AddChangeHook(OnConVarChanged);
 	g_cvSupressMsg.AddChangeHook(OnConVarChanged);
+	
+	GetCvars();
 	
 	g_triePrefixed = new StringMap();
 	
@@ -88,7 +90,6 @@ public void OnMapStart() { g_triePrefixed.Clear(); }
 // Get ConVars
 // ===================================================================
 
-public void OnConfigsExecuted() { GetCvars(); }
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue) { GetCvars(); }
 
 void GetCvars()
@@ -107,7 +108,7 @@ public void Event_NameChanged(Event event, const char[] name, bool dontBroadcast
 	int userid = event.GetInt("userid");
 	int client = GetClientOfUserId(userid);
 	
-	if (!IsClientAndInGame(client)
+	if (!client
 		|| IsFakeClient(client)
 		|| GetClientTeam(client) != L4D2Team_Spectator)
 		return;
@@ -141,7 +142,7 @@ public void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	
-	if (!IsClientAndInGame(client)
+	if (!client
 		|| IsFakeClient(client))
 		return;
 		
