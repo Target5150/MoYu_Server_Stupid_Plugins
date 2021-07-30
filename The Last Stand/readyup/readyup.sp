@@ -7,7 +7,7 @@
 #include <builtinvotes>
 #include <colors>
 
-#define PLUGIN_VERSION "9.2.8"
+#define PLUGIN_VERSION "9.2.9"
 
 public Plugin myinfo =
 {
@@ -1087,7 +1087,7 @@ void UpdatePanel()
 		if (IsClientInGame(client) && !IsFakeClient(client))
 		{
 			++playerCount;
-			GetClientName(client, nameBuf, sizeof(nameBuf));
+			GetClientFixedName(client, nameBuf, sizeof(nameBuf));
 			GetClientAuthId(client, AuthId_Steam2, authBuffer, sizeof(authBuffer));
 			caster = casterTrie.GetValue(authBuffer, dummy);
 			
@@ -1752,6 +1752,20 @@ bool IsIDCaster(const char[] AuthID)
 void SetEngineTime(int client)
 {
 	g_fButtonTime[client] = GetEngineTime();
+}
+
+stock void GetClientFixedName(int client, char[] name, int length)
+{
+	GetClientName(client, name, length);
+
+	if (name[0] == '[')
+	{
+		char temp[MAX_NAME_LENGTH];
+		strcopy(temp, sizeof(temp), name);
+		temp[sizeof(temp)-2] = 0;
+		strcopy(name[1], length-1, temp);
+		name[0] = ' ';
+	}
 }
 
 stock bool IsScavenge()

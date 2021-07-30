@@ -89,7 +89,11 @@ public void Event_HurtConcise(Event event, const char[] name, bool dontBroadcast
 	{
 		DamageCache[attacker][victim] += damage;
 		delete FFTimer[attacker];
-		FFTimer[attacker] = CreateTimer(1.5, AnnounceFF, attacker);
+		
+		DataPack dp;
+		FFTimer[attacker] = CreateDataTimer(1.5, AnnounceFF, dp);
+		dp.WriteCell(attacker);
+		dp.WriteCell(GetClientUserId(attacker));
 	}
 	else 
 	{
