@@ -7,7 +7,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.6"
+#define PLUGIN_VERSION "1.6a"
 
 public Plugin myinfo = 
 {
@@ -106,7 +106,9 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 {
 	if (!g_bTankInPlay) return Plugin_Continue;
 	
-	if (!IsValidEntity(victim) || !attacker || !IsValidEntity(attacker) || !IsValidEdict(inflictor)) return Plugin_Continue;
+	if (!IsValidEntity(victim) || !IsValidEntity(attacker) || !IsValidEdict(inflictor)) return Plugin_Continue;
+	
+	if (!attacker || attacker > MaxClients) return Plugin_Continue;
 	
 	if (!IsSurvivor(victim) || !IsTank(attacker)) return Plugin_Continue;
 	
