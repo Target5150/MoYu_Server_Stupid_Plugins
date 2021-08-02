@@ -7,7 +7,7 @@
 #include <builtinvotes>
 #include <colors>
 
-#define PLUGIN_VERSION "9.2.9"
+#define PLUGIN_VERSION "9.2.10"
 
 public Plugin myinfo =
 {
@@ -1421,7 +1421,8 @@ bool CheckFullReady()
 		if (iBaseline > survLimit) iBaseline = survLimit;
 		if (iBaseline > zombLimit) iBaseline = zombLimit;
 		
-		return survReadyCount >= iBaseline && infReadyCount >= iBaseline;
+		return (iBaseline <= GetTeamHumanCount(L4D2Team_Survivor) <= survReadyCount)
+			&& (iBaseline <= GetTeamHumanCount(L4D2Team_Infected) <= infReadyCount);
 	}
 	else
 	{
