@@ -6,8 +6,9 @@
 #include <left4dhooks>
 #include <builtinvotes>
 #include <colors>
+#include <caster_system>
 
-#define PLUGIN_VERSION "9.2.10"
+#define PLUGIN_VERSION "9.3.0"
 
 public Plugin myinfo =
 {
@@ -37,7 +38,6 @@ public Plugin myinfo =
 #define DEFAULT_LIVE_SOUND "ui/survival_medal.wav"
 #define DEFAULT_AUTOSTART_SOUND "ui/buttonrollover.wav"
 
-#define TRANSLATION_COMMON "common.phrases"
 #define TRANSLATION_READYUP "readyup.phrases"
 
 #define READY_MODE_MANUAL 1
@@ -70,12 +70,6 @@ ConVar
 	l4d_ready_secret,
 	l4d_ready_unbalanced_start,
 	l4d_ready_unbalanced_min;
-
-// Caster System
-StringMap
-	casterTrie,
-	allowedCastersTrie;
-bool forbidSelfRegister;
 
 // Server Name
 ConVar ServerNamer;
@@ -160,8 +154,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("FindIndexOfFooterString", Native_FindIndexOfFooterString);
 	CreateNative("GetFooterStringAtIndex",	Native_GetFooterStringAtIndex);
 	CreateNative("IsInReady",				Native_IsInReady);
-	CreateNative("IsClientCaster", 			Native_IsClientCaster);
-	CreateNative("IsIDCaster", 				Native_IsIDCaster);
+	CreateNative("ToggleReadyPanel",		Native_ToggleReadyPanel);
 	liveForward = new GlobalForward("OnRoundIsLive", ET_Ignore);
 	RegPluginLibrary("readyup");
 	return APLRes_Success;
@@ -188,13 +181,6 @@ public void OnPluginStart()
 	l4d_ready_unbalanced_start	= CreateConVar("l4d_ready_unbalanced_start", "0", "Allow game to go live when teams are not full.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	l4d_ready_unbalanced_min	= CreateConVar("l4d_ready_unbalanced_min", "2", "Minimum of players in each team to allow a unbalanced start.", FCVAR_NOTIFY, true, 0.0);
 	
-	HookEvent("round_start", RoundStart_Event, EventHookMode_Pre);
-	HookEvent("player_team", PlayerTeam_Event, EventHookMode_Post);
-	HookEvent("gameinstructor_draw", GameInstructorDraw_Event, EventHookMode_PostNoCopy);
-
-	casterTrie = new StringMap();
-	allowedCastersTrie = new StringMap();
-	
 	director_no_specials = FindConVar("director_no_specials");
 	god = FindConVar("god");
 	sb_stop = FindConVar("sb_stop");
@@ -209,16 +195,6 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_unready",			Unready_Cmd, "Mark yourself as not ready if you have set yourself as ready");
 	RegConsoleCmd("sm_nr",				Unready_Cmd, "Mark yourself as not ready if you have set yourself as ready");
 	
-	// Caster System
-	RegAdminCmd("sm_caster",			Caster_Cmd, ADMFLAG_BAN, "Registers a player as a caster");
-	RegAdminCmd("sm_resetcasters",		ResetCaster_Cmd, ADMFLAG_BAN, "Used to reset casters between matches.  This should be in confogl_off.cfg or equivalent for your system");
-	RegAdminCmd("sm_add_caster_id",		AddCasterSteamID_Cmd, ADMFLAG_BAN, "Used for adding casters to the whitelist -- i.e. who's allowed to self-register as a caster");
-	RegAdminCmd("sm_remove_caster_id",	RemoveCasterSteamID_Cmd, ADMFLAG_BAN, "Used for removing casters to the whitelist -- i.e. who's allowed to self-register as a caster");
-	RegAdminCmd("sm_printcasters",		PrintCasters_Cmd, ADMFLAG_BAN, "Used for print casters in the whitelist");
-	RegConsoleCmd("sm_cast",			Cast_Cmd, "Registers the calling player as a caster");
-	RegConsoleCmd("sm_notcasting",		NotCasting_Cmd, "Deregister yourself as a caster or allow admins to deregister other players");
-	RegConsoleCmd("sm_uncast",			NotCasting_Cmd, "Deregister yourself as a caster or allow admins to deregister other players");
-	
 	// Admin Commands
 	RegAdminCmd("sm_forcestart",		ForceStart_Cmd, ADMFLAG_BAN, "Forces the round to start regardless of player ready status.");
 	RegAdminCmd("sm_fs",				ForceStart_Cmd, ADMFLAG_BAN, "Forces the round to start regardless of player ready status.");
@@ -227,7 +203,6 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_hide",			Hide_Cmd, "Hides the ready-up panel so other menus can be seen");
 	RegConsoleCmd("sm_show",			Show_Cmd, "Shows a hidden ready-up panel");
 	RegConsoleCmd("sm_return",			Return_Cmd, "Return to a valid saferoom spawn if you get stuck during an unfrozen ready-up period");
-	RegConsoleCmd("sm_kickspecs",		KickSpecs_Cmd, "Let's vote to kick those Spectators!");
 	
 #if DEBUG
 	RegAdminCmd("sm_initready", InitReady_Cmd, ADMFLAG_ROOT);
@@ -235,6 +210,10 @@ public void OnPluginStart()
 #endif
 
 	LoadTranslation();
+
+	HookEvent("round_start", RoundStart_Event, EventHookMode_Pre);
+	HookEvent("player_team", PlayerTeam_Event, EventHookMode_Post);
+	HookEvent("gameinstructor_draw", GameInstructorDraw_Event, EventHookMode_PostNoCopy);
 
 	readySurvFreeze = l4d_ready_survivor_freeze.BoolValue;
 	l4d_ready_survivor_freeze.AddChangeHook(SurvFreezeChanged);
@@ -255,13 +234,6 @@ public void OnAllPluginsLoaded()
 void LoadTranslation()
 {
 	char sPath[PLATFORM_MAX_PATH];
-	
-	BuildPath(Path_SM, sPath, sizeof sPath, "translations/" ... TRANSLATION_COMMON ... ".txt");
-	if (!FileExists(sPath))
-	{
-		SetFailState("Missing translation file \"" ... TRANSLATION_COMMON ... ".txt\"");
-	}
-	LoadTranslations(TRANSLATION_COMMON);
 	
 	BuildPath(Path_SM, sPath, sizeof sPath, "translations/" ... TRANSLATION_READYUP ... ".txt");
 	if (!FileExists(sPath))
@@ -315,7 +287,8 @@ public void RoundStart_Event(Event event, const char[] name, bool dontBroadcast)
 public void GameInstructorDraw_Event(Event event, const char[] name, bool dontBroadcast)
 {
 	// Workaround for restarting countdown after scavenge intro
-	CreateTimer(0.1, Timer_RestartCountdowns, false, TIMER_FLAG_NO_MAPCHANGE);
+	if (inReadyUp)
+		CreateTimer(0.1, Timer_RestartCountdowns, false, TIMER_FLAG_NO_MAPCHANGE);
 }
 
 public void PlayerTeam_Event(Event event, const char[] name, bool dontBroadcast)
@@ -605,194 +578,6 @@ public Action ToggleReady_Cmd(int client, int args)
 
 
 // ========================
-//  Caster System
-// ========================
-
-public Action Cast_Cmd(int client, int args)
-{
-	if (!client) return Plugin_Continue;
-	
- 	char buffer[64];
-	GetClientAuthId(client, AuthId_Steam2, buffer, sizeof(buffer));
-	
-	bool temp;
-	if (forbidSelfRegister)
-	{
-		if (!allowedCastersTrie.GetValue(buffer, temp))
-		{
-			CPrintToChat(client, "%t", "SelfCastNotAllowed");
-			return Plugin_Handled;
-		}
-	}
-	
-	if (!casterTrie.GetValue(buffer, temp))
-	{
-		if (GetClientTeam(client) != L4D2Team_Spectator)
-		{
-			ChangeClientTeam(client, L4D2Team_Spectator);
-		}
-		casterTrie.SetValue(buffer, true);
-		CPrintToChat(client, "%t", "SelfCast1");
-		CPrintToChat(client, "%t", "SelfCast2");
-	}
-	
-	return Plugin_Handled;
-}
-
-public Action Caster_Cmd(int client, int args)
-{	
-	if (args < 1)
-	{
-		ReplyToCommand(client, "[SM] Usage: sm_caster <player>");
-		return Plugin_Handled;
-	}
-	
-	char buffer[64];
-	GetCmdArg(1, buffer, sizeof(buffer));
-	
-	int target = FindTarget(client, buffer, true, false);
-	if (target > 0) // If FindTarget fails we don't need to print anything as it prints it for us!
-	{
-		if (GetClientAuthId(target, AuthId_Steam2, buffer, sizeof(buffer)))
-		{
-			casterTrie.SetValue(buffer, true);
-			ReplyToCommand(client, "\x01%t", "RegCasterReply", target);
-			CPrintToChat(target, "%t", "RegCasterTarget", client);
-			CPrintToChat(target, "%t", "SelfCast2");
-		}
-		else
-		{
-			ReplyToCommand(client, "\x01%t", "CasterSteamIDError");
-		}
-	}
-	
-	return Plugin_Handled;
-}
-
-public Action NotCasting_Cmd(int client, int args)
-{
-	char buffer[64];
-	
-	if (args < 1) // If no target is specified, assumes self-uncasting
-	{
-		GetClientAuthId(client, AuthId_Steam2, buffer, sizeof(buffer));
-		if (casterTrie.Remove(buffer))
-		{
-			CPrintToChat(client, "%t", "Reconnect1");
-			CPrintToChat(client, "%t", "Reconnect2");
-			
-			// Reconnection to disable their addons
-			CreateTimer(3.0, Reconnect, client);
-		}
-	}
-	else // If a target is specified
-	{
-		AdminId id = GetUserAdmin(client);
-		if (id == INVALID_ADMIN_ID || !GetAdminFlag(id, Admin_Ban)) // Check for specific admin flag
-		{
-			ReplyToCommand(client, "\x01%t", "UnregCasterNonAdmin");
-			return Plugin_Handled;
-		}
-		
-		GetCmdArg(1, buffer, sizeof(buffer));
-		
-		int target = FindTarget(client, buffer, true, true);
-		if (target > 0) // If FindTarget fails we don't need to print anything as it prints it for us!
-		{
-			if (GetClientAuthId(target, AuthId_Steam2, buffer, sizeof(buffer)))
-			{
-				if (casterTrie.Remove(buffer))
-				{
-					CPrintToChat(target, "%t", "UnregCasterTarget", client);
-					NotCasting_Cmd(target, 0);
-				}
-				ReplyToCommand(client, "\x01%t", "UnregCasterSuccess", target);
-			}
-			else
-			{
-				ReplyToCommand(client, "\x01%t", "CasterSteamIDError");
-			}
-		}
-	}
-	return Plugin_Handled;
-}
-
-public Action Reconnect(Handle timer, int client)
-{
-	if (IsClientConnected(client)) ReconnectClient(client);
-}
-
-public Action ResetCaster_Cmd(int client, int args)
-{
-	casterTrie.Clear();
-	forbidSelfRegister = false;
-	ReplyToCommand(client, "\x01%t", "CasterDBReset");
-	return Plugin_Handled;
-}
-
-public Action AddCasterSteamID_Cmd(int client, int args)
-{
-	char buffer[128];
-	GetCmdArg(1, buffer, sizeof(buffer));
-	if (buffer[0] != EOS) 
-	{
-		forbidSelfRegister = true;
-		if (allowedCastersTrie.SetValue(buffer, 1, false))
-		{
-			ReplyToCommand(client, "\x01%t", "CasterDBAdd", buffer);
-		}
-		else ReplyToCommand(client, "\x01%t", "CasterDBFound", buffer);
-	}
-	else ReplyToCommand(client, "\x01%t", "CasterDBError");
-	return Plugin_Handled;
-}
-
-public Action RemoveCasterSteamID_Cmd(int client, int args)
-{
-	char buffer[128];
-	GetCmdArg(1, buffer, sizeof(buffer));
-	if (buffer[0] != EOS) 
-	{
-		int dummy;
-		if (allowedCastersTrie.GetValue(buffer, dummy))
-		{
-			allowedCastersTrie.Remove(buffer);
-			if (allowedCastersTrie.Size == 0) forbidSelfRegister = false;
-			ReplyToCommand(client, "\x01%t", "CasterDBRemove", buffer);
-		}
-		else ReplyToCommand(client, "\x01%t", "CasterDBFound", buffer);
-	}
-	else ReplyToCommand(client, "\x01%t", "CasterDBError");
-	return Plugin_Handled;
-}
-
-public Action PrintCasters_Cmd(int client, int args)
-{
-	StringMapSnapshot ss = allowedCastersTrie.Snapshot();
-	char buffer[128];
-	
-	if (GetCmdReplySource() == SM_REPLY_TO_CHAT)
-	{
-		if (client > 0) PrintToChat(client, "[casters_database] List is printed in console");
-		SetCmdReplySource(SM_REPLY_TO_CONSOLE);
-	}
-	
-	ReplyToCommand(client, "/***********[casters_database]***********\\");
-	
-	int len = ss.Length;
-	for (int i = 0; i < len; i++)
-	{
-		ss.GetKey(i, buffer, sizeof buffer);
-		ReplyToCommand(client, "Caster #%i: %s", buffer);
-	}
-	ReplyToCommand(client, "Total Casters: %i", len);
-	
-	delete ss;
-	return Plugin_Handled;
-}
-
-
-// ========================
 //  Admin Commands
 // ========================
 
@@ -841,6 +626,8 @@ public Action Show_Cmd(int client, int args)
 	return Plugin_Continue;
 }
 
+
+
 public Action Return_Cmd(int client, int args)
 {
 	if (inReadyUp
@@ -851,119 +638,6 @@ public Action Return_Cmd(int client, int args)
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
-}
-
-public Action KickSpecs_Cmd(int client, int args)
-{
-	AdminId id = GetUserAdmin(client);
-	if (id != INVALID_ADMIN_ID && GetAdminFlag(id, Admin_Ban)) // Check for specific admin flag
-	{
-		CreateTimer(2.0, Timer_KickSpecs);
-		CPrintToChatAll("%t", "KickSpecsAdmin", client);
-		return Plugin_Handled;
-	}
-	
-	// Filter spectator
-	if (!IsPlayer(client))
-	{
-		CPrintToChat(client, "%t", "KickSpecsVoteSpec");
-		return Plugin_Handled;
-	}
-	
-	StartKickSpecsVote(client);
-	return Plugin_Handled;
-}
-
-
-
-// ========================
-//  Vote
-// ========================
-
-void StartKickSpecsVote(int client)
-{
-	if (IsBuiltinVoteInProgress())
-	{
-		CPrintToChat(client, "%t", "VoteInProgress");
-		return;
-	}
-	if (CheckBuiltinVoteDelay() > 0)
-	{
-		CPrintToChat(client, "%t", "VoteDelay", CheckBuiltinVoteDelay());
-		return;
-	}
-	
-	Handle hVote = CreateBuiltinVote(VoteActionHandler, BuiltinVoteType_Custom_YesNo, BuiltinVoteAction_Cancel | BuiltinVoteAction_VoteEnd | BuiltinVoteAction_End);
-
-	char sBuffer[128];
-	FormatEx(sBuffer, sizeof(sBuffer), "%T", "KickSpecsVoteTitle", LANG_SERVER);
-	SetBuiltinVoteArgument(hVote, sBuffer);
-	SetBuiltinVoteInitiator(hVote, client);
-	SetBuiltinVoteResultCallback(hVote, KickSpecsVoteResultHandler);
-	
-	// Display to players
-	int total = 0;
-	int[] players = new int[MaxClients];
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (!IsClientInGame(i) || IsFakeClient(i) || !IsPlayer(i))
-			continue;
-		players[total++] = i;
-	}
-	DisplayBuiltinVote(hVote, players, total, FindConVar("sv_vote_timer_duration").IntValue);
-
-	// Client is voting for
-	FakeClientCommand(client, "Vote Yes");
-}
-
-public void VoteActionHandler(Handle vote, BuiltinVoteAction action, int param1, int param2)
-{
-	switch (action)
-	{
-		case BuiltinVoteAction_End:
-		{
-			CloseHandle(vote);
-		}
-		case BuiltinVoteAction_Cancel:
-		{
-			DisplayBuiltinVoteFail(vote, BuiltinVoteFail_Generic);
-		}
-	}
-}
-
-public void KickSpecsVoteResultHandler(Handle vote, int num_votes, int num_clients, const int[][] client_info, int num_items, const int[][] item_info)
-{
-	for (int i = 0; i < num_items; i++)
-	{
-		if (item_info[i][BUILTINVOTEINFO_ITEM_INDEX] == BUILTINVOTES_VOTE_YES)
-		{
-			if (item_info[i][BUILTINVOTEINFO_ITEM_VOTES] > (num_clients / 2))
-			{
-				char buffer[64];
-				FormatEx(buffer, sizeof(buffer), "%T", "KickSpecsVoteSuccess", LANG_SERVER);
-				DisplayBuiltinVotePass(vote, buffer);
-				
-				float delay = FindConVar("sv_vote_command_delay").FloatValue;
-				CreateTimer(delay, Timer_KickSpecs);
-				return;
-			}
-		}
-	}
-
-	DisplayBuiltinVoteFail(vote, BuiltinVoteFail_Loses);
-}
-
-public Action Timer_KickSpecs(Handle timer)
-{
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (!IsClientInGame(i) || IsFakeClient(i)) { continue; }
-		if (IsPlayer(i)) { continue; }
-		if (IsClientCaster(i)) { continue; }
-		if (GetUserAdmin(i) != INVALID_ADMIN_ID) { continue; }
-					
-		KickClient(i, "%t", "KickSpecsReason");
-	}
 }
 
 
@@ -1078,9 +752,6 @@ void UpdatePanel()
 	menuPanel.DrawText(" ");
 	
 	char nameBuf[64];
-	char authBuffer[64];
-	bool caster;
-	bool dummy;
 	
 	for (int client = 1; client <= MaxClients; client++)
 	{
@@ -1088,8 +759,6 @@ void UpdatePanel()
 		{
 			++playerCount;
 			GetClientFixedName(client, nameBuf, sizeof(nameBuf));
-			GetClientAuthId(client, AuthId_Steam2, authBuffer, sizeof(authBuffer));
-			caster = casterTrie.GetValue(authBuffer, dummy);
 			
 			if (IsPlayer(client))
 			{
@@ -1109,7 +778,7 @@ void UpdatePanel()
 			else
 			{
 				++specCount;
-				if (caster)
+				if (IsClientCaster(client))
 				{
 					++casterCount;
 					Format(nameBuf, sizeof(nameBuf), "%s\n", nameBuf);
@@ -1719,31 +1388,34 @@ public int Native_IsInReady(Handle plugin, int numParams)
 	return inReadyUp;
 }
 
-public int Native_IsClientCaster(Handle plugin, int numParams)
+public int Native_ToggleReadyPanel(Handle plugin, int numParams)
 {
-	int client = GetNativeCell(1);
-	return IsClientCaster(client);
+	if (inReadyUp)
+	{
+		// TODO: Inform the client(s) that panel is supressed?
+		bool hide = !GetNativeCell(1);
+		
+		int client = GetNativeCell(2);
+		if (client && IsClientInGame(client))
+		{
+			bool temp = !hiddenPanel[client];
+			hiddenPanel[client] = hide;
+			return temp;
+		}
+		else
+		{
+			for (int i = 1; i <= MaxClients; i++)
+			{
+				if (IsClientInGame(i))
+				{
+					hiddenPanel[i] = hide;
+				}
+			}
+			return true;
+		}
+	}
+	return false;
 }
-
-public int Native_IsIDCaster(Handle plugin, int numParams)
-{
-	char buffer[64];
-	GetNativeString(1, buffer, sizeof(buffer));
-	return IsIDCaster(buffer);
-}
-
-bool IsClientCaster(int client)
-{
-	char buffer[64];
-	return GetClientAuthId(client, AuthId_Steam2, buffer, sizeof(buffer)) && IsIDCaster(buffer);
-}
-
-bool IsIDCaster(const char[] AuthID)
-{
-	bool dummy;
-	return GetTrieValue(casterTrie, AuthID, dummy);
-}
-
 
 
 // ========================

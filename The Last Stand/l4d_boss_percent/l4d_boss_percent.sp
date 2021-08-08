@@ -25,8 +25,9 @@ out what's going on :D Kinda makes my other plugins look bad huh :/
 #undef REQUIRE_PLUGIN
 #include <confogl>
 #include <readyup>
+#include <witch_and_tankifier>
 
-#define PLUGIN_VERSION "3.2.4a"
+#define PLUGIN_VERSION "3.2.5"
 
 public Plugin myinfo =
 {
@@ -42,8 +43,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("SetTankDisabled", Native_SetTankDisabled); 				// Other plugins can use this to set the tank as "disabled" on the ready up, and when the !boss command is used - YOU NEED TO SET THIS EVERY MAP
 	CreateNative("SetWitchDisabled", Native_SetWitchDisabled); 				// Other plugins can use this to set the witch as "disabled" on the ready up, and when the !boss command is used - YOU NEED TO SET THIS EVERY MAP
 	CreateNative("UpdateBossPercents", Native_UpdateBossPercents); 			// Used for other plugins to update the boss percentages
-	CreateNative("IsStaticWitchMap", Native_IsStaticWitchMap); 				// Used for other plugins to check if the current map contains a static witch spawn
-	CreateNative("IsStaticTankMap", Native_IsStaticTankMap); 				// Used for other plugins to check if the current map contains a static tank spawn
 	CreateNative("GetStoredTankPercent", Native_GetStoredTankPercent); 		// Used for other plugins to get the stored tank percent
 	CreateNative("GetStoredWitchPercent", Native_GetStoredWitchPercent); 	// Used for other plugins to get the stored witch percent
 	CreateNative("GetReadyUpFooterIndex", Native_GetReadyUpFooterIndex); 	// Used for other plugins to get the ready footer index of the boss percents
@@ -65,11 +64,8 @@ bool g_bCvarTankPercent;
 bool g_bCvarWitchPercent;
 
 // Handles
-//ConVar g_hVsBossBuffer; 												// Boss Buffer
 ConVar g_hVsBossFlowMin; 												// Boss Flow Min
 ConVar g_hVsBossFlowMax; 												// Boss Flow Max
-StringMap g_hStaticTankMaps; 											// Stores All Static Tank Maps
-StringMap g_hStaticWitchMaps; 											// Stores All Static Witch Maps
 GlobalForward g_forwardUpdateBosses;
 Handle g_hUpdateFooterTimer;
 
@@ -104,11 +100,8 @@ char g_sTankString[80];
 public void OnPluginStart()
 {
 	// Variable Setting
-	//g_hVsBossBuffer = FindConVar("versus_boss_buffer"); // Get the boss buffer
 	g_hVsBossFlowMin = FindConVar("versus_boss_flow_min"); // Get boss flow min
 	g_hVsBossFlowMax = FindConVar("versus_boss_flow_max"); // Get boss flow max
-	g_hStaticWitchMaps = new StringMap(); // Create list of static witch maps
-	g_hStaticTankMaps = new StringMap(); // Create list of static tank maps
 	
 	// Forwards
 	g_forwardUpdateBosses = new GlobalForward("OnUpdateBosses", ET_Event);
@@ -136,10 +129,6 @@ public void OnPluginStart()
 	RegAdminCmd("sm_ftank", ForceTankCommand, ADMFLAG_BAN);
 	RegAdminCmd("sm_fwitch", ForceWitchCommand, ADMFLAG_BAN);
 	
-	// Server Commands
-	RegServerCmd("static_witch_map", StaticWitchMap_Command); // Server command that is used to store static witch maps
-	RegServerCmd("static_tank_map", StaticTankMap_Command); // Server command that is used to store static tank maps
-
 	// Hooks/Events
 	HookEvent("player_left_start_area", LeftStartAreaEvent, EventHookMode_PostNoCopy); // Called when a player has left the saferoom
 	HookEvent("round_start", RoundStartEvent, EventHookMode_PostNoCopy); // When a new round starts (2 rounds in 1 map -- this should be called twice a map)
@@ -173,16 +162,6 @@ void GetCvars()
 public int Native_UpdateBossPercents(Handle plugin, int numParams){
 	CreateTimer(0.1, GetBossPercents);
 	UpdateReadyUpFooter(0.2);
-}
-
-// Allows other plugins to check if the current map contains a static witch spawn
-public int Native_IsStaticWitchMap(Handle plugin, int numParams){
-	return IsStaticWitchMap();
-}
-
-// Allows other plugins to check if the current map contains a static tank spawn
-public int Native_IsStaticTankMap(Handle plugin, int numParams){
-	return IsStaticTankMap();
 }
 
 // Used for other plugins to check if the current map is Dark Carnival: Remix (It tends to break things when it comes to bosses)
@@ -346,47 +325,6 @@ public void RoundStartEvent(Event event, const char[] name, bool dontBroadcast)
 
 /* ========================================================
 // ====================== Section #4 ======================
-// ================== Static Map Control ==================
-// ========================================================
- *
- * This section is where all of our methods that have to due
- * with Static Boss Spawn maps will go.
- *
- * vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-*/
-
-// Server Command - When it is executed it will add a static witch map name to a list.
-public Action StaticWitchMap_Command(int args)
-{
-	char mapname[64];
-	GetCmdArg(1, mapname, sizeof(mapname));
-	SetTrieValue(g_hStaticWitchMaps, mapname, true);
-}
-
-// Server Command - When it is executed it will add a static tank map name to a list.
-public Action StaticTankMap_Command(int args)
-{
-	char mapname[64];
-	GetCmdArg(1, mapname, sizeof(mapname));
-	SetTrieValue(g_hStaticTankMaps, mapname, true);
-}
-
-// Checks the static witch map list to see if the current map contains a static witch spawn
-bool IsStaticWitchMap()
-{
-	bool tempValue;
-	return GetTrieValue(g_hStaticWitchMaps, g_sCurrentMap, tempValue);
-}
-
-// Checks the static tank map list to see if the current map contains a static tank spawn
-bool IsStaticTankMap()
-{
-	bool tempValue;
-	return GetTrieValue(g_hStaticTankMaps, g_sCurrentMap, tempValue);
-}
-
-/* ========================================================
-// ====================== Section #5 ======================
 // ============ Dark Carnival: Remix Workaround ===========
 // ========================================================
  *
@@ -517,7 +455,7 @@ public void DKRWorkaround(Event event, const char[] name, bool dontBroadcast)
 }
 
 /* ========================================================
-// ====================== Section #6 ======================
+// ====================== Section #5 ======================
 // ================= Percent Updater/Saver ================
 // ========================================================
  *
@@ -530,14 +468,12 @@ public void DKRWorkaround(Event event, const char[] name, bool dontBroadcast)
 // This method will return the Tank flow for a specified round
 stock float GetTankFlow(int round)
 {
-	return L4D2Direct_GetVSTankFlowPercent(round)/* -
-		( GetConVarFloat(g_hVsBossBuffer) / L4D2Direct_GetMapMaxFlowDistance() )*/;
+	return L4D2Direct_GetVSTankFlowPercent(round);
 }
 
 stock float GetWitchFlow(int round)
 {
-	return L4D2Direct_GetVSWitchFlowPercent(round)/* -
-		( GetConVarFloat(g_hVsBossBuffer) / L4D2Direct_GetMapMaxFlowDistance() )*/;
+	return L4D2Direct_GetVSWitchFlowPercent(round);
 }
 
 /* 
@@ -759,7 +695,7 @@ public Action Timer_UpdateReadyUpFooter(Handle timer)
 }
 
 /* ========================================================
-// ====================== Section #7 ======================
+// ====================== Section #6 ======================
 // ======================= Commands =======================
 // ========================================================
  *
@@ -885,7 +821,7 @@ void PrintBossPercents(int client = 0)
 }
 
 /* ========================================================
-// ====================== Section #8 ======================
+// ====================== Section #7 ======================
 // ====================== Boss Votin ======================
 // ========================================================
  *
@@ -1255,7 +1191,7 @@ void SetTankPercent(int percent)
 }
 
 /* ========================================================
-// ====================== Section #9 ======================
+// ====================== Section #8 ======================
 // ==================== Admin Commands ====================
 // ========================================================
  *

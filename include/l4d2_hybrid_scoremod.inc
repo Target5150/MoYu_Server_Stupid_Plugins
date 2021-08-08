@@ -1,10 +1,7 @@
-/*
-**
-*/
-#if defined _l4d2_hybrid_scoremod_included
- #endinput
+#if defined _l4d2_hybrid_scoremod
+	#endinput
 #endif
-#define _l4d2_hybrid_scoremod_included
+#define _l4d2_hybrid_scoremod
 
 native int SMPlus_GetHealthBonus();
 native int SMPlus_GetDamageBonus();
@@ -13,7 +10,7 @@ native int SMPlus_GetMaxHealthBonus();
 native int SMPlus_GetMaxDamageBonus();
 native int SMPlus_GetMaxPillsBonus();
 
-public SharedPlugin __pl_l4d2_hybrid_scoremod = 
+public SharedPlugin __pl_l4d2_hybrid_scoremod =
 {
 	name = "l4d2_hybrid_scoremod",
 	file = "l4d2_hybrid_scoremod.smx",
