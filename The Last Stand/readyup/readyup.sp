@@ -6,9 +6,10 @@
 #include <left4dhooks>
 #include <builtinvotes>
 #include <colors>
+#undef REQUIRE_PLUGIN
 #include <caster_system>
 
-#define PLUGIN_VERSION "9.3.0"
+#define PLUGIN_VERSION "9.3.1"
 
 public Plugin myinfo =
 {
@@ -125,6 +126,9 @@ Handle g_hChangeTeamTimer[MAXPLAYERS+1];
 // :D
 Handle blockSecretSpam[MAXPLAYERS+1];
 
+// Caster System
+bool casterSystemAvailable;
+
 // Reason enum for Countdown cancelling
 enum disruptType
 {
@@ -229,6 +233,12 @@ public void OnPluginEnd()
 public void OnAllPluginsLoaded()
 {
 	FillServerNamer();
+	FindCasterSystem();
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+	FindCasterSystem();
 }
 
 void LoadTranslation()
@@ -249,6 +259,11 @@ void FillServerNamer()
 	l4d_ready_server_cvar.GetString(buffer, sizeof buffer);
 	if ((ServerNamer = FindConVar(buffer)) == null)
 		ServerNamer = FindConVar("hostname");
+}
+
+void FindCasterSystem()
+{
+	casterSystemAvailable = LibraryExists("caster_system");
 }
 
 
@@ -778,7 +793,7 @@ void UpdatePanel()
 			else
 			{
 				++specCount;
-				if (IsClientCaster(client))
+				if (casterSystemAvailable && IsClientCaster(client))
 				{
 					++casterCount;
 					Format(nameBuf, sizeof(nameBuf), "%s\n", nameBuf);
@@ -819,14 +834,17 @@ void UpdatePanel()
 	
 	if (specCount && textCount) menuPanel.DrawText(" ");
 
-	bufLen = strlen(casterBuffer);
-	if (bufLen != 0)
+	if (casterSystemAvailable)
 	{
-		casterBuffer[bufLen] = '\0';
-		Format(nameBuf, sizeof(nameBuf), "->%d. Caster%s", ++textCount, casterCount > 1 ? "s" : "");
-		menuPanel.DrawText(nameBuf);
-		ReplaceString(casterBuffer, sizeof(casterBuffer), "#", "_", true);
-		menuPanel.DrawText(casterBuffer);
+		bufLen = strlen(casterBuffer);
+		if (bufLen != 0)
+		{
+			casterBuffer[bufLen] = '\0';
+			Format(nameBuf, sizeof(nameBuf), "->%d. Caster%s", ++textCount, casterCount > 1 ? "s" : "");
+			menuPanel.DrawText(nameBuf);
+			ReplaceString(casterBuffer, sizeof(casterBuffer), "#", "_", true);
+			menuPanel.DrawText(casterBuffer);
+		}
 	}
 	
 	bufLen = strlen(specBuffer);
