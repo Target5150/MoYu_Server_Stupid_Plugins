@@ -6,8 +6,9 @@
 /**
  * @brief Called when the boss percents are updated.
  * @remarks Triggered via boss votes, force tanks, force witches.
+ * @remarks Special value: -1 indicates ignored in change, 0 disabled (no spawn).
  */
-forward void OnUpdateBosses();
+forward void OnUpdateBosses(int iTankFlow, int iWitchFlow);
 
 public SharedPlugin __pl_l4d_boss_vote = 
 {
