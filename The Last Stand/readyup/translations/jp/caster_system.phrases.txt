@@ -57,7 +57,7 @@
 	"VoteDelay"
 	{
 		"#format"	"{1:d}"
-		"jp"		"[{olive}Cast{default}] 他の投票が行われており、残り {blue}{1}秒 {default}で投票が行えます。
+		"jp"		"[{olive}Cast{default}] 他の投票が行われており、残り {blue}{1}秒 {default}で投票が行えます。"
 	}
 	
 	"ForbidAddons"
