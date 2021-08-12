@@ -9,6 +9,10 @@
 #define L4D2UTIL_STOCKS_ONLY
 #include <l4d2util_rounds>
 
+#if DEBUG
+#include <profiler>
+#endif
+
 public Plugin myinfo = {
 	name = "Tank and Witch ifier!",
 	author = "CanadaRox, Sir, devilesk, Derpduck",
@@ -74,6 +78,7 @@ public void OnPluginStart() {
 	
 #if DEBUG
 	RegConsoleCmd("sm_tank_witch_debug_test", Test_Cmd);
+	RegConsoleCmd("sm_tank_witch_debug_profiler", Profiler_Cmd);
 #endif
 }
 
@@ -109,6 +114,31 @@ public Action Info_Cmd(int client, int args) {
 public Action Test_Cmd(int client, int args) {
 	PrintDebug("[Test_Cmd] Starting AdjustBossFlow timer...");
 	CreateTimer(0.5, AdjustBossFlow, _, TIMER_FLAG_NO_MAPCHANGE);
+}
+
+public Action Profiler_Cmd(int client, int args) {
+	if (args != 1) {
+		ReplyToCommand(client, "[SM] Usage: sm_tank_witch_debug_profiler <times>");
+		return Plugin_Handled;
+	}
+	char buffer[32];
+	GetCmdArg(1, buffer, sizeof buffer);
+	
+	int times = StringToInt(buffer);
+	FormatEx(buffer, "%i time%s", times, times > 1 ? "s" : "");
+	PrintDebug("[Profiler_Cmd] Starting AdjustBossFlow profiler (%s)...", buffer);
+	
+	Profiler profiler = new Profiler();
+	profiler.Start();
+	for (int i = 0; i < times; ++i) {
+		AdjustBossFlow(null);
+	}
+	
+	profiler.Stop();
+	PrintDebug("[Profiler_Cmd] Spent %f seconds (%s)...", profiler.Time, buffer);
+	
+	delete profiler;
+	return Plugin_Handled;
 }
 #endif
 
@@ -366,53 +396,43 @@ bool IsStaticWitchMap(const char[] map) {
 bool IsTankPercentValid(int flow) {
 	if (flow == 0) {
 		return true;
-	} else {
-		int size = hValidTankFlows.Length;
-		if (!size) {
-			return false;
-		}
-		if (flow > hValidTankFlows.Get(size-1, 1)
-			|| flow < hValidTankFlows.Get(0, 0)
-		){ // out of bounds
-			return false;
-		}
-		for (int i = 0; i < size; ++i) {
-			if (flow <= hValidTankFlows.Get(i, 1)) {
-				if (flow < hValidTankFlows.Get(i, 0)) {
-					return false;
-				} else {
-					return true;
-				}
-			}
-		}
+	}
+	int size = hValidTankFlows.Length;
+	if (!size) {
 		return false;
 	}
+	if (flow > hValidTankFlows.Get(size-1, 1)
+		|| flow < hValidTankFlows.Get(0, 0)
+	){ // out of bounds
+		return false;
+	}
+	for (int i = 0; i < size; ++i) {
+		if (flow <= hValidTankFlows.Get(i, 1)) {
+			return flow >= hValidTankFlows.Get(i, 0);
+		}
+	}
+	return false;
 }
 
 bool IsWitchPercentValid(int flow){
 	if (flow == 0) {
 		return true;
-	} else {
-		int size = hValidWitchFlows.Length;
-		if (!size) {
-			return false;
-		}
-		if (flow > hValidWitchFlows.Get(size-1, 1)
-			|| flow < hValidWitchFlows.Get(0, 0)
-		){ // out of bounds
-			return false;
-		}
-		for (int i = 0; i < size; ++i) {
-			if (flow <= hValidWitchFlows.Get(i, 1)) {
-				if (flow < hValidWitchFlows.Get(i, 0)) {
-					return false;
-				} else {
-					return true;
-				}
-			}
-		}
+	}
+	int size = hValidWitchFlows.Length;
+	if (!size) {
 		return false;
 	}
+	if (flow > hValidWitchFlows.Get(size-1, 1)
+		|| flow < hValidWitchFlows.Get(0, 0)
+	){ // out of bounds
+		return false;
+	}
+	for (int i = 0; i < size; ++i) {
+		if (flow <= hValidWitchFlows.Get(i, 1)) {
+			return flow >= hValidWitchFlows.Get(i, 0);
+		}
+	}
+	return false;
 }
 
 void SetTankPercent(int percent) {
@@ -469,6 +489,7 @@ stock void PrintDebugInfoDump() {
 			char sInterval[16];
 			FormatEx(sInterval, 16, "[%i, %i]", hValidTankFlows.Get(i, 0), hValidTankFlows.Get(i, 1));
 			StrCat(buffer, 256, sInterval);
+			if (i != size - 1) StrCat(buffer, 256, ", ");
 		}
 		PrintDebug(buffer);
 		
