@@ -1,0 +1,28 @@
+"Games"
+{
+	"left4dead2"
+	{
+		"MemPatches"
+		{
+			"CTerrorPlayer_GiveDefaultItem"
+			{
+				"signature"			"CTerrorPlayer_GiveDefaultItem"
+				"linux"
+				{
+					"offset"		"1008"
+					"verify"		"\xE8" // make sure the call instruction starts with E8
+					"patch"			"\x90\x90\x90\x90\x90" // patch the call instruction with NOPs (5 bytes)
+				}
+			}
+		}
+		
+		"Signatures"
+		{
+			"CTerrorPlayer_GiveDefaultItem"
+			{
+				"library"		"server"
+				"linux"			"@_ZN13CTerrorPlayer16GiveDefaultItemsEv"
+			}
+		}
+	}
+}
