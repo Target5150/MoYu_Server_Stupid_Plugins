@@ -1,0 +1,55 @@
+"Games"
+{
+	"left4dead"
+	{
+		"MemPatches"
+		{
+			"ForEachPlayer_ProximityCheck"
+			{
+				"signature"			"ForEachPlayer_ProximityCheck"
+				"linux"
+				{
+					"offset"		"1410"
+					"verify"		"\x0F\x85" // make sure the jnz instruction starts with "74 85"
+					"patch"			"\x90\xE9" // patch the jz instruction with 1 NOP and jmp (2 bytes)
+				}
+			}
+		}
+		
+		"Signatures"
+		{
+			"ForEachPlayer_ProximityCheck"
+			{
+				"library"		"server"
+				"linux"			"@_ZN9CTankRock14ProximityThinkEv"
+			}
+		}
+	}
+	
+
+	"left4dead2"
+	{
+		"MemPatches"
+		{
+			"ForEachPlayer_ProximityCheck"
+			{
+				"signature"			"ForEachPlayer_ProximityCheck"
+				"linux"
+				{
+					"offset"		"759"
+					"verify"		"\x74" // make sure the jz short instruction starts with 0x74
+					"patch"			"\xEB" // patch the jz short instruction with jmp short (2 bytes)
+				}
+			}
+		}
+		
+		"Signatures"
+		{
+			"ForEachPlayer_ProximityCheck"
+			{
+				"library"		"server"
+				"linux"			"@_Z13ForEachPlayerI14ProximityCheckEbRT_"
+			}
+		}
+	}
+}
