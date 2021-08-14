@@ -125,8 +125,11 @@ public Action Profiler_Cmd(int client, int args) {
 	GetCmdArg(1, buffer, sizeof buffer);
 	
 	int times = StringToInt(buffer);
-	FormatEx(buffer, "%i time%s", times, times > 1 ? "s" : "");
+	FormatEx(buffer, sizeof buffer, "%i time%s", times, times > 1 ? "s" : "");
 	PrintDebug("[Profiler_Cmd] Starting AdjustBossFlow profiler (%s)...", buffer);
+	
+	bool temp = g_hCvarDebug.BoolValue;
+	g_hCvarDebug.BoolValue = false;
 	
 	Profiler profiler = new Profiler();
 	profiler.Start();
@@ -135,6 +138,8 @@ public Action Profiler_Cmd(int client, int args) {
 	}
 	
 	profiler.Stop();
+	
+	g_hCvarDebug.BoolValue = temp;
 	PrintDebug("[Profiler_Cmd] Spent %f seconds (%s)...", profiler.Time, buffer);
 	
 	delete profiler;
@@ -385,7 +390,7 @@ public any Native_SetWitchPercent(Handle plugin, int numParams) {
 
 bool IsStaticTankMap(const char[] map) {
 	bool dummy;
-	return hStaticWitchMaps.GetValue(map, dummy);
+	return hStaticTankMaps.GetValue(map, dummy);
 }
 
 bool IsStaticWitchMap(const char[] map) {
