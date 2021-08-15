@@ -2,43 +2,8 @@
 {
 	"left4dead2"
 	{
-		"Addresses"
-		{
-			"CDirector"
-			{
-				"windows"
-				{
-					"signature" "DirectorMusicBanks_OnRoundStart"
-					"read" "12"
-				}
-				"linux"
-				{
-					"signature" "TheDirector"
-				}
-				"read" "0"
-			}
-		}
-		
 		"Signatures"
 		{
-			/* Find the Director/ZombieManager singleton classes */
-			"TheDirector"
-			{
-				"library"	"server"
-				"linux"		"@TheDirector"
-			}
-
-			/* Used solely to get the offset for TheDirector
-			 * CDirectorMusicBanks::OnRoundStart
-			 * Has unique string "Event.Reveal"
-			*/
-			"DirectorMusicBanks_OnRoundStart"
-			{
-				"library"	"server"
-				"windows"	"\x55\x8B\xEC\x83\xEC\x2A\x56\x57\x8B\xF9\x8B\x0D\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x84\xC0\x0F"
-				/* 55 8B EC 83 EC ? 56 57 8B F9 8B 0D ? ? ? ? E8 ? ? ? ? 84 C0 0F */
-			}
-
 			"CDirector_IsInTransition"
 			{
 				"library"		"server"

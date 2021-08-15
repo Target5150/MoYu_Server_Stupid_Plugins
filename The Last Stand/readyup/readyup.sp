@@ -41,6 +41,9 @@ public Plugin myinfo =
 
 #define TRANSLATION_READYUP "readyup.phrases"
 
+#define GAMEDATA_READYUP "readyup"
+#define GAMEDATA_L4DH "left4dhooks.l4d2"
+
 #define READY_MODE_MANUAL 1
 #define READY_MODE_AUTOSTART 2
 
@@ -169,7 +172,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 
 public void OnPluginStart()
 {
-	LoadSDK();
+	LoadSDK(true);
 	
 	l4d_ready_enabled			= CreateConVar("l4d_ready_enabled", "1", "Enable this plugin. (Values: 1 = Manual ready, 2 = Auto start)", FCVAR_NOTIFY, true, 0.0, true, 2.0);
 	l4d_ready_cfg_name			= CreateConVar("l4d_ready_cfg_name", "", "Configname to display on the ready-up panel", FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
@@ -235,22 +238,33 @@ public void OnPluginEnd()
 	InitiateLive(false);
 }
 
-void LoadSDK()
+void LoadSDK(bool optional)
 {
-	Handle conf = LoadGameConfigFile("readyup");
-	if (conf == null)
+	Handle conf = LoadGameConfigFile(GAMEDATA_L4DH);
+	if (conf != null)
 	{
-		LogError("Missing gamedata \"readyup\"");
-		return;
+		g_pDirector = GameConfGetAddress(conf, "CDirector");
+		if (g_pDirector == Address_Null)
+		{
+			if (optional) LogError("Failed to get address of \"CDirector\"");
+			else SetFailState("Failed to get address of \"CDirector\"");
+		}
+		delete conf;
+	}
+	else
+	{
+		if (optional) LogError("Missing gamedata \""... GAMEDATA_L4DH ... "\"");
+		else SetFailState("Missing gamedata \""... GAMEDATA_L4DH ... "\"");
 	}
 	
-	g_pDirector = GameConfGetAddress(conf, "CDirector");
-	if (g_pDirector != Address_Null)
+	conf = LoadGameConfigFile(GAMEDATA_READYUP);
+	if (conf != null)
 	{
 		StartPrepSDKCall(SDKCall_Raw);
 		if (!PrepSDKCall_SetFromConf(conf, SDKConf_Signature, "CDirector_IsInTransition"))
 		{
-			LogError("Failed to PrepSDKCall of \"CDirector_IsInTransition\"");
+			if (optional) LogError("Failed to PrepSDKCall of \"CDirector_IsInTransition\"");
+			else SetFailState("Failed to PrepSDKCall of \"CDirector_IsInTransition\"");
 		}
 		else
 		{
@@ -258,16 +272,17 @@ void LoadSDK()
 			g_hSDKCall_IsInTransition = EndPrepSDKCall();
 			if (g_hSDKCall_IsInTransition == null)
 			{
-				LogError("Failed to EndPrepSDKCall of \"CDirector_IsInTransition\"");
+				if (optional) LogError("Failed to EndPrepSDKCall of \"CDirector_IsInTransition\"");
+				else SetFailState("Failed to EndPrepSDKCall of \"CDirector_IsInTransition\"");
 			}
 		}
+		delete conf;
 	}
 	else
 	{
-		LogError("Failed to get address of \"CDirector\"");
+		if (optional) LogError("Missing gamedata \""... GAMEDATA_READYUP ... "\"");
+		else SetFailState("Missing gamedata \""... GAMEDATA_READYUP ... "\"");
 	}
-	
-	delete conf;
 }
 
 public void OnAllPluginsLoaded()
