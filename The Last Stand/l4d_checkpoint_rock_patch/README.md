@@ -6,11 +6,6 @@
 
 <hr>
 
-### Requirement
-- [Source Scramble](https://forums.alliedmods.net/showthread.php?t=317175)
-
-<hr>
-
 ### Installation
 1. Put the **l4d_checkpoint_rock_patch.smx** to your _plugins_ folder.
 2. Put the **l4d_checkpoint_rock_patch.txt** to your _gamedata_ folder.
