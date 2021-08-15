@@ -2,22 +2,26 @@
 {
 	"left4dead"
 	{
-		"MemPatches"
+		"Offsets"
+		{
+			"PatchOffset"
+			{
+				"linux"			"1401"
+				"windows"		"152"
+			}
+		}
+		
+		"Addresses"
 		{
 			"ForEachPlayer_ProximityCheck"
 			{
-				"signature"		"ForEachPlayer_ProximityCheck"
 				"linux"
 				{
-					"offset"	"1401"
-					"verify"	"\x74" // make sure the jz short instruction starts with 0x74
-					"patch"		"\xEB" // patch the jz short instruction with jmp short (1 byte)
+					"signature"	"ForEachPlayer_ProximityCheck"
 				}
 				"windows"
 				{
-					"offset"	"152"
-					"verify"	"\x74" // make sure the jz short instruction starts with 0x74
-					"patch"		"\xEB" // patch the jz short instruction with jmp short (1 byte)
+					"signature"	"ForEachPlayer_ProximityCheck"
 				}
 			}
 		}
@@ -41,22 +45,26 @@
 
 	"left4dead2"
 	{
-		"MemPatches"
+		"Offsets"
+		{
+			"PatchOffset"
+			{
+				"linux"			"759"
+				"windows"		"168"
+			}
+		}
+		
+		"Addresses"
 		{
 			"ForEachPlayer_ProximityCheck"
 			{
-				"signature"		"ForEachPlayer_ProximityCheck"
 				"linux"
 				{
-					"offset"	"759"
-					"verify"	"\x74" // make sure the jz short instruction starts with 0x74
-					"patch"		"\xEB" // patch the jz short instruction with jmp short (1 byte)
+					"signature"	"ForEachPlayer_ProximityCheck"
 				}
 				"windows"
 				{
-					"offset"	"168"
-					"verify"	"\x74" // make sure the jz short instruction starts with 0x74
-					"patch"		"\xEB" // patch the jz short instruction with jmp short (1 byte)
+					"signature"	"ForEachPlayer_ProximityCheck"
 				}
 			}
 		}

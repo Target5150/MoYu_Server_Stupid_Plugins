@@ -1,10 +1,9 @@
 #include <sourcemod>
-#include <sourcescramble>
 
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo = 
 {
@@ -18,7 +17,10 @@ public Plugin myinfo =
 #define GAMEDATA_FILE "l4d_checkpoint_rock_patch"
 #define PATCH_KEY "ForEachPlayer_ProximityCheck"
 
-MemoryPatch g_hPatch;
+#define JZ_SHORT_OPCODE 0x74
+#define JMP_SHORT_OPCODE 0xEB
+
+Address g_pAddress;
 
 public void OnPluginStart()
 {
@@ -26,16 +28,18 @@ public void OnPluginStart()
 	if (conf == null)
 		SetFailState("Missing gamedata \"" ... GAMEDATA_FILE ... "\"");
 	
-	g_hPatch = MemoryPatch.CreateFromConf(conf, PATCH_KEY);
+	g_pAddress = GameConfGetAddress(conf, PATCH_KEY);
+	if (g_pAddress == Address_Null)
+		SetFailState("Failed to get address of \"" ... PATCH_KEY ... "\"");
+		
+	int offset = GameConfGetOffset(conf, "PatchOffset");
+	if (offset == -1)
+		SetFailState("Failed to get offset from \"PatchOffset\"");
 	
 	delete conf;
 	
-	if (g_hPatch == null)
-		SetFailState("Failed to create MemoryPatch \"" ... PATCH_KEY ... "\"");
+	g_pAddress += view_as<Address>(offset);
 	
-	if (!g_hPatch.Validate())
-		SetFailState("Failed to validate MemoryPatch \"" ... PATCH_KEY ... "\"");
-		
 	ApplyPatch(true);
 }
 
@@ -46,12 +50,21 @@ public void OnPluginEnd()
 
 void ApplyPatch(bool patch)
 {
-	if (patch)
+	static bool patched = false;
+	if (patch && !patched)
 	{
-		if (!g_hPatch.Enable()) SetFailState("Failed to enable MemoryPatch \"" ... PATCH_KEY ... "\"");
+		int byte = LoadFromAddress(g_pAddress, NumberType_Int8);
+		if (byte != JZ_SHORT_OPCODE)
+			SetFailState("Failed to apply patch \"" ... PATCH_KEY ... "\"");
+			
+		StoreToAddress(g_pAddress, JMP_SHORT_OPCODE, NumberType_Int8);
 	}
-	else
+	else if (!patch && patched)
 	{
-		g_hPatch.Disable();
+		int byte = LoadFromAddress(g_pAddress, NumberType_Int8);
+		if (byte != JMP_SHORT_OPCODE)
+			SetFailState("Failed to apply patch \"" ... PATCH_KEY ... "\"");
+			
+		StoreToAddress(g_pAddress, JZ_SHORT_OPCODE, NumberType_Int8);
 	}
 }
