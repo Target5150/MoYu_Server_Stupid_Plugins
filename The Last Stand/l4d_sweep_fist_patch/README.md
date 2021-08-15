@@ -25,6 +25,8 @@ https://forums.alliedmods.net/showthread.php?t=332046
 <hr>
 
 ### Changelog
+(v1.5a 2021/8/16 UTC+8) Updated L4D2 Linux offsets.
+
 (v1.5 2021/4/29 7PM UTC+8)
 - Added L4D1 Linux support.
 - Fixes for incorrect usage of `IsAllowedGamemode()`.

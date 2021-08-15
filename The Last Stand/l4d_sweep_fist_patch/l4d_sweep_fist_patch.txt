@@ -127,7 +127,7 @@
 				"signature"			"CTankClaw::SweepFist"
 				"linux"
 				{
-					"offset"		"2519"
+					"offset"		"2554"
 					"verify"		"\xE8" // make sure the call instruction starts with E8
 					"patch"			"\x90\x90\x90\x90\x90" // patch the call instruction with NOPs (5 bytes)
 				}
@@ -145,7 +145,7 @@
 				"signature"			"CTankClaw::SweepFist"
 				"linux"
 				{
-					"offset"		"3473"
+					"offset"		"3488"
 					"verify"		"\xE8" // make sure the call instruction starts with E8
 					"patch"			"\x90\x90\x90\x90\x90" // patch the call instruction with NOPs (5 bytes)
 				}
