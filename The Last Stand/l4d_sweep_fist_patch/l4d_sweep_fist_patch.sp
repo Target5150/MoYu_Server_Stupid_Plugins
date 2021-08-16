@@ -5,7 +5,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "2.1"
+#define PLUGIN_VERSION "2.1a"
 
 public Plugin myinfo = 
 {
@@ -36,6 +36,8 @@ MemoryPatch g_hPatcher_GroundPound;
 Handle g_hDetour_DoSwing;
 Handle g_hDetour_GroundPound;
 
+bool g_bMapStarted;
+
 // =======================================
 // Engine Detect
 // =======================================
@@ -46,6 +48,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	{
 		case Engine_Left4Dead, Engine_Left4Dead2:
 		{
+			g_bMapStarted = late;
 			return APLRes_Success;
 		}
 	}
@@ -124,7 +127,6 @@ public void OnGameModeChanged(ConVar convar, const char[] oldValue, const char[]
 // IsAllowedGamemode() credie to Silvers
 // =======================================
 
-bool g_bMapStarted;
 public void OnMapStart()
 {
 	g_bMapStarted = true;

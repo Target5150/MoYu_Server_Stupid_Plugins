@@ -3,6 +3,7 @@ https://forums.alliedmods.net/showthread.php?t=332046
 
 ### Intruduction
 - Patch memory bytes to allow multi-punch for tank in Coop Mode
+- Currently tested on L4D2 Linux only.
 
 <hr>
 
@@ -25,6 +26,12 @@ https://forums.alliedmods.net/showthread.php?t=332046
 <hr>
 
 ### Changelog
+(v2.1a 2021/8/16 UTC+8) Minor change to detect map running.
+
+(v2.1 2021/8/16 UTC+8) Support for both L4D on both platforms.
+
+(v2.0 2021/8/16 UTC+8) Now should work on cases where tank punches onto incapacitated survivors.
+
 (v1.5a 2021/8/16 UTC+8) Updated L4D2 Linux offsets.
 
 (v1.5 2021/4/29 7PM UTC+8)
