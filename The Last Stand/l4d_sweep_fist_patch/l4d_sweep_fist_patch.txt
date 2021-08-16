@@ -2,12 +2,27 @@
 {
 	"#default"
 	{
-		"Offsets"
+		"Functions"
 		{
-			"OS"
+			/**
+			 * CTankClaw::DoSwing()
+			 *
+			 * Note: Detouring as a pre-hook for patching "CTankClaw::SweepFist" in "coop" modes.
+			 **/
+			"CTankClaw::DoSwing"
 			{
-				"windows"		"1"
-				"linux"			"2"
+				"signature"			"CTankClaw::DoSwing"
+				"callconv"			"thiscall"
+				"return"			"void"
+				"this"				"entity"
+			}
+			
+			"CTankClaw::GroundPound"
+			{
+				"signature"			"CTankClaw::GroundPound"
+				"callconv"			"thiscall"
+				"return"			"void"
+				"this"				"entity"
 			}
 		}
 	}
@@ -22,15 +37,15 @@
 				"linux"
 				{
 					"offset"		"1051"
-					"verify"		"\xE8" // make sure the call instruction starts with E8
-					"patch"			"\x90\x90\x90\x90\x90" // patch the call instruction with NOPs (5 bytes)
+					"verify"		"\xE8" // make sure the 'call' instruction starts with E8
+					"patch"			"\x90\x90\x90\x90\x90" // patch the 'call' instruction with NOPs (5 bytes)
 				}
 				
 				"windows"
 				{
 					"offset"		"1067"
-					"verify"		"\xE8" // make sure the call instruction starts with E8
-					"patch"			"\x90\x90\x90\x90\x90" // patch the call instruction with NOPs (5 bytes)
+					"verify"		"\xE8" // make sure the 'call' instruction starts with E8
+					"patch"			"\x90\x90\x90\x90\x90" // patch the 'call' instruction with NOPs (5 bytes)
 				}
 			}
 			
@@ -40,80 +55,80 @@
 				"linux"
 				{
 					"offset"		"3418"
-					"verify"		"\xE8" // make sure the call instruction starts with E8
-					"patch"			"\x90\x90\x90\x90\x90" // patch the call instruction with NOPs (5 bytes)
+					"verify"		"\xE8" // make sure the 'call' instruction starts with E8
+					"patch"			"\x90\x90\x90\x90\x90" // patch the 'call' instruction with NOPs (5 bytes)
 				}
 				
 				"windows"
 				{
 					"offset"		"1076"
-					"verify"		"\xE8" // make sure the call instruction starts with E8
-					"patch"			"\x90\x90\x90\x90\x90" // patch the call instruction with NOPs (5 bytes)
+					"verify"		"\xE8" // make sure the 'call' instruction starts with E8
+					"patch"			"\x90\x90\x90\x90\x90" // patch the 'call' instruction with NOPs (5 bytes)
 				}
 			}
-		}
-		
-		"Functions"
-		{
-			/* NIX: __usercall CTankClaw::SweepFist(CTankClaw *a1@<eax>, Vector a2@<edx>, Vector a3) [clone] */
-			/* WIN: __thiscall CTankClaw::SweepFist(CTankClaw *a1, Vector a2, Vector a3) */
-			"CTankClaw::SweepFist"
+			
+			"CTankClaw::GroundPound::Check"
 			{
-				"signature"			"CTankClaw::SweepFist"
+				"signature"			"CTankClaw::GroundPound"
 				"linux"
 				{
-					"callconv"			"cdecl" // __usercall https://www.hex-rays.com/products/ida/support/idadoc/1361.shtml
-					"return"			"void"
-					"this"				"ignore"
-					"arguments"
-					{
-						"a1"
-						{
-							"type"		"cbaseentity"
-							"register"	"eax"
-						}
-						"a2"
-						{
-							"type"		"vectorptr"
-							"register"	"edx"
-						}
-						"a3"
-						{
-							"type"		"vectorptr"
-						}
-					}
+					"offset"		"1043"
+					"verify"		"\xE8" // make sure the 'call' instruction starts with E8
+					"patch"			"\x90\x90\x90\x90\x90" // patch the 'call' instruction with NOPs (5 bytes)
 				}
+				
 				"windows"
 				{
-					"callconv"			"thiscall"
-					"return"			"void"
-					"this"				"entity"
-					"arguments"
-					{
-						"a1"
-						{
-							"type"		"vectorptr"
-						}
-						"a2"
-						{
-							"type"		"vectorptr"
-						}
-					}
+					"offset"		"632"
+					"verify"		"\x75" // make sure the 'jnz short' instruction starts with 75
+					"patch"			"\xEB" // patch the 'jnz short' instruction with 'jmp short' (1 byte)
 				}
 			}
 		}
 		
 		"Signatures"
 		{
-			/* CTankClaw::SweepFist(Vector const&, Vector const&) */
+			/**
+			 * CTankClaw::DoSwing()
+			 *
+			 * How to find on Windows:
+			 * 1a. Search for the "rhand" string.
+			 * 2a. The string can only be found in this function.
+			 * 1b. Search for the "ValveBiped.Bip01_R_Hand" string.
+			 * 2b. One of the functions that references that string should be this function.
+			 **/
+			"CTankClaw::DoSwing"
+			{
+				"library"			"server"
+				"linux"				"@_ZN9CTankClaw7DoSwingEv"
+				"windows"			"\x2A\x2A\x2A\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x8B\x2A\x85\x2A\x74\x2A\x8D\x2A\x2A\x2A\x50\x8D\x2A\x2A\x2A\x51\x68"
+									/* ? ? ? ? ? ? ? E8 ? ? ? ? 8B ? 85 ? 74 ? 8D ? ? ? 50 8D ? ? ? 51 68 */
+			}
+			
+			/**
+			 * CTankClaw::SweepFist(Vector const&, Vector const&)
+			 *
+			 * How to find on Windows:
+			 * 1. Locate the "CTankClaw::DoSwing" function.
+			 * 2. The last function call should be this function.
+			 **/
 			"CTankClaw::SweepFist"
 			{
-				"library"	"server"
-				"linux"		"@_ZN9CTankClaw9SweepFistERK6VectorS2_.constprop.248"
-				"windows"	"\x2A\x2A\x2A\x2A\x2A\x2A\x55\x56\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x8B\x2A\x85\xF6\x0F\x84\x2A\x2A\x2A\x2A\x8B\x0D"
-				/* ? ? ? ? ? ? 55 56 8B ? E8 ? ? ? ? 8B ? 85 F6 0F 84 ? ? ? ? 8B 0D */ 
-				/* 1. (L4D1) Search "ValveBiped.Bip01_R_Hand" string which will lead you to "CTankClaw::DoSwing". */
-				/* 2. Look for "CTankClaw::SweepFist" as the very last function call. */
+				"library"			"server"
+				"linux"				"@_ZN9CTankClaw9SweepFistERK6VectorS2_.constprop.248"
+				"windows"			"\x2A\x2A\x2A\x2A\x2A\x2A\x55\x56\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x8B\x2A\x85\x2A\x0F\x84\x2A\x2A\x2A\x2A\x8B\x0D"
+									/* ? ? ? ? ? ? 55 56 8B ? E8 ? ? ? ? 8B ? 85 ? 0F 84 ? ? ? ? 8B 0D */
+			}
+			
+			/**
+			 * CTankClaw::GroundPound()
+			 **/
+			"CTankClaw::GroundPound"
+			{
+				"library"			"server"
+				"linux"				"@_ZN9CTankClaw11GroundPoundEv"
+				"windows"			"\x2A\x2A\x2A\x2A\x2A\x2A\x81\xEC\x2A\x2A\x2A\x2A\x53\x56\x57\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x8B\x2A\x85"
+									/* ? ? ? ? ? ? 81 EC ? ? ? ? 53 56 57 8B ? E8 ? ? ? ? 8B ? 85 */
 			}
 		}
 	}
@@ -128,15 +143,15 @@
 				"linux"
 				{
 					"offset"		"2554"
-					"verify"		"\xE8" // make sure the call instruction starts with E8
-					"patch"			"\x90\x90\x90\x90\x90" // patch the call instruction with NOPs (5 bytes)
+					"verify"		"\xE8" // make sure the 'call' instruction starts with E8
+					"patch"			"\x90\x90\x90\x90\x90" // patch the 'call' instruction with NOPs (5 bytes)
 				}
 				
 				"windows"
 				{
 					"offset"		"1382"
-					"verify"		"\xE8" // make sure the call instruction starts with E8
-					"patch"			"\x90\x90\x90\x90\x90" // patch the call instruction with NOPs (5 bytes)
+					"verify"		"\xE8" // make sure the 'call' instruction starts with E8
+					"patch"			"\x90\x90\x90\x90\x90" // patch the 'call' instruction with NOPs (5 bytes)
 				}
 			}
 			
@@ -146,15 +161,15 @@
 				"linux"
 				{
 					"offset"		"3488"
-					"verify"		"\xE8" // make sure the call instruction starts with E8
-					"patch"			"\x90\x90\x90\x90\x90" // patch the call instruction with NOPs (5 bytes)
+					"verify"		"\xE8" // make sure the 'call' instruction starts with E8
+					"patch"			"\x90\x90\x90\x90\x90" // patch the 'call' instruction with NOPs (5 bytes)
 				}
 				
 				"windows"
 				{
 					"offset"		"1391"
-					"verify"		"\xE8" // make sure the call instruction starts with E8
-					"patch"			"\x90\x90\x90\x90\x90" // patch the call instruction with NOPs (5 bytes)
+					"verify"		"\xE8" // make sure the 'call' instruction starts with E8
+					"patch"			"\x90\x90\x90\x90\x90" // patch the 'call' instruction with NOPs (5 bytes)
 				}
 			}
 			
@@ -165,66 +180,65 @@
 				{
 					"offset"		"988"
 					"verify"		"\x0F\x85" // make sure the 'jnz' instruction starts with 0F 85
-					"patch"			"\x90\xE9" // patch the call instruction with 1 NOP and 'jmp' (2 bytes)
+					"patch"			"\x90\xE9" // patch the 'jnz' instruction with 1 NOP and 'jmp' (2 bytes)
 				}
-			}
-		}
-		
-		"Functions"
-		{
-			/* CTankClaw::SweepFist(Vector const&, Vector const&) */
-			"CTankClaw::SweepFist"
-			{
-				"signature"			"CTankClaw::SweepFist"
-				"callconv"			"thiscall"
-				"return"			"void"
-				"this"				"entity"
-				"arguments"
+
+				"windows"
 				{
-					"a1"
-					{
-						"type"		"vectorptr"
-					}
-					"a2"
-					{
-						"type"		"vectorptr"
-					}
+					"offset"		"921"
+					"verify"		"\x74" // make sure the 'jnz short' instruction starts with 74
+					"patch"			"\x90\x90" // patch the 'jnz short' instruction with 2 NOPs (2 bytes)
 				}
-			}
-			
-			/* CTankClaw::GroundPound(CTankClaw *__hidden this) */
-			"CTankClaw::GroundPound"
-			{
-				"signature"			"CTankClaw::GroundPound"
-				"callconv"			"thiscall"
-				"return"			"cbaseentity"
-				"this"				"entity"
 			}
 		}
 		
 		"Signatures"
 		{
-			/* CTankClaw::SweepFist(Vector const&, Vector const&) */
-			"CTankClaw::SweepFist"
+			/**
+			 * CTankClaw::DoSwing()
+			 *
+			 * How to find on Windows:
+			 * 1a. Search for any of the following strings (they can each only be found in this function):
+			 * - "rhand"
+			 * - "lhand"
+			 * - "ValveBiped.Bip01_L_Hand"
+			 * 1b. Search for the "ValveBiped.Bip01_R_Hand" string.
+			 * 2b. One of the functions that references that string should be this function.
+			 **/
+			"CTankClaw::DoSwing"
 			{
-				"library"	"server"
-				"linux"		"@_ZN9CTankClaw9SweepFistERK6VectorS2_"
-				"windows"	"\x2A\x2A\x2A\x2A\x2A\x2A\x83\xE4\xF0\x83\xC4\x04\x55\x8B\x6B\x04\x89\x6C\x24\x04\x8B\xEC\x81\xEC\xA8\x01\x00\x00\xA1\x2A\x2A\x2A\x2A\x33\xC5\x89\x45\xFC\x8B\x43\x0C"
-				/* ? ? ? ? ? ? 83 E4 F0 83 C4 04 55 8B 6B 04 89 6C 24 04 8B EC 81 EC A8 01 00 00 A1 ? ? ? ? 33 C5 89 45 FC 8B 43 0C */ 
-				/* 1. (L4D2) Search "ValveBiped.Bip01_L_Hand" string which will lead you to "CTankClaw::DoSwing". */
-				/* 2. Look for "CTankClaw::SweepFist" as the very last function call. */
+				"library"			"server"
+				"linux"				"@_ZN9CTankClaw7DoSwingEv"
+				"windows"			"\x2A\x2A\x2A\x2A\x2A\x2A\x56\x89\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x8B\x2A\x85"
+									/* ? ? ? ? ? ? 56 89 ? ? E8 ? ? ? ? 8B ? 85 */
 			}
 			
-			/* CTankClaw::GroundPound(CTankClaw *__hidden this) */
+			/**
+			 * CTankClaw::SweepFist(Vector const&, Vector const&)
+			 *
+			 * How to find on Windows:
+			 * 1. Locate the "CTankClaw::DoSwing" function.
+			 * 2. The last function call should be this function.
+			 **/
+			"CTankClaw::SweepFist"
+			{
+				"library"			"server"
+				"linux"				"@_ZN9CTankClaw9SweepFistERK6VectorS2_"
+				"windows"			"\x2A\x2A\x2A\x2A\x2A\x2A\x83\x2A\x2A\x83\x2A\x2A\x55\x8B\x2A\x2A\x89\x2A\x2A\x2A\x8B\x2A\x81\xEC\x2A\x2A\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x33\x2A\x89\x2A\x2A\x8B\x2A\x2A\x56\x57\x8B\x2A\x2A\x89\x8D"
+									/* ? ? ? ? ? ? 83 ? ? 83 ? ? 55 8B ? ? 89 ? ? ? 8B ? 81 EC ? ? ? ? A1 ? ? ? ? 33 ? 89 ? ? 8B ? ? 56 57 8B ? ? 89 8D */
+			}
+			
+			/** CTankClaw::GroundPound(CTankClaw *__hidden this)
+			 * 1. Go to SweepFist sig, then click on the function and jump to the only x-ref (should be CTankClaw::DoSwing)
+			 * 2. Click on DoSwing sig, go to the data xref, the very last virtual call is CTankClaw::OnWindupFinished
+			 * 3. Generate pseudocode, the direct call (non-assignment), which is on the opposite to a virtual call, is the sig
+			 **/
 			"CTankClaw::GroundPound"
 			{
-				"library"	"server"
-				"linux"		"@_ZN9CTankClaw11GroundPoundEv"
-				"windows"	"\x53\x8B\xDC\x83\xEC\x08\x83\xE4\xF0\x83\xC4\x04\x55\x8B\x6B\x04\x89\x6C\x24\x04\x8B\xEC\x81\xEC\xA8\x01\x00\x00\xA1\x2A\x2A\x2A\x2A\x33\xC5\x89\x45\xFC\x56\x57"
-				/* 53 8B DC 83 EC 08 83 E4 F0 83 C4 04 55 8B 6B 04 89 6C 24 04 8B EC 81 EC A8 01 00 00 A1 ? ? ? ? 33 C5 89 45 FC 56 57 */
-				/* 1. Go to SweepFist sig, then click on the function and jump to the only x-ref (should be CTankClaw::DoSwing) */
-				/* 2. Click on DoSwing sig, go to the data xref, the very last virtual call is CTankClaw::OnWindupFinished */
-				/* 3. Generate pseudocode, the direct call (non-assignment), which is on the opposite to a virtual call, is the sig  */
+				"library"			"server"
+				"linux"				"@_ZN9CTankClaw11GroundPoundEv"
+				"windows"			"\x2A\x2A\x2A\x2A\x2A\x2A\x83\x2A\x2A\x83\x2A\x2A\x55\x8B\x2A\x2A\x89\x2A\x2A\x2A\x8B\x2A\x81\xEC\x2A\x2A\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x33\x2A\x89\x2A\x2A\x56\x57\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x8B\x2A\x89"
+									/* ? ? ? ? ? ? 83 ? ? 83 ? ? 55 8B ? ? 89 ? ? ? 8B ? 81 EC ? ? ? ? A1 ? ? ? ? 33 ? 89 ? ? 56 57 8B ? E8 ? ? ? ? 8B ? 89 */
 			}
 		}
 	}
