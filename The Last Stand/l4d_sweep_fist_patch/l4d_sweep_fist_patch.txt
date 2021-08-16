@@ -157,6 +157,17 @@
 					"patch"			"\x90\x90\x90\x90\x90" // patch the call instruction with NOPs (5 bytes)
 				}
 			}
+			
+			"CTankClaw::GroundPound::Check"
+			{
+				"signature"			"CTankClaw::GroundPound"
+				"linux"
+				{
+					"offset"		"988"
+					"verify"		"\x0F\x85" // make sure the 'jnz' instruction starts with 0F 85
+					"patch"			"\x90\xE9" // patch the call instruction with 1 NOP and 'jmp' (2 bytes)
+				}
+			}
 		}
 		
 		"Functions"
@@ -179,7 +190,16 @@
 						"type"		"vectorptr"
 					}
 				}
-			} 
+			}
+			
+			/* CTankClaw::GroundPound(CTankClaw *__hidden this) */
+			"CTankClaw::GroundPound"
+			{
+				"signature"			"CTankClaw::GroundPound"
+				"callconv"			"thiscall"
+				"return"			"cbaseentity"
+				"this"				"entity"
+			}
 		}
 		
 		"Signatures"
@@ -193,6 +213,18 @@
 				/* ? ? ? ? ? ? 83 E4 F0 83 C4 04 55 8B 6B 04 89 6C 24 04 8B EC 81 EC A8 01 00 00 A1 ? ? ? ? 33 C5 89 45 FC 8B 43 0C */ 
 				/* 1. (L4D2) Search "ValveBiped.Bip01_L_Hand" string which will lead you to "CTankClaw::DoSwing". */
 				/* 2. Look for "CTankClaw::SweepFist" as the very last function call. */
+			}
+			
+			/* CTankClaw::GroundPound(CTankClaw *__hidden this) */
+			"CTankClaw::GroundPound"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9CTankClaw11GroundPoundEv"
+				"windows"	"\x53\x8B\xDC\x83\xEC\x08\x83\xE4\xF0\x83\xC4\x04\x55\x8B\x6B\x04\x89\x6C\x24\x04\x8B\xEC\x81\xEC\xA8\x01\x00\x00\xA1\x2A\x2A\x2A\x2A\x33\xC5\x89\x45\xFC\x56\x57"
+				/* 53 8B DC 83 EC 08 83 E4 F0 83 C4 04 55 8B 6B 04 89 6C 24 04 8B EC 81 EC A8 01 00 00 A1 ? ? ? ? 33 C5 89 45 FC 56 57 */
+				/* 1. Go to SweepFist sig, then click on the function and jump to the only x-ref (should be CTankClaw::DoSwing) */
+				/* 2. Click on DoSwing sig, go to the data xref, the very last virtual call is CTankClaw::OnWindupFinished */
+				/* 3. Generate pseudocode, the direct call (non-assignment), which is on the opposite to a virtual call, is the sig  */
 			}
 		}
 	}
