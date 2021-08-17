@@ -185,7 +185,7 @@
 
 				"windows"
 				{
-					"offset"		"921"
+					"offset"		"929"
 					"verify"		"\x74" // make sure the 'jnz short' instruction starts with 74
 					"patch"			"\x90\x90" // patch the 'jnz short' instruction with 2 NOPs (2 bytes)
 				}
