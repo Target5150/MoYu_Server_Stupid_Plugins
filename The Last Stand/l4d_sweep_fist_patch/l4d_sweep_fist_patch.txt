@@ -73,8 +73,8 @@
 				"linux"
 				{
 					"offset"		"1043"
-					"verify"		"\xE8" // make sure the 'call' instruction starts with E8
-					"patch"			"\x90\x90\x90\x90\x90" // patch the 'call' instruction with NOPs (5 bytes)
+					"verify"		"\xE8\x2A\x2A\x2A\x2A\x84\x2A" // make sure the 'call' and 'test' instructions starts with E8 and 84
+					"patch"			"\x90\x90\x90\x90\x90\x90\x90" // patch the 'call' and 'test' instructions with NOPs (7 bytes)
 				}
 				
 				"windows"
