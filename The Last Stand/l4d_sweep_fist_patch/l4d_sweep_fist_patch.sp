@@ -5,7 +5,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "2.1a"
+#define PLUGIN_VERSION "2.2"
 
 public Plugin myinfo = 
 {
@@ -37,6 +37,7 @@ Handle g_hDetour_DoSwing;
 Handle g_hDetour_GroundPound;
 
 bool g_bMapStarted;
+bool g_bLeft4Dead2;
 
 // =======================================
 // Engine Detect
@@ -44,11 +45,18 @@ bool g_bMapStarted;
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+	g_bMapStarted = late;
+	
 	switch (GetEngineVersion())
 	{
-		case Engine_Left4Dead, Engine_Left4Dead2:
+		case Engine_Left4Dead:
 		{
-			g_bMapStarted = late;
+			g_bLeft4Dead2 = false;
+			return APLRes_Success;
+		}
+		case Engine_Left4Dead2:
+		{
+			g_bLeft4Dead2 = true;
 			return APLRes_Success;
 		}
 	}
@@ -151,7 +159,7 @@ bool IsAllowedGamemode()
 		HookSingleEntityOutput(entity, "OnCoop", OnGamemode, true);
 		HookSingleEntityOutput(entity, "OnSurvival", OnGamemode, true);
 		HookSingleEntityOutput(entity, "OnVersus", OnGamemode, true);
-		HookSingleEntityOutput(entity, "OnScavenge", OnGamemode, true);
+		if (g_bLeft4Dead2) HookSingleEntityOutput(entity, "OnScavenge", OnGamemode, true);
 		ActivateEntity(entity);
 		AcceptEntityInput(entity, "PostSpawnActivate");
 		if( IsValidEntity(entity) ) // Because sometimes "PostSpawnActivate" seems to kill the ent.

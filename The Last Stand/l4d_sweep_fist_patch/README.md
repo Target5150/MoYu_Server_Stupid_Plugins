@@ -26,6 +26,8 @@ https://forums.alliedmods.net/showthread.php?t=332046
 <hr>
 
 ### Changelog
+(v2.2 2021/8/18 UTC+8) Minor fix for L4D1.
+
 (v2.1a 2021/8/16 UTC+8) Minor change to detect map running.
 
 (v2.1 2021/8/16 UTC+8) Support for both L4D on both platforms.
