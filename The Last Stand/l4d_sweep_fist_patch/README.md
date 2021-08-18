@@ -3,12 +3,11 @@ https://forums.alliedmods.net/showthread.php?t=332046
 
 ### Intruduction
 - Patch memory bytes to allow multi-punch for tank in Coop Mode
-- Currently tested on L4D2 Linux only.
 
 <hr>
 
 ### Requirement
-- [Source Scramble](https://forums.alliedmods.net/showthread.php?t=317175)
+- [Source Scramble (since v0.7.0)](https://forums.alliedmods.net/showthread.php?t=317175)
 
 <hr>
 
@@ -26,6 +25,11 @@ https://forums.alliedmods.net/showthread.php?t=332046
 <hr>
 
 ### Changelog
+(v2.3 2021/8/18 UTC+8)
+- Final fix on both games both platforms.
+- Polished MemortPatch error output.
+  - Exception being bitflags, notifies which patches error out. (1 = Sweep Fist Check1, 2 = Sweep Fist Check2, 4 = Ground Pound Check)
+
 (v2.2 2021/8/18 UTC+8) Minor fix for L4D1.
 
 (v2.1a 2021/8/16 UTC+8) Minor change to detect map running.

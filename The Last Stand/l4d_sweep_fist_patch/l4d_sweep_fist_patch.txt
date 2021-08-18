@@ -17,6 +17,11 @@
 				"this"				"entity"
 			}
 			
+			/**
+			 * CTankClaw::GroundPound()
+			 *
+			 * Note: Detouring as a pre-hook for patching "CTankClaw::GroundPound" in "coop" modes.
+			 **/
 			"CTankClaw::GroundPound"
 			{
 				"signature"			"CTankClaw::GroundPound"
@@ -79,9 +84,13 @@
 				
 				"windows"
 				{
-					"offset"		"632"
-					"verify"		"\x75" // make sure the 'jnz short' instruction starts with 75
-					"patch"			"\xEB" // patch the 'jnz short' instruction with 'jmp short' (1 byte)
+					"offset"		"761"
+					// make sure both `jz` instructions start with 74, and the middle `cmp` start with 80
+					"verify"		"\x74\x2A\x80\x2A\x2A\x2A\x2A\x74\x2A"
+					// preserve the middle `cmp` (maybe don't need to but better leave it be)
+					"preserve"		"\x00\x00\xFF\xFF\xFF\xFF\xFF\x00\x00"
+					// patch the 'jz's with NOPs (4 of 9 bytes)
+					"patch"			"\x90\x90\x90\x90\x90\x90\x90\x90\x90"
 				}
 			}
 		}
@@ -182,12 +191,16 @@
 					"verify"		"\x0F\x85" // make sure the 'jnz' instruction starts with 0F 85
 					"patch"			"\x90\xE9" // patch the 'jnz' instruction with 1 NOP and 'jmp' (2 bytes)
 				}
-
+				
 				"windows"
 				{
-					"offset"		"929"
-					"verify"		"\x74" // make sure the 'jnz short' instruction starts with 74
-					"patch"			"\x90\x90" // patch the 'jnz short' instruction with 2 NOPs (2 bytes)
+					"offset"		"923"
+					// make sure both `jz` instructions start with 74, and the middle `cmp` start with 80
+					"verify"		"\x74\x2A\x80\x2A\x2A\x2A\x74\x2A"
+					// preserve the middle `cmp` (maybe don't need to but better leave it be)
+					"preserve"		"\x00\x00\xFF\xFF\xFF\xFF\x00\x00"
+					// patch the 'jz's with NOPs (4 of 8 bytes)
+					"patch"			"\x90\x90\x90\x90\x90\x90\x90\x90"
 				}
 			}
 		}

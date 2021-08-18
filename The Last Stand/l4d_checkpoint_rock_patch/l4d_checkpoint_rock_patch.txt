@@ -27,9 +27,9 @@
 		}
 		
 		/* Windows sig:
-		 *	Search "CTankRock::ProximityThink", then look for "prop_door*".
+		 *	Search string "CTankRock::ProximityThink", then look for "prop_door*".
 		 *	Go to the only x-ref to this location, there's a call above.
-		 *	Find the location with lots of 'jz' instructions, the call before the very last one is the sig.
+		 *	Find the location with lots of 'jz' instructions, the call before the very last 'jz' is the sig.
 		**/
 		"Signatures"
 		{

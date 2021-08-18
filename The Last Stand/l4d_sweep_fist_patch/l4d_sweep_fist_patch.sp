@@ -5,7 +5,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "2.2"
+#define PLUGIN_VERSION "2.3"
 
 public Plugin myinfo = 
 {
@@ -32,6 +32,14 @@ public Plugin myinfo =
 MemoryPatch g_hPatcher_Check1;
 MemoryPatch g_hPatcher_Check2;
 MemoryPatch g_hPatcher_GroundPound;
+
+enum PatcherException
+{
+	PATCHER_NOERROR			= 0,
+	PATCHER_CHECK1			= (1 << 0),
+	PATCHER_CHECK2			= (1 << 1),
+	PATCHER_GROUNDPOUND		= (1 << 2)
+}
 
 Handle g_hDetour_DoSwing;
 Handle g_hDetour_GroundPound;
@@ -79,11 +87,9 @@ public void OnPluginStart()
 	g_hPatcher_Check2 = MemoryPatch.CreateFromConf(hGameData, KEY_SWEEPFIST_CHECK2);
 	g_hPatcher_GroundPound = MemoryPatch.CreateFromConf(hGameData, KEY_GROUNDPOUND_CHECK);
 	
-	if (g_hPatcher_Check1 == null || g_hPatcher_Check2 == null || g_hPatcher_GroundPound == null)
-		SetFailState("Missing \"MemPatches\" key in gamedata file.");
-	
-	if (!g_hPatcher_Check1.Validate() || !g_hPatcher_Check2.Validate() || !g_hPatcher_GroundPound.Validate())
-		SetFailState("Failed to validate memory patches.");
+	PatcherException e = ValidatePatches();
+	if (e != PATCHER_NOERROR)
+		SetFailState("Failed to validate memory patches (exception %i).", view_as<int>(e));
 	
 	SetupDetour(hGameData);
 	
@@ -102,6 +108,21 @@ public void OnPluginEnd()
 // =======================================
 // Detour Setup
 // =======================================
+
+PatcherException ValidatePatches()
+{
+	PatcherException e = PATCHER_NOERROR;
+	if (g_hPatcher_Check1 == null || !g_hPatcher_Check1.Validate())
+		e |= PATCHER_CHECK1;
+		
+	if (g_hPatcher_Check2 == null || !g_hPatcher_Check2.Validate())
+		e |= PATCHER_CHECK2;
+	
+	if (g_hPatcher_GroundPound == null || !g_hPatcher_GroundPound.Validate())
+		e |= PATCHER_GROUNDPOUND;
+		
+	return e;
+}
 
 void SetupDetour(GameData &hGameData)
 {
@@ -132,7 +153,7 @@ public void OnGameModeChanged(ConVar convar, const char[] oldValue, const char[]
 }
 
 // =======================================
-// IsAllowedGamemode() credie to Silvers
+// IsAllowedGamemode() credit to Silvers
 // =======================================
 
 public void OnMapStart()
