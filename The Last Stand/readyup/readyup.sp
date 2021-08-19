@@ -9,7 +9,7 @@
 #undef REQUIRE_PLUGIN
 #include <caster_system>
 
-#define PLUGIN_VERSION "9.3.2"
+#define PLUGIN_VERSION "9.3.3"
 
 public Plugin myinfo =
 {
@@ -351,12 +351,12 @@ public void ServerCvarChanged(ConVar convar, const char[] oldValue, const char[]
 
 public void OnConfigsExecuted()
 {
-	InitiateReadyUp();
+	if (IsInTransition()) InitiateReadyUp();
 }
 
 public void RoundStart_Event(Event event, const char[] name, bool dontBroadcast)
 {
-	if (InSecondHalfOfRound()) InitiateReadyUp();
+	if (!IsInTransition()) InitiateReadyUp();
 }
 
 public void GameInstructorDraw_Event(Event event, const char[] name, bool dontBroadcast)
@@ -1504,11 +1504,6 @@ bool IsInTransition()
 	return g_pDirector != Address_Null
 		&& g_hSDKCall_IsInTransition != null
 		&& SDKCall(g_hSDKCall_IsInTransition, g_pDirector);
-}
-
-bool InSecondHalfOfRound()
-{
-	return view_as<bool>(GameRules_GetProp("m_bInSecondHalfOfRound"));
 }
 
 void SetEngineTime(int client)
