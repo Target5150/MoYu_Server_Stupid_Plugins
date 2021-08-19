@@ -18,6 +18,4 @@
 <hr>
 
 ### Changelog
-(v1.1 2021/8/14 UTC+8) Update to decide whether to apply patch upon current gamemode.
-
 (v1.0 2021/8/13 UTC+8) Initial release.
