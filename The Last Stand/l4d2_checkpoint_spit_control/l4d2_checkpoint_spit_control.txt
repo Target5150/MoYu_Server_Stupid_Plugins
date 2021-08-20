@@ -27,7 +27,10 @@
 		}
 		
 		/* Windows sig:
-		 *	The same as on L4D1.
+		 *	Search string "SpitProjectile.Bounce", only 2 of them reference to functions.
+		 *	Theoretically they are closed with each other, but you can randomly choose one.
+		 *	Select the one that has only 1 string, then go to the vtable of this function.
+		 *	The function 2 offset away is the sig.
 		**/
 		"Signatures"
 		{
