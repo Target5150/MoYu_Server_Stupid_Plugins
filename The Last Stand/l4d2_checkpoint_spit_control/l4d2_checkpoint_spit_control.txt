@@ -1,0 +1,43 @@
+"Games"
+{
+	"left4dead2"
+	{
+		"Offsets"
+		{
+			"PatchOffset"
+			{
+				"linux"			"151"
+				"windows"		"131"
+			}
+		}
+		
+		"Addresses"
+		{
+			"CSpitterProjectile_Detonate"
+			{
+				"linux"
+				{
+					"signature"	"CSpitterProjectile_Detonate"
+				}
+				"windows"
+				{
+					"signature"	"CSpitterProjectile_Detonate"
+				}
+			}
+		}
+		
+		/* Windows sig:
+		 *	The same as on L4D1.
+		**/
+		"Signatures"
+		{
+			"CSpitterProjectile_Detonate"
+			{
+				"library"		"server"
+				"linux"			"@_ZN18CSpitterProjectile8DetonateEv"
+				"windows"		"\x55\x8B\xEC\x81\xEC\x94\x00\x00\x00\xA1\x2A\x2A\x2A\x2A\x33\xC5\x89\x45\xFC\x53\x8B\xD9"
+				/* 55 8B EC 81 EC 94 00 00 00 A1 ? ? ? ? 33 C5 89 45 FC 53 8B D9 */
+			}
+		}
+	}
+}
