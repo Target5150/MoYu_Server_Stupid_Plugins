@@ -1,11 +1,10 @@
-#include <sourcemod>
-#include <ripext>
-
 #pragma semicolon 1
 #pragma newdecls required
 
-#define DEBUG 0
-#define PLUGIN_VERSION "1.1"
+#include <sourcemod>
+#include <ripext>
+
+#define PLUGIN_VERSION "1.2"
 
 public Plugin myinfo = 
 {
@@ -26,7 +25,7 @@ char g_sAPIkey[64];
 
 StringMap g_hTrie_Playtime;
 
-HTTPClient g_httpClient;
+HTTPRequest g_httpRequest;
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
@@ -45,57 +44,25 @@ public int _Native_GetClientPlaytime(Handle plugin, int numParams)
 
 public void OnPluginStart()
 {
-	g_httpClient = new HTTPClient(HOST_PATH);
-	if (g_httpClient == null) 
+	g_httpRequest = new HTTPRequest(HOST_PATH);
+	if (g_httpRequest == null)
 	{
-		SetFailState("Failed to create http client.");
+		SetFailState("Failed to create http request.");
 	}
 	
-	g_hTrie_Playtime = new StringMap();
-	
+	CreateConVar("sm_simple_playtime_interface_version", PLUGIN_VERSION, "Standard plugin version ConVar. Please don't change me!", FCVAR_REPLICATED|FCVAR_DONTRECORD);
 	g_cvAppID = CreateConVar("game_playtime_appid", "550", "Application ID of current game. CS:S (240), CS:GO (730), TF2 (440), L4D (500), L4D2 (550)", FCVAR_NOTIFY);
 	g_cvAPIkey = CreateConVar("game_playtime_apikey", "XXXXXXXXXXXXXXXXXXXX", "Steam developer web API key", FCVAR_PROTECTED);
 	
-	HookConVarChange(g_cvAppID, OnCvarChanged);
-	HookConVarChange(g_cvAPIkey, OnCvarChanged);
+	g_cvAppID.AddChangeHook(OnCvarChanged);
+	g_cvAPIkey.AddChangeHook(OnCvarChanged);
+	
+	AutoExecConfig(true, "simple_playtime_interface");
 	
 	GetCvars();
 	
-	CreateConVar("sm_simple_playtime_interface_version", PLUGIN_VERSION, "Standard plugin version ConVar. Please don't change me!", FCVAR_REPLICATED|FCVAR_DONTRECORD);
-
-	AutoExecConfig(true, "simple_playtime_interface");
-	
-	#if DEBUG
-	RegAdminCmd("sm_uei", uei, ADMFLAG_ROOT);
-	#endif
+	g_hTrie_Playtime = new StringMap();
 }
-
-#if DEBUG
-public Action uei(int a, int b)
-{
-	int target = a;
-	
-	if (b > 0)
-	{
-		char buf[16];
-		GetCmdArg(1, buf, sizeof buf);
-		target = GetClientOfUserId(StringToInt(buf));
-	}
-	
-	char authId[65];
-	GetClientAuthId(target, AuthId_Steam2, authId, sizeof authId);
-	if (b > 0)
-	{
-		OnClientAuthorized(target, authId);
-	}
-	else
-	{
-		int playtime = -1;
-		g_hTrie_Playtime.GetValue(authId, playtime);
-		PrintToChat(a, "\x05Userid\x01: \x04%i\x01, \x05Playtime\x01: \x04%i", GetClientUserId(target), playtime);
-	}
-}
-#endif // DEBUG
 
 public void OnCvarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
@@ -104,13 +71,13 @@ public void OnCvarChanged(ConVar convar, const char[] oldValue, const char[] new
 
 void GetCvars()
 {
-	g_iAppID = GetConVarInt(g_cvAppID);
-	GetConVarString(g_cvAPIkey, g_sAPIkey, sizeof g_sAPIkey);
+	g_iAppID = g_cvAppID.IntValue;
+	g_cvAPIkey.GetString(g_sAPIkey, sizeof g_sAPIkey);
 }
 
 public void OnClientAuthorized(int client, const char[] auth)
 {
-	if (IsFakeClient(client) || strcmp(auth, "BOT") == 0)
+	if (IsFakeClient(client))
 	{
 		return;
 	}
@@ -118,52 +85,58 @@ public void OnClientAuthorized(int client, const char[] auth)
 	char authId64[65];
 	GetClientAuthId(client, AuthId_SteamID64, authId64, sizeof authId64);
 	
-	char sGet[256];
-	Format(sGet, sizeof sGet,
+	g_httpRequest.AppendQueryParam(
 			"IPlayerService/GetOwnedGames/v0001/?key=%s&include_played_free_games=1&appids_filter[0]=%i&steamid=%s",
-			g_sAPIkey, g_iAppID, authId64);
+			g_sAPIkey, g_iAppID, authId64
+	);
 	
-	#if DEBUG
-	LogMessage("Sending HTTP Request - GET %s", sGet);
-	#endif
-	
-	g_httpClient.Get(sGet, HTTPResponse_GetRecentlyPlayedGames, GetClientUserId(client));
+	g_httpRequest.Get(HTTPResponse_GetRecentlyPlayedGames, GetClientUserId(client));
 }
 
-public void HTTPResponse_GetRecentlyPlayedGames(HTTPResponse response, int userid)
+public void HTTPResponse_GetRecentlyPlayedGames(HTTPResponse response, any userid)
 {
 	if (response.Status != HTTPStatus_OK)
 	{
-		#if DEBUG
 		LogMessage("Failed to retrieve response - HTTPStatus: %i", view_as<int>(response.Status));
-		#endif
 		return;
 	}
 	
 	int client = GetClientOfUserId(userid);
 	if (!client)
 	{
-		#if DEBUG
-		LogMessage("Failed in targeting client index");
-		#endif
 		return;
 	}
 	
 	char authId[65];
-	GetClientAuthId(client, AuthId_Steam2, authId, sizeof authId);
+	if (!GetClientAuthId(client, AuthId_Steam2, authId, sizeof authId))
+	{
+		return;
+	}
+	
+	/*
+	{
+		"response":
+		{
+			"game_count":1,
+			"games":
+			[
+				{
+					"appid":550,
+					"playtime_forever":0,
+					"playtime_windows_forever":0,
+					"playtime_mac_forever":0,
+					"playtime_linux_forever":0
+				}
+			]
+		}
+	}
+	*/
 	
 	// go to response body
 	JSONObject dataObj = view_as<JSONObject>(view_as<JSONObject>(response.Data).Get("response"));
 	
-	#if DEBUG
-	char sPath[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sPath, sizeof sPath, "logs/playtime_%s.txt", authId);
-	dataObj.ToFile(sPath);
-	LogMessage("dataObj.Size = %i", dataObj.Size);
-	#endif
-	
-	// reach privacy?
-	if (dataObj.Size == 0)
+	// privacy?
+	if (!dataObj.Size || !dataObj.HasKey("games"))
 	{
 		return;
 	}

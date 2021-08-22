@@ -1,7 +1,7 @@
 #include <sourcemod>
 #include <sdktools>
 #undef REQUIRE_PLUGIN
-#include <readyup>
+#include <caster_system>
 #define REQUIRE_PLUGIN
 
 #pragma semicolon 1
@@ -76,9 +76,9 @@ public void OnPluginEnd()
 // Ready Up Available
 // ===================================================================
 
-public void OnAllPluginsLoaded() { readyupAvailable = LibraryExists("readyup"); }
-public void OnLibraryAdded(const char[] name) { if (StrEqual(name, "readyup")) readyupAvailable = true; }
-public void OnLibraryRemoved(const char[] name) { if (StrEqual(name, "readyup")) readyupAvailable = false; }
+public void OnAllPluginsLoaded() { readyupAvailable = LibraryExists("caster_system"); }
+public void OnLibraryAdded(const char[] name) { if (StrEqual(name, "caster_system")) readyupAvailable = true; }
+public void OnLibraryRemoved(const char[] name) { if (StrEqual(name, "caster_system")) readyupAvailable = false; }
 
 // ===================================================================
 // Clear Up
