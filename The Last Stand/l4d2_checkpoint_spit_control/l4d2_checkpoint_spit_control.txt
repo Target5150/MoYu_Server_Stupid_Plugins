@@ -4,10 +4,27 @@
 	{
 		"Offsets"
 		{
-			"PatchOffset"
+			"OS"
+			{
+				"linux"			"0"
+				"windows"		"1"
+			}
+			
+			"SaferoomPatch"
 			{
 				"linux"			"151"
 				"windows"		"131"
+			}
+			
+			"BrushPatch1"
+			{
+				"linux"			"159"
+			}
+			
+			"BrushPatch2"
+			{
+				"linux"			"353"
+				"windows"		"184"
 			}
 		}
 		
@@ -28,9 +45,9 @@
 		
 		/* Windows sig:
 		 *	Search string "SpitProjectile.Bounce", only 2 of them reference to functions.
-		 *	Theoretically they are closed with each other, but you can randomly choose one.
-		 *	Select the one that has only 1 string, then go to the vtable of this function.
-		 *	The function 2 offset away is the sig.
+		 *	Theoretically they are closed to each other, so you can choose anyone to look into.
+		 *	Find the one that has only 1 string, then go to the vtable of the function.
+		 *	The virtual function 2 offsets above is the sig.
 		**/
 		"Signatures"
 		{
