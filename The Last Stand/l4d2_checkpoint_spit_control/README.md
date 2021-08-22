@@ -2,7 +2,6 @@
 
 ### Intruduction
 - Patch memory bytes to allow spit to spread in saferoom area.
-- Currently tested on Linux only.
 
 <hr>
 

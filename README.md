@@ -18,15 +18,18 @@ If you find a bug or something strange when using this project, any report is ap
 
 # Credit
 > Plugin contributor
-- fbef0102 (Harry Potter)
-- IA-NanaNana
 - Crasher_3637
 - Dragokas
+- fbef0102 (Harry Potter)
+- IA-NanaNana
 
 > God reporters/helpers
-- J.
+- Carry me plz
 - EMA
 - Hoongdou
-- SirPlease
-- Carry me plz
+- J.
 - JoJo
+- Kanna (x-xoxo)
+- Paanchan
+- SirPlease
+- Tobu (Kain)
