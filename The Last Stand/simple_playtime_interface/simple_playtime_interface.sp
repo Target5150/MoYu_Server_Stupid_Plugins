@@ -4,7 +4,7 @@
 #include <sourcemod>
 #include <ripext>
 
-#define PLUGIN_VERSION "1.2"
+#define PLUGIN_VERSION "1.2a"
 
 public Plugin myinfo = 
 {
@@ -136,7 +136,7 @@ public void HTTPResponse_GetRecentlyPlayedGames(HTTPResponse response, any useri
 	JSONObject dataObj = view_as<JSONObject>(view_as<JSONObject>(response.Data).Get("response"));
 	
 	// privacy?
-	if (!dataObj.Size || !dataObj.HasKey("games"))
+	if (!dataObj.Size || !dataObj.HasKey("games") || dataObj.IsNull("games"))
 	{
 		return;
 	}

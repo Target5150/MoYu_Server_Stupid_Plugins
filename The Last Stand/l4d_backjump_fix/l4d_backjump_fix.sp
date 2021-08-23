@@ -4,7 +4,7 @@
 #include <sourcemod>
 #include <dhooks>
 
-#define PLUGIN_VERSION "1.1"
+#define PLUGIN_VERSION "1.2"
 
 public Plugin myinfo =
 {
@@ -60,36 +60,58 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
 public MRESReturn CLunge_OnTouch(int pThis, Handle hParams)
 {
 	int other = DHookGetParam(hParams, 1);
-	if (other == 0 || other <= MaxClients) return MRES_Ignored;
-	
-	bool blockMidPounce = !!GetEntData(pThis, iCLunge_BlockMidPounce, 1);
-	if (blockMidPounce) return MRES_Ignored;
+	if (other <= 0) return MRES_Ignored;
 	
 	int hunter = GetEntPropEnt(pThis, Prop_Send, "m_owner");
 	if (hunter == -1) return MRES_Ignored;
 	
-	if (GetEntPropEnt(hunter, Prop_Send, "m_hGroundEntity") != -1)
-		return MRES_Ignored;
+	// NOTE:
+	//
+	// Should've performed stricter check here, by comparing the classname,
+	// instead of just checking for property "m_weaponID", because
+	// weapons that are not spawners don't have such property.
+	//
+	// For the sake that this function is pretty of high density, and there
+	// can be incredibly limited chance that a hunter pounces right off
+	// a dropped weapon, as well as my belief in that single `HasEntProp`
+	// has better efficiency,
+	// I decided to make a spawner-only one here.
 	
-	if (!Entity_IsSolid(other))
-		return MRES_Ignored;
+	//static char clsname[64];
+	//if (!GetEdictClassname(other, clsname, sizeof clsname)) return MRES_Ignored;
 	
-	float now = GetGameTime();
-	
-	float duration = GetEntPropFloat(pThis, Prop_Send, "m_lungeAgainTimer", 0);
-	float timestamp = GetEntPropFloat(pThis, Prop_Send, "m_lungeAgainTimer", 1);
-	
-	if (duration != 0.5)
-	{
-		// CountdownTimer::NetworkStateChanged(void *)
-		SetEntPropFloat(pThis, Prop_Send, "m_lungeAgainTimer", 0.5, 0);
+	if (/*strncmp(clsname, "weapon", 6) == 0*/
+		HasEntProp(other, Prop_Send, "m_weaponID") || GetEntPropEnt(hunter, Prop_Send, "m_hGroundEntity") != -1
+	) {
+		if (other <= MaxClients)
+		{
+			SetEntData(pThis, iCLunge_BlockMidPounce, 1, 1);
+		}
+		return MRES_Supercede;
 	}
-	if (timestamp != now + 0.5)
+	else if (!GetEntData(pThis, iCLunge_BlockMidPounce, 1))
 	{
-		// CountdownTimer::NetworkStateChanged(void *)
-		SetEntPropFloat(pThis, Prop_Send, "m_lungeAgainTimer", now + 0.5, 1);
+		if (Entity_IsSolid(other))
+		{
+			float now = GetGameTime();
+			
+			float duration = GetEntPropFloat(pThis, Prop_Send, "m_lungeAgainTimer", 0);
+			float timestamp = GetEntPropFloat(pThis, Prop_Send, "m_lungeAgainTimer", 1);
+			
+			if (duration != 0.5)
+			{
+				// Supposed to be a CountdownTimer::NetworkStateChanged(void *)
+				// Empty function, so just skip it.
+				SetEntPropFloat(pThis, Prop_Send, "m_lungeAgainTimer", 0.5, 0);
+			}
+			if (timestamp != now + 0.5)
+			{
+				// Supposed to be a CountdownTimer::NetworkStateChanged(void *)
+				// Empty function, so just skip it.
+				SetEntPropFloat(pThis, Prop_Send, "m_lungeAgainTimer", now + 0.5, 1);
+			}
+		}
 	}
-	
 	return MRES_Supercede;
 }
 

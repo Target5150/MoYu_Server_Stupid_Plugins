@@ -135,7 +135,7 @@ public void OnClientPutInServer(int client)
 
 public void OnClientDisconnect_Post(int client)
 {
-	if (isPaused && CheckFullReady())
+	if (isPaused && !adminPause && CheckFullReady())
 	{
 		InitiateLiveCountdown();
 	}
@@ -530,7 +530,7 @@ void UpdatePanel()
 		menuPanel.DrawText(teamReady[L4D2Team_Survivor] ? "->2. Survivors: [√]" : "->2. Survivors: [X]");
 		menuPanel.DrawText(teamReady[L4D2Team_Infected] ? "->3. Infected: [√]" : "->3. Infected: [X]");
 	}
-	else if (initiatorReady)
+	else if (initiatorReadyCvar.BoolValue)
 	{
 		menuPanel.DrawText(initiatorReady ? "->1. Initiator: [√]" : "->1. Initiator: [X]");
 		menuPanel.DrawText(teamReady[L4D2Team_Survivor] ? "->2. Survivors: [√]" : "->2. Survivors: [X]");
