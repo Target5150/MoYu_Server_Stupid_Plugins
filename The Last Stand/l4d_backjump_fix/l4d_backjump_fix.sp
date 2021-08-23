@@ -17,8 +17,10 @@ public Plugin myinfo =
 
 #define GAMEDATA_FILE "l4d2_si_ability"
 #define KEY_ONTOUCH "CBaseAbility::OnTouch"
+#define KEY_BLOCKMIDPOUNCE "CLunge->BlockMidPounce"
 
 Handle hCLunge_OnTouch;
+int iCLunge_BlockMidPounce;
 
 public void OnPluginStart()
 {
@@ -32,6 +34,12 @@ public void OnPluginStart()
 	
 	hCLunge_OnTouch = DHookCreate(iCLungeOnTouch, HookType_Entity, ReturnType_Void, ThisPointer_CBaseEntity, CLunge_OnTouch);
 	DHookAddParam(hCLunge_OnTouch, HookParamType_CBaseEntity);
+	
+	iCLunge_BlockMidPounce = GameConfGetOffset(conf, KEY_BLOCKMIDPOUNCE);
+	if (iCLungeOnTouch == -1)
+		SetFailState("Failed to get offset \"" ... KEY_BLOCKMIDPOUNCE ... "\"");
+	
+	delete conf;
 	
 	HookEvent("player_spawn", Event_PlayerSpawn);
 }
@@ -52,7 +60,10 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
 public MRESReturn CLunge_OnTouch(int pThis, Handle hParams)
 {
 	int other = DHookGetParam(hParams, 1);
-	if (other == 0) return MRES_Ignored;
+	if (other == 0 || other <= MaxClients) return MRES_Ignored;
+	
+	bool blockMidPounce = !!GetEntData(pThis, iCLunge_BlockMidPounce, 1);
+	if (blockMidPounce) return MRES_Ignored;
 	
 	int hunter = GetEntPropEnt(pThis, Prop_Send, "m_owner");
 	if (hunter == -1) return MRES_Ignored;
