@@ -21,4 +21,8 @@
 <hr>
 
 ### Changelog
+(v1.2 2021/8/14 UTC+8) Fixed pouncing off 'weapon*_spawn'.
+
+(v1.1 2021/8/14 UTC+8) Address several mistakes.
+
 (v1.0 2021/8/14 UTC+8) Initial release.
