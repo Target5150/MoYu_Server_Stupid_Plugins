@@ -4,7 +4,7 @@
 #include <sourcemod>
 #include <ripext>
 
-#define PLUGIN_VERSION "1.2a"
+#define PLUGIN_VERSION "1.3"
 
 public Plugin myinfo = 
 {
@@ -25,8 +25,6 @@ char g_sAPIkey[64];
 
 StringMap g_hTrie_Playtime;
 
-HTTPRequest g_httpRequest;
-
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	CreateNative("Steam_GetClientPlaytime", _Native_GetClientPlaytime);
@@ -44,12 +42,6 @@ public int _Native_GetClientPlaytime(Handle plugin, int numParams)
 
 public void OnPluginStart()
 {
-	g_httpRequest = new HTTPRequest(HOST_PATH);
-	if (g_httpRequest == null)
-	{
-		SetFailState("Failed to create http request.");
-	}
-	
 	CreateConVar("sm_simple_playtime_interface_version", PLUGIN_VERSION, "Standard plugin version ConVar. Please don't change me!", FCVAR_REPLICATED|FCVAR_DONTRECORD);
 	g_cvAppID = CreateConVar("game_playtime_appid", "550", "Application ID of current game. CS:S (240), CS:GO (730), TF2 (440), L4D (500), L4D2 (550)", FCVAR_NOTIFY);
 	g_cvAPIkey = CreateConVar("game_playtime_apikey", "XXXXXXXXXXXXXXXXXXXX", "Steam developer web API key", FCVAR_PROTECTED);
@@ -85,12 +77,14 @@ public void OnClientAuthorized(int client, const char[] auth)
 	char authId64[65];
 	GetClientAuthId(client, AuthId_SteamID64, authId64, sizeof authId64);
 	
-	g_httpRequest.AppendQueryParam(
+	HTTPRequest request = new HTTPRequest(HOST_PATH);
+	
+	request.AppendQueryParam(
 			"IPlayerService/GetOwnedGames/v0001/?key=%s&include_played_free_games=1&appids_filter[0]=%i&steamid=%s",
 			g_sAPIkey, g_iAppID, authId64
 	);
 	
-	g_httpRequest.Get(HTTPResponse_GetRecentlyPlayedGames, GetClientUserId(client));
+	request.Get(HTTPResponse_GetRecentlyPlayedGames, GetClientUserId(client));
 }
 
 public void HTTPResponse_GetRecentlyPlayedGames(HTTPResponse response, any userid)
