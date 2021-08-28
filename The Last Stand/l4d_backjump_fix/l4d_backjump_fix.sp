@@ -4,7 +4,7 @@
 #include <sourcemod>
 #include <dhooks>
 
-#define PLUGIN_VERSION "1.2"
+#define PLUGIN_VERSION "1.2a"
 
 public Plugin myinfo =
 {
@@ -17,7 +17,7 @@ public Plugin myinfo =
 
 #define GAMEDATA_FILE "l4d2_si_ability"
 #define KEY_ONTOUCH "CBaseAbility::OnTouch"
-#define KEY_BLOCKMIDPOUNCE "CLunge->BlockMidPounce"
+#define KEY_BLOCKMIDPOUNCE "CLunge->m_blockMidPounce"
 
 Handle hCLunge_OnTouch;
 int iCLunge_BlockMidPounce;
@@ -67,6 +67,8 @@ public MRESReturn CLunge_OnTouch(int pThis, Handle hParams)
 	
 	// NOTE:
 	//
+	// Weapons (guns, melees, etc) are solid as well, so they'd be blocked.
+	//
 	// Should've performed stricter check here, by comparing the classname,
 	// instead of just checking for property "m_weaponID", because
 	// weapons that are not spawners don't have such property.
@@ -75,7 +77,7 @@ public MRESReturn CLunge_OnTouch(int pThis, Handle hParams)
 	// can be incredibly limited chance that a hunter pounces right off
 	// a dropped weapon, as well as my belief in that single `HasEntProp`
 	// has better efficiency,
-	// I decided to make a spawner-only one here.
+	// I decided to make a spawner-only check here.
 	
 	//static char clsname[64];
 	//if (!GetEdictClassname(other, clsname, sizeof clsname)) return MRES_Ignored;
@@ -87,7 +89,6 @@ public MRESReturn CLunge_OnTouch(int pThis, Handle hParams)
 		{
 			SetEntData(pThis, iCLunge_BlockMidPounce, 1, 1);
 		}
-		return MRES_Supercede;
 	}
 	else if (!GetEntData(pThis, iCLunge_BlockMidPounce, 1))
 	{

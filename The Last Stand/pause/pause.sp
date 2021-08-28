@@ -35,34 +35,51 @@ public Plugin myinfo =
 	name = "Pause plugin",
 	author = "CanadaRox, Sir, Forgetest", //Add support sm1.11 - A1m`
 	description = "Adds pause functionality without breaking pauses, also prevents SI from spawning because of the Pause.",
-	version = "6.4",
+	version = "6.5",
 	url = "https://github.com/SirPlease/L4D2-Competitive-Rework"
 };
 
 // Game ConVar
-ConVar sv_pausable, sv_noclipduringpause;
+ConVar
+	sv_pausable,
+	sv_noclipduringpause;
 
 // Plugin Forwards
-Handle pauseForward, unpauseForward;
+Handle
+	pauseForward,
+	unpauseForward;
 
 // Plugin ConVar
-ConVar pauseDelayCvar, l4d_ready_delay;
+ConVar
+	pauseDelayCvar,
+	initiatorReadyCvar,
+	l4d_ready_delay,
+	serverNamerCvar;
 
 // Pause Handle
-Handle readyCountdownTimer, deferredPauseTimer;
-int readyDelay, pauseDelay;
-bool isPaused, RoundEnd;
+Handle
+	readyCountdownTimer,
+	deferredPauseTimer;
+int
+	readyDelay,
+	pauseDelay;
+bool
+	isPaused,
+	RoundEnd;
 
 // Pause Info
-bool adminPause, teamReady[view_as<int>(L4D2Team_Size)];
-float pauseTime;
-L4D2_Team pauseTeam;
-
-// Initiator Vars
-ConVar initiatorReadyCvar;
-int initiatorId;
-bool initiatorReady;
-char initiatorName[MAX_NAME_LENGTH];
+int
+	initiatorId;
+bool
+	adminPause,
+	teamReady[view_as<int>(L4D2Team_Size)],
+	initiatorReady;
+char
+	initiatorName[MAX_NAME_LENGTH];
+float
+	pauseTime;
+L4D2_Team
+	pauseTeam;
 
 // Pause Panel
 bool hiddenPanel[MAXPLAYERS+1];
@@ -86,6 +103,8 @@ public void OnPluginStart()
 	pauseDelayCvar = CreateConVar("sm_pausedelay", "0", "Delay to apply before a pause happens.  Could be used to prevent Tactical Pauses", FCVAR_NONE, true, 0.0);
 	initiatorReadyCvar = CreateConVar("sm_initiatorready", "0", "Require or not the pause initiator should ready before unpausing the game", FCVAR_NONE, true, 0.0);
 	l4d_ready_delay = FindConVar("l4d_ready_delay");
+	
+	FindServerNamer();
 	
 	sv_pausable = FindConVar("sv_pausable");
 	sv_noclipduringpause = FindConVar("sv_noclipduringpause");
@@ -114,9 +133,28 @@ public void OnPluginStart()
 // Readyup Available
 // ======================================
 
-public void OnAllPluginsLoaded() { readyUpIsAvailable = LibraryExists("readyup"); }
-public void OnLibraryAdded(const char[] name) { if (StrEqual(name, "readyup"))  readyUpIsAvailable = true; }
-public void OnLibraryRemoved(const char[] name) { if (StrEqual(name, "readyup")) readyUpIsAvailable = false; }
+public void OnAllPluginsLoaded() { readyUpIsAvailable = LibraryExists("readyup"); FindServerNamer(); }
+public void OnLibraryAdded(const char[] name) { if (StrEqual(name, "readyup")) readyUpIsAvailable = true; FindServerNamer(); }
+public void OnLibraryRemoved(const char[] name) { if (StrEqual(name, "readyup")) readyUpIsAvailable = false; FindServerNamer(); }
+
+// ======================================
+// Custom Server Namer
+// ======================================
+
+void FindServerNamer()
+{
+	if ((serverNamerCvar = FindConVar("l4d_ready_server_cvar")) != null)
+	{
+		char buffer[128];
+		serverNamerCvar.GetString(buffer, sizeof buffer);
+		serverNamerCvar = FindConVar(buffer);
+	}
+	
+	if (serverNamerCvar == null)
+	{
+		serverNamerCvar = FindConVar("hostname");
+	}
+}
 
 // ======================================
 // Forwards
@@ -146,24 +184,18 @@ public void OnClientDisconnect_Post(int client)
 public void OnMapEnd()
 {
 	RoundEnd = true;
-	readyCountdownTimer = null;
-	deferredPauseTimer = null;
+	Unpause(false);
 }
 
 public void RoundEnd_Event(Event event, const char[] name, bool dontBroadcast)
 {
-	if (deferredPauseTimer != null)
-	{
-		KillTimer(deferredPauseTimer);
-		deferredPauseTimer = null;
-	}
-
 	RoundEnd = true;
 }
 
 public void RoundStart_Event(Event event, const char[] name, bool dontBroadcast)
 {
 	RoundEnd = false;
+	initiatorId = 0;
 }
 
 // ======================================
@@ -225,6 +257,7 @@ public Action ForcePause_Cmd(int client, int args)
 		adminPause = true;
 		initiatorId = GetClientUserId(client);
 		GetClientName(client, initiatorName, sizeof(initiatorName));
+		CPrintToChatAll("{default}[{green}!{default}] A {green}force pause {default}is issued by {blue}Admin {default}({olive}%N{default})", client);
 		Pause();
 	}
 }
@@ -322,6 +355,7 @@ public Action ForceUnpause_Cmd(int client, int args)
 	if (isPaused)
 	{
 		adminPause = true;
+		CPrintToChatAll("{default}[{green}!{default}] A {green}force unpause {default}is issued by {blue}Admin {default}({olive}%N{default})", client);
 		InitiateLiveCountdown();
 	}
 }
@@ -347,7 +381,7 @@ void AttemptPause()
 		else
 		{
 			CPrintToChatAll("{default}[{green}!{default}] {red}Pause has been delayed due to a pick-up in progress!");
-			deferredPauseTimer = CreateTimer(0.1, DeferredPause_Timer, _, TIMER_REPEAT);
+			deferredPauseTimer = CreateTimer(0.1, DeferredPause_Timer, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
 		}
 	}
 }
@@ -382,7 +416,7 @@ void Pause()
 	readyCountdownTimer = null;
 	
 	ToggleCommandListeners(true);
-
+	
 	CreateTimer(1.0, MenuRefresh_Timer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 
 	bool pauseProcessed = false;
@@ -423,39 +457,53 @@ void Pause()
 	Call_Finish();
 }
 
-void Unpause()
+void Unpause(bool real = true)
 {
 	isPaused = false;
 	adminPause = false;
 	
 	ToggleCommandListeners(false);
 
-	bool unpauseProcessed = false;
-	for (int client = 1; client <= MaxClients; client++)
-	{
-		if (IsClientInGame(client) && !IsFakeClient(client))
-		{
-			if(!unpauseProcessed)
-			{
-				sv_pausable.BoolValue = true;
-				FakeClientCommand(client, "unpause");
-				sv_pausable.BoolValue = false;
-				unpauseProcessed = true;
-			}
-			
-			if (view_as<L4D2_Team>(GetClientTeam(client)) == L4D2Team_Spectator)
-			{
-				sv_noclipduringpause.ReplicateToClient(client, "0");
-			}
-		}
-	}
 	pauseTeam = L4D2Team_None;
 	initiatorId = 0;
 	initiatorReady = false;
 	initiatorName = "";
 	
-	Call_StartForward(unpauseForward);
-	Call_Finish();
+	if (deferredPauseTimer != null)
+	{
+		delete deferredPauseTimer;
+	}
+	
+	if (readyCountdownTimer != null)
+	{
+		delete readyCountdownTimer;
+	}
+	
+	if (real)
+	{
+		bool unpauseProcessed = false;
+		for (int client = 1; client <= MaxClients; client++)
+		{
+			if (IsClientInGame(client) && !IsFakeClient(client))
+			{
+				if(!unpauseProcessed)
+				{
+					sv_pausable.BoolValue = true;
+					FakeClientCommand(client, "unpause");
+					sv_pausable.BoolValue = false;
+					unpauseProcessed = true;
+				}
+				
+				if (view_as<L4D2_Team>(GetClientTeam(client)) == L4D2Team_Spectator)
+				{
+					sv_noclipduringpause.ReplicateToClient(client, "0");
+				}
+			}
+		}
+		
+		Call_StartForward(unpauseForward);
+		Call_Finish();
+	}
 }
 
 // ======================================
@@ -497,23 +545,7 @@ void UpdatePanel()
 	Panel menuPanel = new Panel();
 	
 	char info[512];
-	
-	ConVar serverNamer = FindConVar("l4d_ready_server_cvar");
-	if (serverNamer != null)
-	{
-		char buffer[64];
-		serverNamer.GetString(buffer, sizeof(buffer));
-		serverNamer = FindConVar(buffer);
-		
-		if (serverNamer != null)
-		{
-			serverNamer.GetString(info, sizeof(info));
-		}
-	}
-	else
-	{
-		FindConVar("hostname").GetString(info, sizeof(info));
-	}
+	serverNamerCvar.GetString(info, sizeof(info));
 	
 	Format(info, sizeof(info), "▸ Server: %s\n▸ Slots: %d/%d", info, GetSeriousClientCount(), FindConVar("sv_maxplayers").IntValue);
 	menuPanel.DrawText(info);
@@ -798,8 +830,10 @@ public int Native_IsInPause(Handle plugin, int numParams)
 
 stock bool IsPlayer(int client)
 {
+	if (!client) return false;
+	
 	L4D2_Team team = view_as<L4D2_Team>(GetClientTeam(client));
-	return (client && !SpecTimer[client] && (team == L4D2Team_Survivor || team == L4D2Team_Infected));
+	return !SpecTimer[client] && (team == L4D2Team_Survivor || team == L4D2Team_Infected);
 }
 
 stock void PrintToTeam(int author, L4D2_Team team, const char[] buffer)
@@ -847,7 +881,7 @@ stock bool IsSurvivorReviving()
 {
 	for (int client = 1; client <= MaxClients; client++)
 	{
-		if (IsClientInGame(client) && IsPlayerAlive(client) && view_as<L4D2_Team>(GetClientTeam(client)) == L4D2Team_Survivor)
+		if (IsClientInGame(client) && view_as<L4D2_Team>(GetClientTeam(client)) == L4D2Team_Survivor && IsPlayerAlive(client))
 		{
 			if (GetEntProp(client, Prop_Send, "m_reviveTarget") > 0)
 			{
