@@ -189,7 +189,12 @@ public void OnMapEnd()
 
 public void RoundEnd_Event(Event event, const char[] name, bool dontBroadcast)
 {
+	if (deferredPauseTimer != null)
+	{
+		delete deferredPauseTimer;
+	}
 	RoundEnd = true;
+	Unpause(false);
 }
 
 public void RoundStart_Event(Event event, const char[] name, bool dontBroadcast)
@@ -469,15 +474,7 @@ void Unpause(bool real = true)
 	initiatorReady = false;
 	initiatorName = "";
 	
-	if (deferredPauseTimer != null)
-	{
-		delete deferredPauseTimer;
-	}
-	
-	if (readyCountdownTimer != null)
-	{
-		delete readyCountdownTimer;
-	}
+	readyCountdownTimer = null;
 	
 	if (real)
 	{
