@@ -4,7 +4,8 @@
 #include <sourcemod>
 #include <dhooks>
 
-#define PLUGIN_VERSION "1.2a"
+#define DEBUG 0
+#define PLUGIN_VERSION "1.2b"
 
 public Plugin myinfo =
 {
@@ -64,6 +65,17 @@ public MRESReturn CLunge_OnTouch(int pThis, Handle hParams)
 	
 	int hunter = GetEntPropEnt(pThis, Prop_Send, "m_owner");
 	if (hunter == -1) return MRES_Ignored;
+	
+#if DEBUG
+	static int iLast = -1;
+	if (other != iLast)
+	{
+		static char cls[64];
+		GetEntityClassname(other, cls, 64);
+		PrintToChat(hunter, "other: %s (%i), solid: %i", cls, other, Entity_IsSolid(other));
+		iLast = other;
+	}
+#endif
 	
 	// NOTE:
 	//
