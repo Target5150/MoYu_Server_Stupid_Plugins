@@ -35,7 +35,7 @@ public Plugin myinfo =
 	name = "Pause plugin",
 	author = "CanadaRox, Sir, Forgetest", //Add support sm1.11 - A1m`
 	description = "Adds pause functionality without breaking pauses, also prevents SI from spawning because of the Pause.",
-	version = "6.6",
+	version = "6.6.1",
 	url = "https://github.com/SirPlease/L4D2-Competitive-Rework"
 };
 
@@ -745,6 +745,7 @@ void ToggleCommandListeners(bool enable)
 		AddCommandListener(TeamSay_Callback, "say_team");
 		AddCommandListener(Unpause_Callback, "unpause");
 		AddCommandListener(Callvote_Callback, "callvote");
+		listened = true;
 	}
 	else if (!enable && listened)
 	{
@@ -752,6 +753,7 @@ void ToggleCommandListeners(bool enable)
 		RemoveCommandListener(TeamSay_Callback, "say_team");
 		RemoveCommandListener(Unpause_Callback, "unpause");
 		RemoveCommandListener(Callvote_Callback, "callvote");
+		listened = false;
 	}
 }
 
