@@ -1,0 +1,144 @@
+"Phrases"
+{
+// The following uses bracket style color tags (see colors.inc)
+	"ClientFullyLoaded"
+	{
+		"en"		"{default}[{green}!{default}] {olive}%N {default}has fully loaded"
+	}
+	
+	"PauseCommand"
+	{
+		"en"		"{default}[{green}!{default}] {olive}%N {blue}Paused{default}."
+	}
+	
+	"PauseAction"
+	{
+		"en"		"{default}[{green}!{default}] {red}PAUSED"
+	}
+	
+	"PauseDelay"
+	{
+		"en"		"{default}[{green}!{default}] {blue}Pausing in{default}: {olive}%d"
+	}
+	
+	"PauseDeferred"
+	{
+		"en"		"{default}[{green}!{default}] {red}Pause has been delayed due to a pick-up in progress!"
+	}
+	
+	"ForcePause"
+	{
+		"en"		"{default}[{green}!{default}] A {green}force pause {default}is issued by {blue}Admin {default}({olive}%N{default})"
+	}
+	
+	"ForceUnpause"
+	{
+		"en"		"{default}[{green}!{default}] A {green}force unpause {default}is issued by {blue}Admin {default}({olive}%N{default})"
+	}
+	
+	"UnpauseSurvivors"
+	{
+		"en"		"{default}[{green}!{default}] {olive}%N {default}marked {blue}Survivors {default}ready."
+	}
+	
+	"UnpauseSurvivorInitiator"
+	{
+		"en"		"{default}[{green}!{default}] {olive}%N {default}as {green}Initiator {default}marked {blue}Survivors {default}ready."
+	}
+	
+	"UnpauseInfected"
+	{
+		"en"		"{default}[{green}!{default}] {olive}%N {default}marked {red}Infected {default}ready."
+	}
+	
+	"UnpauseInfectedInitiator"
+	{
+		"en"		"{default}[{green}!{default}] {olive}%N {default}as {green}Initiator {default}marked {red}Infected {default}ready."
+	}
+	
+	"UnpauseInitiator"
+	{
+		"en"		"{default}[{green}!{default}] {olive}%N {default}marked {green}Initiator {default}ready."
+	}
+	
+	"UnpauseAdminConfirm"
+	{
+		"en"		"{default}[{green}!{default}] {olive}Teams {default}are ready. Wait for {blue}Admin {default}to {green}confirm{default}."
+	}
+	
+	"UnreadySurvivors"
+	{
+		"en"		"{default}[{green}!{default}] {olive}%N {default}marked {blue}Survivors {default}not ready."
+	}
+	
+	"UnreadySurvivorInitiator"
+	{
+		"en"		"{default}[{green}!{default}] {olive}%N {default}as {green}Initiator {default}marked {blue}Survivors {default}not ready."
+	}
+	
+	"UnreadyInfected"
+	{
+		"en"		"{default}[{green}!{default}] {olive}%N {default}marked {red}Infected {default}not ready."
+	}
+	
+	"UnreadyInfectedInitiator"
+	{
+		"en"		"{default}[{green}!{default}] {olive}%N {default}as {green}Initiator {default}marked {blue}Infected {default}not ready."
+	}
+	
+	"UnreadyInitiator"
+	{
+		"en"		"{default}[{green}!{default}] {olive}%N {default}marked {green}Initiator {default}not ready."
+	}
+	
+	"PausePreventSpawn"
+	{
+		"en"		"{default}[{green}!{default}] {default}Your {red}Spawn {default}has been prevented because of the Pause"
+	}
+	
+	"PanelHide"
+	{
+		"en"		"[{olive}Pause{default}] Panel is now {red}off"
+	}
+	
+	"PanelShow"
+	{
+		"en"		"[{olive}Pause{default}] Panel is now {blue}on"
+	}
+	
+	"CountdownCancelNotify"
+	{
+		"en"		"{default}[{green}!{default}] Say {olive}!unready {default}to cancel"
+	}
+	
+	"CountdownReadyDelay"
+	{
+		"en"		"{default}[{green}!{default}] {blue}Live in{default}: {olive}%d{default}..."
+	}
+	
+	"CountdownCancelled"
+	{
+		"en"		"{default}[{green}!{default}] {olive}%N {default}cancelled the countdown!"
+	}
+	
+	"CallvoteNoSpec"
+	{
+		"en"		"{blue}[{green}!{blue}] {default}You're unable to call votes as a spectator."
+	}
+	
+	"CallvoteNoExploit"
+	{
+		"en"		"{blue}[{green}!{blue}] {default}You've just switched Teams, you are unable to vote for a few seconds."
+	}
+	
+	"CallvoteCannotTargetAdmin"
+	{
+		"en"		"{blue}[{green}!{blue}] {default}You may not kick Admins."
+	}
+	
+// The following are not allowed to use any color tag
+	"GameisLive"
+	{
+		"en"		"Game is live!"
+	}
+}

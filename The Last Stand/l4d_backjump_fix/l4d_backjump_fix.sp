@@ -5,7 +5,7 @@
 #include <dhooks>
 
 #define DEBUG 0
-#define PLUGIN_VERSION "1.2b"
+#define PLUGIN_VERSION "1.2c"
 
 public Plugin myinfo =
 {
@@ -34,6 +34,9 @@ public void OnPluginStart()
 		SetFailState("Failed to get offset \"" ... KEY_ONTOUCH ... "\"");
 	
 	hCLunge_OnTouch = DHookCreate(iCLungeOnTouch, HookType_Entity, ReturnType_Void, ThisPointer_CBaseEntity, CLunge_OnTouch);
+	if (hCLunge_OnTouch == null)
+		SetFailState("Failed to create dynamic hook on \"" ... KEY_ONTOUCH ... "\"");
+	
 	DHookAddParam(hCLunge_OnTouch, HookParamType_CBaseEntity);
 	
 	iCLunge_BlockMidPounce = GameConfGetOffset(conf, KEY_BLOCKMIDPOUNCE);
