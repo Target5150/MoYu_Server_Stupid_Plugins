@@ -6,6 +6,11 @@
 
 #define PLUGIN_VERSION "0.1.4"
 
+static const char g_sGamemodes[4][] = 
+{
+	"coop", "versus", "survival", "scavenge"
+};
+
 float g_fSurvivorStart[3];
 bool g_bMapStarted;
 int g_iGamemode;
@@ -71,7 +76,7 @@ bool IsSingleChapterGamemode()
 			RemoveEdict(entity); // Because multiple plugins creating at once, avoid too many duplicate ents in the same frame
 	}
 	
-	return !!(g_iGamemode & 12);
+	return (g_iGamemode == 3) || (g_iGamemode == 4);
 }
 
 public void OnGamemode(const char[] output, int caller, int activator, float delay)
@@ -81,9 +86,9 @@ public void OnGamemode(const char[] output, int caller, int activator, float del
 	else if( strcmp(output, "OnVersus") == 0 )
 		g_iGamemode = 2;
 	else if( strcmp(output, "OnSurvival") == 0 )
-		g_iGamemode = 4;
+		g_iGamemode = 3;
 	else if( strcmp(output, "OnScavenge") == 0 )
-		g_iGamemode = 8;
+		g_iGamemode = 4;
 }
 
 //On every round,
@@ -124,6 +129,9 @@ void FindSurvivorStart()
 		}
 	}
 	//or a survivor start point.
+	char sGamemode[16];
+	strcopy(sGamemode, sizeof sGamemode, g_sGamemodes[g_iGamemode-1]);
+	
 	for (int i = MaxClients+1; i <= iEntityCount; i++)
 	{
 		if (IsValidEntity(i))
@@ -131,6 +139,14 @@ void FindSurvivorStart()
 			GetEdictClassname(i, szEdictClassName, sizeof(szEdictClassName));
 			if (StrContains(szEdictClassName, "info_survivor_position", false) != -1)
 			{
+				static char buffer[16];
+				if (
+					GetEntPropString(i, Prop_Data, "m_iszGameMode", buffer, sizeof buffer)
+					&& strcmp(buffer, sGamemode, false) != 0
+				) {
+					continue;
+				}
+				
 				GetEntPropVector(i, Prop_Send, "m_vecOrigin", fLocation);
 				g_fSurvivorStart = fLocation;
 				return;
