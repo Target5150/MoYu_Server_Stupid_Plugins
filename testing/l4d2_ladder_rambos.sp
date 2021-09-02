@@ -74,7 +74,7 @@ MemoryPatch hPatch_OnLadderDismount;
 
 public Plugin myinfo =
 {
-	name			=	"Ladder Rambos Dhooks Merged",
+	name			=	"Ladder Rambos Dhooks [Merged]",
 	author			=	"$atanic $pirit, Lux",
 	description		=	"Allows players to shoot from Ladders",
 	version			=	PLUGIN_VERSION,
@@ -154,7 +154,7 @@ public void OnPluginStart()
 		SetFailState("Failed to detour CBaseShotgun::Reload post.");
 	
 	// Apply our patch
-	ApplyPatch(bCvar_Enabled);
+	ApplyPatch((bCvar_Enabled = Cvar_Enabled.BoolValue));
 }
 
 // ====================================================================================================
@@ -168,7 +168,16 @@ public void OnPluginEnd()
 }
 
 // ====================================================================================================
-// OnConVarChanged - Refresh ConVar storage
+// OnConfigExecuted - Patch or unpatch
+// ====================================================================================================
+
+public void OnConfigsExecuted()
+{
+	ApplyPatch(bCvar_Enabled);
+}
+
+// ====================================================================================================
+// OnEnableDisable - Patch or unpatch
 // ====================================================================================================
 
 public void OnEnableDisable(ConVar convar, const char[] oldValue, const char[] newValue)
