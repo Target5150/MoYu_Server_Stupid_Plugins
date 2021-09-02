@@ -1,4 +1,4 @@
-#define PLUGIN_VERSION 		"2.0"
+#define PLUGIN_VERSION 		"2.1"
 
 /*
 *	Ladder Rambos Dhooks
@@ -50,7 +50,7 @@ ConVar	Cvar_M2;
 ConVar	Cvar_Reload;
 ConVar	Cvar_Debug;
 
-// [l4d2_cs_ladders]
+// Patching from [l4d2_cs_ladders] credit to Lux
 #define PLUGIN_NAME_KEY "[cs_ladders]"
 #define TERROR_CAN_DEPLOY_FOR_KEY "CTerrorWeapon::CanDeployFor__movetype_patch"
 #define TERROR_PRE_THINK_KEY "CTerrorPlayer::PreThink__SafeDropLogic_patch"
@@ -93,20 +93,10 @@ public void OnPluginStart()
 		SetFailState("Failed to load \"%s.txt\" gamedata.", GAMEDATA);
 	
 	//Get signature for CanDeployFor.			
-	/*Handle hDetour_TrySwing = DHookCreateFromConf(hGameData, "CTerrorWeapon::CanDeployFor");
-	if( !hDetour_TrySwing )
-		SetFailState("Failed to setup detour for hDetour_TrySwing");*/
-	
-	//Get signature for CanDeployFor.			
 	Handle hDetour_CanDeployFor = DHookCreateFromConf(hGameData, "CTerrorWeapon::CanDeployFor");
 	if( !hDetour_CanDeployFor )
 		SetFailState("Failed to setup detour for hDetour_CanDeployFor");
 	
-	//Get signature for Holster.			
-	/*Handle hDetour_Holster = DHookCreateFromConf(hGameData, "CTerrorGun::Holster");
-	if( !hDetour_Holster )
-		SetFailState("Failed to setup detour for hDetour_Holster");*/
-		
 	// Get signature for reload weapon.			
 	Handle hDetour_Reload = DHookCreateFromConf(hGameData, "CTerrorGun::Reload");
 	if( !hDetour_Reload )
@@ -136,17 +126,9 @@ public void OnPluginStart()
 	
 	delete hGameData;
 	
-	// And a pre hook for CTerrorWeapon::TrySwing.
-	/*if (!DHookEnableDetour(hDetour_TrySwing, false, Detour_TrySwing))
-		SetFailState("Failed to detour CTerrorWeapon::TrySwing post.");*/
-	
 	// And a pre hook for CTerrorWeapon::CanDeployFor.
 	if (!DHookEnableDetour(hDetour_CanDeployFor, false, Detour_CanDeployFor))
 		SetFailState("Failed to detour CTerrorWeapon::CanDeployFor post.");
-	
-	// And a pre hook for CTerrorGun::Holster.
-	/*if (!DHookEnableDetour(hDetour_Holster, false, Detour_Holster))
-		SetFailState("Failed to detour CTerrorGun::Holster post.");*/
 	
 	// And a pre hook for CTerrorGun::Reload.
 	if (!DHookEnableDetour(hDetour_Reload, false, Detour_Reload))
@@ -169,23 +151,6 @@ public void OnPluginEnd()
 	ApplyPatch(false);
 }
 
-/*public MRESReturn Detour_TrySwing(Address pThis, Handle hReturn, Handle hParams)
-{
-	if(!Cvar_Enabled.BoolValue || Cvar_M2.BoolValue)
-		return MRES_Ignored;
-	
-	int client = GetClientFromPointer(pThis);
-	
-	if (GetClientTeam(client) == 2 && IsPlayerOnLadder(client))
-	{
-		LogAcitivity("Function::Detour_TrySwing IsPlayerOnLadder: %d, %N", IsPlayerOnLadder(client), client);
-		DHookSetReturn(hReturn, 0);
-		return MRES_Supercede;
-	}
-	
-	return MRES_Ignored;
-}*/
-
 // ====================================================================================================
 // Detour_CanDeployFor - When does a survivor pull out a gun?
 // ====================================================================================================
@@ -197,46 +162,26 @@ public MRESReturn Detour_CanDeployFor(Address pThis, Handle hReturn)
 	
 	int client = GetClientFromPointer(pThis);
 	
-	if (GetClientTeam(client) == 2 && IsPlayerOnLadder(client))
+	if (IsPlayerOnLadder(client))
 	{
-		if(!Cvar_M2.BoolValue)
-			SetEntPropFloat(client, Prop_Send, "m_flNextShoveTime", GetGameTime() + 0.1);
+		if (GetClientTeam(client) == 2) // Infected triggers this though, will be blocked
+		{
+			if(!Cvar_M2.BoolValue)
+				SetEntPropFloat(client, Prop_Send, "m_flNextShoveTime", GetGameTime() + 0.1);
+			
+			int weapon = GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon");
+			if (weapon == view_as<int>(pThis) || weapon == EntRefToEntIndex(view_as<int>(pThis)))
+				return MRES_Ignored;
+			
+			LogAcitivity("Function::Detour_CanDeployFor IsPlayerOnLadder: %d, %N", IsPlayerOnLadder(client), client);
+		}
 		
-		int weapon = GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon");
-		if (weapon == view_as<int>(pThis) || weapon == EntRefToEntIndex(view_as<int>(pThis)))
-			return MRES_Ignored;
-		
-		LogAcitivity("Function::Detour_CanDeployFor IsPlayerOnLadder: %d, %N", IsPlayerOnLadder(client), client);
 		DHookSetReturn(hReturn, 0);
 		return MRES_Supercede;
 	}
 	
 	return MRES_Ignored;
 }
-
-// ====================================================================================================
-// Detour_Holster - When does a survivor pull out a gun?
-// ====================================================================================================
-
-/*public MRESReturn Detour_Holster(Address pThis, Handle hReturn)
-{	
-	if(!Cvar_Enabled.BoolValue)
-		return MRES_Ignored;
-	
-	int client = GetClientFromPointer(pThis);
-	
-	if(GetClientTeam(client) == 2 && IsPlayerOnLadder(client))
-	{
-		if(!Cvar_M2.BoolValue)
-			SetEntPropFloat(client, Prop_Send, "m_flNextShoveTime", GetGameTime() + 0.3);
-		
-		LogAcitivity("Function::Detour_Holster IsPlayerOnLadder: %d, %N", IsPlayerOnLadder(client), client);
-		DHookSetReturn(hReturn, 0);
-		return MRES_Supercede;
-	}
-	
-	return MRES_Ignored;
-}*/
 
 // ====================================================================================================
 // Detour_Reload - Block reload based on ConVar
@@ -269,27 +214,6 @@ public MRESReturn Detour_ShotgunReload(Address pThis, Handle hReturn)
 	
 	return MRES_Ignored;
 }
-
-// ====================================================================================================
-// Detour_ShotgunReload - Block reload based on ConVar
-// ====================================================================================================
-
-/*public Action OnPlayerRunCmd(int client, int &buttons, int &impulse, float vel[3], float angles[3], int &weapon, int &subtype, int &cmdnum, int &tickcount, int &seed, int mouse[2])
-{
-	if (!IsClientInGame(client) || GetClientTeam(client) != 2)
-		return Plugin_Continue;
-	
-	if (!IsPlayerOnLadder(client))
-		return Plugin_Continue;
-	
-	if (~buttons & IN_ATTACK2 || Cvar_M2.BoolValue)
-		return Plugin_Continue;
-	
-	buttons &= ~IN_ATTACK2;
-	SetEntPropFloat(client, Prop_Send, "m_flNextShoveTime", GetGameTime() + 0.1);
-	
-	return Plugin_Changed;
-}*/
 
 // ====================================================================================================
 // IsPlayerOnLadder - Is player's move type ladder?
