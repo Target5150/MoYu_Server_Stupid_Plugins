@@ -1,4 +1,4 @@
-#define PLUGIN_VERSION 		"2.1"
+#define PLUGIN_VERSION 		"2.2"
 
 /*
 *	Ladder Rambos Dhooks
@@ -50,6 +50,12 @@ ConVar	Cvar_M2;
 ConVar	Cvar_Reload;
 ConVar	Cvar_Debug;
 
+// ConVAr Storage
+bool	bCvar_Enabled;
+bool	bCvar_M2;
+bool	bCvar_Reload;
+bool	bCvar_Debug;
+
 // Patching from [l4d2_cs_ladders] credit to Lux
 #define PLUGIN_NAME_KEY "[cs_ladders]"
 #define TERROR_CAN_DEPLOY_FOR_KEY "CTerrorWeapon::CanDeployFor__movetype_patch"
@@ -87,22 +93,31 @@ public void OnPluginStart()
 	Cvar_Reload		= CreateConVar("cssladders_allow_reload",		"1",	"Allow reloading whilst on a ladder? 1 to allow M2, 0 to block. Keep in mind that shotguns are broken and won't reload on ladders no matter what.");
 	Cvar_Debug		= CreateConVar("cssladders_debug",				"0",	"On/Off switch to log debug messages");
 	
+	// Setup ConVars change hook
+	Cvar_Enabled.AddChangeHook(OnEnableDisable);
+	Cvar_M2.AddChangeHook(OnConVarChanged);
+	Cvar_Reload.AddChangeHook(OnConVarChanged);
+	Cvar_Debug.AddChangeHook(OnConVarChanged);
+	
+	// ConVAr Storage
+	GetCvars();
+	
 	// Load the GameData file.
 	Handle hGameData = LoadGameConfigFile(GAMEDATA);
 	if( hGameData == null ) 
 		SetFailState("Failed to load \"%s.txt\" gamedata.", GAMEDATA);
 	
-	//Get signature for CanDeployFor.			
+	//Get signature for CanDeployFor.
 	Handle hDetour_CanDeployFor = DHookCreateFromConf(hGameData, "CTerrorWeapon::CanDeployFor");
 	if( !hDetour_CanDeployFor )
 		SetFailState("Failed to setup detour for hDetour_CanDeployFor");
 	
-	// Get signature for reload weapon.			
+	// Get signature for reload weapon.
 	Handle hDetour_Reload = DHookCreateFromConf(hGameData, "CTerrorGun::Reload");
 	if( !hDetour_Reload )
 		SetFailState("Failed to setup detour for hDetour_Reload");
 
-	// Get signature for reload shotgun specific			
+	// Get signature for reload shotgun specific
 	Handle hDetour_ShotgunReload = DHookCreateFromConf(hGameData, "CBaseShotgun::Reload");
 	if( !hDetour_ShotgunReload )
 		SetFailState("Failed to setup detour for hDetour_ShotgunReload");
@@ -139,12 +154,13 @@ public void OnPluginStart()
 		SetFailState("Failed to detour CBaseShotgun::Reload post.");
 	
 	// Apply our patch
-	ApplyPatch(true);
+	ApplyPatch(bCvar_Enabled);
 }
 
 // ====================================================================================================
 // OnPluginEnd - Remove our SafeDropPatch to avoid crashes
 // ====================================================================================================
+
 public void OnPluginEnd()
 {
 	// Remove our patch
@@ -152,28 +168,58 @@ public void OnPluginEnd()
 }
 
 // ====================================================================================================
-// Detour_CanDeployFor - When does a survivor pull out a gun?
+// OnConVarChanged - Refresh ConVar storage
 // ====================================================================================================
 
-public MRESReturn Detour_CanDeployFor(Address pThis, Handle hReturn)
+public void OnEnableDisable(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	if(!Cvar_Enabled.BoolValue)
+	ApplyPatch((bCvar_Enabled = Cvar_Enabled.BoolValue));
+}
+
+// ====================================================================================================
+// OnConVarChanged - Refresh ConVar storage
+// ====================================================================================================
+
+public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	GetCvars();
+}
+
+// ====================================================================================================
+// GetCvars - Cache the values of ConVars to improve performance
+// ====================================================================================================
+
+void GetCvars()
+{
+	bCvar_M2 = Cvar_M2.BoolValue;
+	bCvar_Reload = Cvar_Reload.BoolValue;
+	bCvar_Debug = Cvar_Debug.BoolValue;
+}
+
+// ====================================================================================================
+// Detour_CanDeployFor - Constantly called to check if player can pull out a weapon
+// ====================================================================================================
+
+public MRESReturn Detour_CanDeployFor(int pThis, Handle hReturn)
+{
+	if(!bCvar_Enabled)
 		return MRES_Ignored;
 	
-	int client = GetClientFromPointer(pThis);
+	int client = GetEntPropEnt(pThis, Prop_Data, "m_hOwnerEntity");
+	bool bIsOnLadder = GetEntityMoveType(client) == MOVETYPE_LADDER;
 	
-	if (IsPlayerOnLadder(client))
+	if (bIsOnLadder)
 	{
 		if (GetClientTeam(client) == 2) // Infected triggers this though, will be blocked
 		{
-			if(!Cvar_M2.BoolValue)
+			if(!bCvar_M2)
 				SetEntPropFloat(client, Prop_Send, "m_flNextShoveTime", GetGameTime() + 0.1);
 			
 			int weapon = GetEntPropEnt(client, Prop_Data, "m_hActiveWeapon");
-			if (weapon == view_as<int>(pThis) || weapon == EntRefToEntIndex(view_as<int>(pThis)))
+			if (weapon == pThis || weapon == EntRefToEntIndex(pThis)/* Safety? */)
 				return MRES_Ignored;
 			
-			LogAcitivity("Function::Detour_CanDeployFor IsPlayerOnLadder: %d, %N", IsPlayerOnLadder(client), client);
+			LogAcitivity("Function::Detour_CanDeployFor IsPlayerOnLadder: %d, %N", bIsOnLadder, client);
 		}
 		
 		DHookSetReturn(hReturn, 0);
@@ -187,12 +233,13 @@ public MRESReturn Detour_CanDeployFor(Address pThis, Handle hReturn)
 // Detour_Reload - Block reload based on ConVar
 // ====================================================================================================
 
-public MRESReturn Detour_Reload(Address pThis, Handle hReturn)
+public MRESReturn Detour_Reload(int pThis, Handle hReturn)
 {
-	int client = GetClientFromPointer(pThis);
-	if(!Cvar_Reload.BoolValue && IsPlayerOnLadder(client))
+	int client = GetEntPropEnt(pThis, Prop_Data, "m_hOwnerEntity");
+	bool bIsOnLadder = GetEntityMoveType(client) == MOVETYPE_LADDER;
+	if(!bCvar_Reload && bIsOnLadder)
 	{
-		LogAcitivity("Function::Detour_Reload blocking reload for %d, %N", IsPlayerOnLadder(client), client);
+		LogAcitivity("Function::Detour_Reload blocking reload for %d, %N", bIsOnLadder, client);
 		return MRES_Supercede;
 	}
 	
@@ -203,34 +250,17 @@ public MRESReturn Detour_Reload(Address pThis, Handle hReturn)
 // Detour_ShotgunReload - Block reload based on ConVar
 // ====================================================================================================
 
-public MRESReturn Detour_ShotgunReload(Address pThis, Handle hReturn)
+public MRESReturn Detour_ShotgunReload(int pThis, Handle hReturn)
 {
-	int client = GetClientFromPointer(pThis);
-	if(!Cvar_Reload.BoolValue && IsPlayerOnLadder(client))
+	int client = GetEntPropEnt(pThis, Prop_Data, "m_hOwnerEntity");
+	bool bIsOnLadder = GetEntityMoveType(client) == MOVETYPE_LADDER;
+	if(!bCvar_Reload && bIsOnLadder)
 	{
-		LogAcitivity("Function::Detour_ShotgunReload blocking reload for %d, %N", IsPlayerOnLadder(client), client);
+		LogAcitivity("Function::Detour_ShotgunReload blocking reload for %d, %N", bIsOnLadder, client);
 		return MRES_Supercede;
 	}
 	
 	return MRES_Ignored;
-}
-
-// ====================================================================================================
-// IsPlayerOnLadder - Is player's move type ladder?
-// ====================================================================================================
-
-stock bool IsPlayerOnLadder(int client)
-{
-	return GetEntityMoveType(client) == MOVETYPE_LADDER;
-}
-
-// ====================================================================================================
-// GetClientFromPointer - Get the entity owner, which is our client.
-// ====================================================================================================
-
-stock int GetClientFromPointer(Address pThis)
-{	
-	return GetEntPropEnt(view_as<int>(pThis), Prop_Data, "m_hOwnerEntity");
 }
 
 // ====================================================================================================
@@ -239,7 +269,7 @@ stock int GetClientFromPointer(Address pThis)
 
 stock void LogAcitivity(const char[] format, any ...)
 {
-	if(Cvar_Debug.BoolValue)
+	if(bCvar_Debug)
 	{
 		static char LogFilePath[PLATFORM_MAX_PATH];
 		
@@ -251,8 +281,8 @@ stock void LogAcitivity(const char[] format, any ...)
 
 		char buffer[512];
 		VFormat(buffer, sizeof(buffer), format, 2);
-		LogToFile(LogFilePath, "%s", buffer);
-		PrintToChatAll("%s", buffer);
+		LogToFile(LogFilePath, buffer);
+		PrintToChatAll(buffer);
 	}
 }
 
