@@ -1,6 +1,6 @@
 # vote_custom_campaigns
 
-### Intruduction
+### Introduction
 Self-descriptive, plugin to vote for custom campaigns.
 - But campaigns need to be manually manipulate.
 - Should be fine for almost sure. If you meet any issue related to map change, try installing [Proper Changelevel](https://forums.alliedmods.net/showthread.php?p=2669850)

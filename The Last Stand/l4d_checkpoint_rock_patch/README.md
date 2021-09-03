@@ -1,6 +1,6 @@
 # Checkpoint Rock Patch
 
-### Intruduction
+### Introduction
 - Patch memory bytes to fix an issue where tank rock is harder to land on survivors in saferoom area.
 
 <hr>

@@ -1,6 +1,6 @@
 # Ladder Rambos
 
-### Intruduction
+### Introduction
 - A fixed version that is safe to reload shotgun on ladder.
   - Merged with **l4d2_cs_ladders** by **Lux**.
 

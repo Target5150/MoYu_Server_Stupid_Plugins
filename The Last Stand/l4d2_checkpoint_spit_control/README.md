@@ -1,6 +1,6 @@
 # Checkpoint Spit Control
 
-### Intruduction
+### Introduction
 - Patch memory bytes to allow spit to spread in saferoom area.
 - Force spit to perform burst on any solid surfaces (before it does on world entities only).
   - Affected entities such as elevators, some stairs, props added via Stripper, etc.

@@ -1,7 +1,7 @@
 # Sweep Fist Patch
 https://forums.alliedmods.net/showthread.php?t=332046
 
-### Intruduction
+### Introduction
 - Patch memory bytes to allow multi-punch for tank in Coop Mode
 
 <hr>

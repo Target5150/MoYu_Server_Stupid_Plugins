@@ -1,6 +1,6 @@
 # Backjump Fix
 
-### Intruduction
+### Introduction
 - DHook onto `CLunge::OnTouch` to override `IsValidEdict` check, if the touched other is a solid non-world entity.
 - Currently tested on Linux L4D2 only.
 
