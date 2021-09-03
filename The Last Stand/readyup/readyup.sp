@@ -9,7 +9,7 @@
 #undef REQUIRE_PLUGIN
 #include <caster_system>
 
-#define PLUGIN_VERSION "9.3.4"
+#define PLUGIN_VERSION "9.3.5"
 
 public Plugin myinfo =
 {
@@ -104,8 +104,6 @@ char
 	liveSound[PLATFORM_MAX_PATH];
 int
 	readyDelay;
-Handle
-	liveForward;
 
 // Auto Start
 bool
@@ -118,6 +116,15 @@ char
 int
 	autoStartDelay,
 	expireTime;
+
+// Forwards
+Handle
+	preInitiateForward,
+	initiateForward,
+	preCountdownForward,
+	countdownForward,
+	preLiveForward,
+	liveForward;
 
 //AFK?!
 float g_fButtonTime[MAXPLAYERS+1];
@@ -166,6 +173,12 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("GetFooterStringAtIndex",	Native_GetFooterStringAtIndex);
 	CreateNative("IsInReady",				Native_IsInReady);
 	CreateNative("ToggleReadyPanel",		Native_ToggleReadyPanel);
+	
+	preInitiateForward = CreateGlobalForward("OnReadyUpInitiatePre", ET_Ignore);
+	initiateForward = CreateGlobalForward("OnReadyUpInitiate", ET_Ignore);
+	preCountdownForward = CreateGlobalForward("OnRoundLiveCountdownPre", ET_Ignore);
+	countdownForward = CreateGlobalForward("OnRoundLiveCountdown", ET_Ignore);
+	preLiveForward = CreateGlobalForward("OnRoundIsLivePre", ET_Ignore);
 	liveForward = CreateGlobalForward("OnRoundIsLive", ET_Ignore);
 	RegPluginLibrary("readyup");
 	return APLRes_Success;
@@ -950,6 +963,9 @@ void UpdatePanel()
 
 void InitiateReadyUp()
 {
+	Call_StartForward(preInitiateForward);
+	Call_Finish();
+	
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		isPlayerReady[i] = false;
@@ -996,10 +1012,19 @@ void InitiateReadyUp()
 		expireTime = l4d_ready_autostart_wait.IntValue;
 		CreateTimer(1.0, Timer_AutoStartHelper, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
 	}
+	
+	Call_StartForward(initiateForward);
+	Call_Finish();
 }
 
 void InitiateLive(bool real = true)
 {
+	if (real)
+	{
+		Call_StartForward(preLiveForward);
+		Call_Finish();
+	}
+	
 	inReadyUp = false;
 	inLiveCountdown = false;
 	isForceStart = false;
@@ -1107,12 +1132,18 @@ void InitiateLiveCountdown()
 {
 	if (readyCountdownTimer == null)
 	{
+		Call_StartForward(preCountdownForward);
+		Call_Finish();
+		
 		ReturnTeamToSaferoom(L4D2Team_Survivor);
 		PrintHintTextToAll("%t", "LiveCountdownBegin");
 		inLiveCountdown = true;
 		readyDelay = l4d_ready_delay.IntValue;
 		if (isForceStart) readyDelay += l4d_ready_force_extra.IntValue;
 		readyCountdownTimer = CreateTimer(1.0, ReadyCountdownDelay_Timer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	
+		Call_StartForward(countdownForward);
+		Call_Finish();
 	}
 }
 
