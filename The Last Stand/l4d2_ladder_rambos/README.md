@@ -1,8 +1,13 @@
-# Ladder Rambos
+# Ladder Rambos - [Original forum](https://forums.alliedmods.net/showthread.php?p=2737209)
 
 ### Introduction
 - A fixed version that is safe to reload shotgun on ladder.
-  - Merged with **l4d2_cs_ladders** by **Lux**.
+  - Merged with [**l4d2_cs_ladders**](https://forums.alliedmods.net/showthread.php?p=2738865) by **Lux**.
+
+<hr>
+
+### Requirement
+- [Source Scramble](https://forums.alliedmods.net/showthread.php?t=317175)
 
 <hr>
 
