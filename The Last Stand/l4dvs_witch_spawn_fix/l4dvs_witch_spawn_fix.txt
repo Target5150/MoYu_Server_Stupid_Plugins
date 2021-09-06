@@ -1,0 +1,82 @@
+"Games"
+{
+	"left4dead"
+	{
+		"MemPatches"
+		{
+			"UpdateVersusBossSpawning__tankcount_patch"
+			{
+				"signature"			"CDirectorVersusMode::UpdateVersusBossSpawning"
+				"linux"
+				{
+					"offset"		"184"
+					"verify"		"\x7F"	// jz near
+					"patch"			"\x90\x90"	// NOP + jmp near
+				}
+				"windows"
+				{
+					"offset"		"175"
+					"verify"		"\x0F\x8F"	// jz near
+					"patch"			"\x90\x90\x90\x90\x90\x90"	// NOP + jmp near
+				}
+			}
+		}
+		
+		"Signatures"
+		{
+			/*
+			 * CDirectorVersusMode::UpdateVersusBossSpawning(void)
+			 * unique string "Update Versus Boss Spawning: Highest survivor flow distance = %f "
+			 */
+			"CDirectorVersusMode::UpdateVersusBossSpawning"
+			{
+				"library"	"server"
+				"linux"		"@_ZN8Director24UpdateVersusBossSpawningEv"
+				"windows"	"\x83\xEC\x38\x57\x8B\xF9\xE8\x2A\x2A\x2A\x2A\x84\xC0"
+				/*	Signature for sub_10228C60:
+				 *		83 EC 38 57 8B F9 E8 ? ? ? ? 84 C0 
+				**/
+			}
+		}
+	}
+
+	"left4dead2"
+	{
+		"MemPatches"
+		{
+			"UpdateVersusBossSpawning__tankcount_patch"
+			{
+				"signature"			"CDirectorVersusMode::UpdateVersusBossSpawning"
+				"linux"
+				{
+					"offset"		"269"
+					"verify"		"\x0F\x8F"	// jz near
+					"patch"			"\x90\x90\x90\x90\x90\x90"	// NOP + jmp near
+				}
+				"windows"
+				{
+					"offset"		"235"
+					"verify"		"\x0F\x8F"	// jz near
+					"patch"			"\x90\x90\x90\x90\x90\x90"	// NOP + jmp near
+				}
+			}
+		}
+		
+		"Signatures"
+		{
+			/*
+			 * CDirectorVersusMode::UpdateVersusBossSpawning(void)
+			 * unique string " Highest survivor flow distance = %f  Tank at = %f witch at %f\n"
+			 */
+			"CDirectorVersusMode::UpdateVersusBossSpawning"
+			{
+				"library"	"server"
+				"linux"		"@_ZN19CDirectorVersusMode24UpdateVersusBossSpawningEv"
+				"windows"	"\x55\x8B\xEC\x83\xEC\x44\x57\x8B\xF9\x8B\x0D\x2A\x2A\x2A\x2A"
+				/*	Signature for sub_1028EB60:
+				 *		55 8B EC 83 EC 44 57 8B F9 8B 0D ? ? ? ? 
+				**/
+			}
+		}
+	}
+}
