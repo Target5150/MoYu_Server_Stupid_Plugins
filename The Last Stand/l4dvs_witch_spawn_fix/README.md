@@ -1,4 +1,4 @@
-# Checkpoint Rock Patch
+# [Versus-Only] Witch Spawn Fix
 
 ### Introduction
 - Patch memory bytes to fix an issue in versus where witch won't spawn if tank is in play.
