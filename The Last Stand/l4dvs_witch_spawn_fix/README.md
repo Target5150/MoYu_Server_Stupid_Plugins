@@ -6,7 +6,7 @@
 <hr>
 
 ### Requirement
-- [Source Scramble (since v0.7.0)](https://forums.alliedmods.net/showthread.php?t=317175)
+- [Source Scramble](https://forums.alliedmods.net/showthread.php?t=317175)
 
 <hr>
 
