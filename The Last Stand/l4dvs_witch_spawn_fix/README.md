@@ -1,4 +1,4 @@
-# Checkpoint Rock Patch
+# [Versus-Only] Witch Spawn Fix
 
 ### Introduction
 - Patch memory bytes to fix an issue in versus where witch won't spawn if tank is in play.
@@ -6,7 +6,7 @@
 <hr>
 
 ### Requirement
-- [Source Scramble (since v0.7.0)](https://forums.alliedmods.net/showthread.php?t=317175)
+- [Source Scramble](https://forums.alliedmods.net/showthread.php?t=317175)
 
 <hr>
 
