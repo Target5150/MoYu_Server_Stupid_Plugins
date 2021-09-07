@@ -1,4 +1,4 @@
-#define PLUGIN_VERSION 		"2.2"
+#define PLUGIN_VERSION 		"2.3"
 
 /*
 *	Ladder Rambos Dhooks
@@ -215,6 +215,9 @@ public MRESReturn Detour_CanDeployFor(int pThis, Handle hReturn)
 		return MRES_Ignored;
 	
 	int client = GetEntPropEnt(pThis, Prop_Data, "m_hOwnerEntity");
+	if (client == -1)
+		return MRES_Ignored;
+	
 	bool bIsOnLadder = GetEntityMoveType(client) == MOVETYPE_LADDER;
 	
 	if (bIsOnLadder)
