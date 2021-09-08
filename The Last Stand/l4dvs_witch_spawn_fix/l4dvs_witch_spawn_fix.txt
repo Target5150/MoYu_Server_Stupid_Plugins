@@ -10,14 +10,14 @@
 				"linux"
 				{
 					"offset"		"184"
-					"verify"		"\x7F"	// jz near
-					"patch"			"\x90\x90"	// NOP + jmp near
+					"verify"		"\x7F"	// jg short
+					"patch"			"\x90\x90"	// NOPs
 				}
 				"windows"
 				{
 					"offset"		"175"
-					"verify"		"\x0F\x8F"	// jz near
-					"patch"			"\x90\x90\x90\x90\x90\x90"	// NOP + jmp near
+					"verify"		"\x0F\x8F"	// jg near
+					"patch"			"\x90\x90\x90\x90\x90\x90"	// NOPs
 				}
 			}
 		}
@@ -50,14 +50,14 @@
 				"linux"
 				{
 					"offset"		"269"
-					"verify"		"\x0F\x8F"	// jz near
-					"patch"			"\x90\x90\x90\x90\x90\x90"	// NOP + jmp near
+					"verify"		"\x0F\x8F"	// jg near
+					"patch"			"\x90\x90\x90\x90\x90\x90"	// NOPs
 				}
 				"windows"
 				{
 					"offset"		"235"
-					"verify"		"\x0F\x8F"	// jz near
-					"patch"			"\x90\x90\x90\x90\x90\x90"	// NOP + jmp near
+					"verify"		"\x0F\x8F"	// jg near
+					"patch"			"\x90\x90\x90\x90\x90\x90"	// NOPs
 				}
 			}
 		}
