@@ -18,11 +18,15 @@
 // - Welp, there's only one change.. so yeah. Enjoy!
 //
 //-------------------------------------------------------------------------------------------------------------------
+// Version 2.0: Added way to detect Dual Pistol pick-up and block so.
+//-------------------------------------------------------------------------------------------------------------------
+// - Via hacky memory patch. 
+//
+//-------------------------------------------------------------------------------------------------------------------
 // TODO:
 //-------------------------------------------------------------------------------------------------------------------
 // - Be a nice guy and less lazy, allow the plugin to work flawlessly with other's peoples needs.. It doesn't require much attention.
 // - Find cleaner methods to detect and handle functions.
-// - Find a reliable way to detect Dual Pistol pick-up. 
 */
 
 #pragma semicolon 1
@@ -34,6 +38,8 @@
 #define L4D2UTIL_STOCKS_ONLY
 #include <l4d2util> //#include <weapons>
 #include <colors>
+#include <dhooks>
+#include <sourcescramble>
 
 #define FLAGS_SWITCH_MELEE                1
 #define FLAGS_SWITCH_PILLS                2
@@ -44,6 +50,14 @@
 
 #define TEAM_SURVIVOR                     2
 #define TEAM_INFECTED                     3
+
+#define GAMEDATA_FILE "l4d2_pickup"
+#define KEY_CTERRORGUN_USE "CTerrorGun_Use"
+#define KEY_CTERRORGUN_USE_WINDOWS "CTerrorGun_Use_Windows"
+#define KEY_CWEAPONSPAWN_USE "CWeaponSpawn::Use"
+#define PATCH_STOPHOLSTER "EquipSecondWeapon_StopHolster"
+#define PATCH_SETACTIVEWEAPON "EquipSecondWeapon_SetActiveWeapon"
+#define PATCH_DEPLOY "EquipSecondWeapon_Deploy"
 
 bool
 	bLateLoad,
@@ -67,23 +81,50 @@ int
 	SwitchFlags,
 	IncapFlags;
 
+bool
+	g_bLeft4Dead2,
+	g_bLinux;
+
+MemoryPatch
+	g_hPatch_StopHolster,
+	g_hPatch_SetActiveWeapon,
+	g_hPatch_Deploy;
+
 public Plugin myinfo = 
 {
 	name = "L4D2 Pick-up Changes",
-	author = "Sir", //Update syntax A1m`
+	author = "Sir, Forgetest", //Update syntax A1m`
 	description = "Alters a few things regarding picking up/giving items and incapped Players.",
-	version = "1.2.2",
+	version = "2.0",
 	url = "https://github.com/SirPlease/L4D2-Competitive-Rework/"
 }
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
+	switch (GetEngineVersion())
+	{
+		case Engine_Left4Dead:
+		{
+			g_bLeft4Dead2 = false;
+		}
+		case Engine_Left4Dead2:
+		{
+			g_bLeft4Dead2 = true;
+		}
+		default:
+		{
+			strcopy(error, err_max, "Plugin supports only Left 4 Dead & 2");
+			return APLRes_SilentFailure;
+		}
+	}
 	bLateLoad = late;
 	return APLRes_Success;
 }
 
 public void OnPluginStart()
 {
+	LoadSDK();
+	
 	hSwitchFlags = CreateConVar("pickup_switch_flags", "3", "Flags for Switching from current item (1:Melee Weapons, 2: Passed Pills)", _, true, 0.0, true, 3.0);
 	hIncapPickupFlags = CreateConVar("pickup_incap_flags", "7", "Flags for Stopping Pick-up progress on Incapped Survivors (1:Spit Damage, 2:TankPunch, 4:TankRock", _, true, 0.0, true, 7.0);
 	
@@ -99,6 +140,89 @@ public void OnPluginStart()
 		for (int i = 1; i <= MaxClients; i++) {
 			HookValidClient(i, true);
 		}
+	}
+}
+
+void LoadSDK()
+{
+	Handle conf = LoadGameConfigFile(GAMEDATA_FILE);
+	if (conf == null)
+		SetFailState("Missing gamedata \"" ... GAMEDATA_FILE ..."\"");
+	
+	int offset = GameConfGetOffset(conf, "OS");
+	if (offset == -1)
+		SetFailState("Failed to find offset \"OS\"");
+	
+	g_bLinux = (offset == 1);
+	
+	SetupDetours(conf);
+	
+	g_hPatch_StopHolster = MemoryPatch.CreateFromConf(conf, PATCH_STOPHOLSTER);
+	if (!g_hPatch_StopHolster || !g_hPatch_StopHolster.Validate())
+		SetFailState("Failed to validate memory patch \"" ... PATCH_STOPHOLSTER ... "\"");
+	
+	g_hPatch_SetActiveWeapon = MemoryPatch.CreateFromConf(conf, PATCH_SETACTIVEWEAPON);
+	if (!g_hPatch_SetActiveWeapon || !g_hPatch_SetActiveWeapon.Validate())
+		SetFailState("Failed to validate memory patch \"" ... PATCH_SETACTIVEWEAPON ... "\"");
+	
+	g_hPatch_Deploy = MemoryPatch.CreateFromConf(conf, PATCH_DEPLOY);
+	if (!g_hPatch_Deploy || !g_hPatch_Deploy.Validate())
+		SetFailState("Failed to validate memory patch \"" ... PATCH_DEPLOY ... "\"");
+	
+	delete conf;
+}
+
+void SetupDetours(Handle conf)
+{
+	Handle hDetour = DHookCreateFromConf(
+							conf,
+							(g_bLeft4Dead2 || g_bLinux ? KEY_CTERRORGUN_USE : KEY_CTERRORGUN_USE_WINDOWS)
+					);
+	
+	if (!hDetour)
+		SetFailState("Failed to create setup detour for \"%s\"", (g_bLeft4Dead2 || g_bLinux ? KEY_CTERRORGUN_USE : KEY_CTERRORGUN_USE_WINDOWS));
+	
+	if (!DHookEnableDetour(hDetour, false, CTerrorGun_OnUse)
+		|| !DHookEnableDetour(hDetour, true, CTerrorGun_OnUsePost)
+	) {
+		SetFailState("Failed to enable detour \"%s\"", (g_bLeft4Dead2 || g_bLinux ? KEY_CTERRORGUN_USE : KEY_CTERRORGUN_USE_WINDOWS));
+	}
+	
+	hDetour = DHookCreateFromConf(conf, KEY_CWEAPONSPAWN_USE);
+	
+	if (!hDetour)
+		SetFailState("Failed to create setup detour for \"" ... KEY_CWEAPONSPAWN_USE ... "\"");
+	
+	if (!DHookEnableDetour(hDetour, false, CWeaponSpawn_OnUse)
+		|| !DHookEnableDetour(hDetour, true, CWeaponSpawn_OnUsePost)
+	) {
+		SetFailState("Failed to enable detour \"" ... KEY_CWEAPONSPAWN_USE ... "\"");
+	}
+}
+
+void ApplyPatch(bool patch)
+{
+	static bool patched = false;
+	if (patch && !patched)
+	{
+		if (!g_hPatch_StopHolster.Enable())
+			SetFailState("enable g_hPatch_StopHolster");
+		
+		if (!g_hPatch_SetActiveWeapon.Enable())
+			SetFailState("enable g_hPatch_SetActiveWeapon");
+		
+		if (!g_hPatch_Deploy.Enable())
+			SetFailState("enable g_hPatch_Deploy");
+		
+		patched = true;
+	}
+	else if (!patch && patched)
+	{
+		g_hPatch_StopHolster.Disable();
+		g_hPatch_SetActiveWeapon.Disable();
+		g_hPatch_Deploy.Disable();
+		
+		patched = false;
 	}
 }
 
@@ -308,6 +432,78 @@ public Action WeaponDrop(int client, int weapon)
 		}
 	}
 	return Plugin_Continue;
+}
+
+
+/* ---------------------------------
+//                                 |
+//       Dualies Workaround        |
+//                                 |
+// -------------------------------*/
+stock bool IsSwitchingToDualCase(int client, int weapon)
+{
+	if (!IsValidEdict(weapon))
+		return false;
+	
+	static char clsname[64];
+	if (!GetEdictClassname(weapon, clsname, sizeof clsname))
+		return false;
+	
+	if (clsname[0] != 'w')
+		return false;
+	
+	if (g_bLeft4Dead2 && strcmp(clsname[7], "spawn") == 0)
+	{
+		if (GetEntProp(weapon, Prop_Send, "m_weaponID") != 1) // WEPID_PISTOL
+			return false;
+	}
+	else if (strncmp(clsname[7], "pistol", 6) != 0)
+	{
+		return false;
+	}
+	
+	int secondary = GetPlayerWeaponSlot(client, 1);
+	if (secondary == -1)
+		return false;
+	
+	if (!GetEdictClassname(secondary, clsname, sizeof clsname))
+		return false;
+	
+	return strcmp(clsname, "weapon_pistol") == 0 && !GetEntProp(secondary, Prop_Send, "m_hasDualWeapons");
+}
+
+public MRESReturn CTerrorGun_OnUse(int pThis, Handle hParams)
+{
+	int client = DHookGetParam(hParams, (g_bLeft4Dead2 || g_bLinux ? 1 : 2));
+	
+	if ((iSwitchFlags[client] & FLAGS_SWITCH_MELEE) && IsSwitchingToDualCase(client, pThis))
+	{
+		ApplyPatch(true);
+	}
+	
+	return MRES_Ignored;
+}
+
+public MRESReturn CWeaponSpawn_OnUse(int pThis, Handle hParams)
+{
+	int client = DHookGetParam(hParams, 1);
+
+	if ((iSwitchFlags[client] & FLAGS_SWITCH_MELEE) && IsSwitchingToDualCase(client, pThis))
+	{
+		ApplyPatch(true);
+	}
+	
+	return MRES_Ignored;
+}
+
+public MRESReturn CTerrorGun_OnUsePost(Handle hParams)
+{
+	ApplyPatch(false);
+}
+
+public MRESReturn CWeaponSpawn_OnUsePost(Handle hParams)
+{
+	ApplyPatch(false);
 }
 
 
