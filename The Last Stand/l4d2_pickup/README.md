@@ -11,6 +11,12 @@
 
 <hr>
 
+### Special Thanks
+- **Psyk0tik**: for a lot of gamedata help, and introducing a good patching method.
+- **HarryPotter**: for original idea.
+
+<hr>
+
 ### Changelog
 (v2.0 2021/9/23) Added way to detect Dual Pistol pick-up and block so.
 
