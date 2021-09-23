@@ -95,7 +95,7 @@ public Plugin myinfo =
 	name = "L4D2 Pick-up Changes",
 	author = "Sir, Forgetest", //Update syntax A1m`
 	description = "Alters a few things regarding picking up/giving items and incapped Players.",
-	version = "2.0",
+	version = "2.0a",
 	url = "https://github.com/SirPlease/L4D2-Competitive-Rework/"
 }
 
@@ -206,13 +206,13 @@ void ApplyPatch(bool patch)
 	if (patch && !patched)
 	{
 		if (!g_hPatch_StopHolster.Enable())
-			SetFailState("enable g_hPatch_StopHolster");
+			SetFailState("Failed to enable memory patch \"" ... PATCH_STOPHOLSTER ... "\"");
 		
 		if (!g_hPatch_SetActiveWeapon.Enable())
-			SetFailState("enable g_hPatch_SetActiveWeapon");
+			SetFailState("Failed to enable memory patch \"" ... PATCH_SETACTIVEWEAPON ... "\"");
 		
 		if (!g_hPatch_Deploy.Enable())
-			SetFailState("enable g_hPatch_Deploy");
+			SetFailState("Failed to enable memory patch \"" ... PATCH_DEPLOY ... "\"");
 		
 		patched = true;
 	}
