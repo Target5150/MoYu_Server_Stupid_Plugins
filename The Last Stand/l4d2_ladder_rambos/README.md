@@ -18,6 +18,14 @@
 <hr>
 
 ### Changelog
+(v2.4 2021/9/27)
+- Added option to toggle shotgun reload on ladders
+  - Thus the original one handles normal clip guns only.
+- Restored a game feature that players are forced to holster their gun on empty magazine.
+- Blocked forgotten melees from being pulled out on ladders.
+
+(v2.3 2021/9/7) Fix Ladder Rambos throwing errors.
+
 (v2.2a 2021/9/4) Fix ladder patches sometimes not applied.
 
 (v2.2 2021/9/4) Further optimization to Ladder Rambos.
