@@ -1,0 +1,43 @@
+"Games"
+{
+	"left4dead"
+	{
+		"MemPatches"
+		{
+			"CanBecomeGhost_LastSurvivorLeftStartArea"
+			{
+				"signature"		"CTerrorPlayer::CanBecomeGhost"
+				"linux"
+				{
+					"offset"	"520"
+					"verify"	"\x65"
+					"patch"		"\x64"
+				}
+				"windows"
+				{
+					"offset"	"457"
+					"verify"	"\x69"
+					"patch"		"\x68"
+				}
+			}
+		}
+		
+		"Signatures"
+		{
+			/**
+			 * CTerrorPlayer::CanBecomeGhost(bool)
+			 *
+			 * How to find on Windows:
+			 * 1. Search for the "ghost_spawn_time" string.
+			 * 2. The string can only be found in this function.
+			 **/
+			"CTerrorPlayer::CanBecomeGhost"
+			{
+				"library"	"server"
+				"linux"		"@_ZN13CTerrorPlayer14CanBecomeGhostEb"
+				"windows"	"\x2A\x2A\x2A\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x83\x2A\x2A\x74\x2A\x83\xBD"
+						/* ? ? ? ? ? ? ? E8 ? ? ? ? 83 ? ? 74 ? 83 BD */
+			}
+		}
+	}
+}
