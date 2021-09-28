@@ -1,4 +1,4 @@
-# Immediate Respawn Patch
+# [L4D Only] Immediate Respawn Patch
 
 ### Introduction
 - Fix SI immediately respawning despite all survivors not leaving saferoom.
