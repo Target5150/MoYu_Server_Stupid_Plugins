@@ -9,7 +9,7 @@
 #undef REQUIRE_PLUGIN
 #include <caster_system>
 
-#define PLUGIN_VERSION "9.3.6"
+#define PLUGIN_VERSION "9.3.7"
 
 public Plugin myinfo =
 {
@@ -595,9 +595,17 @@ public Action Say_Callback(int client, const char[] command, int argc)
 public Action Vote_Callback(int client, const char[] command, int argc)
 {
 	// Fast ready / unready through default keybinds for voting
-	if (BuiltinVote_IsVoteInProgress() && IsClientInBuiltinVotePool(client)) return;
-	if (Game_IsVoteInProgress()) return;
 	if (!client) return;
+	if (BuiltinVote_IsVoteInProgress() && IsClientInBuiltinVotePool(client)) return;
+	
+	if (Game_IsVoteInProgress())
+	{
+		int voteteam = Game_GetVoteTeam();
+		if (voteteam == -1 || voteteam == GetClientTeam(client))
+		{
+			return;
+		}
+	}
 	
 	char sArg[8];
 	GetCmdArg(1, sArg, sizeof(sArg));
