@@ -9,7 +9,7 @@
 #undef REQUIRE_PLUGIN
 #include <caster_system>
 
-#define PLUGIN_VERSION "9.3.5"
+#define PLUGIN_VERSION "9.3.6"
 
 public Plugin myinfo =
 {
@@ -41,7 +41,7 @@ public Plugin myinfo =
 
 #define TRANSLATION_READYUP "readyup.phrases"
 
-#define GAMEDATA_READYUP "readyup"
+#define GAMEDATA_READYUP "l4d2_cdirector"
 #define GAMEDATA_L4DH "left4dhooks.l4d2"
 
 #define READY_MODE_MANUAL 1
@@ -141,7 +141,9 @@ bool casterSystemAvailable;
 // CDirector::IsInTransition
 Handle g_hSDKCall_IsInTransition;
 Address g_pDirector;
-bool g_bTransitioning;
+
+// Delayed initiation
+bool g_bTransitioning = false;
 
 // Reason enum for Countdown cancelling
 enum disruptType
@@ -593,7 +595,8 @@ public Action Say_Callback(int client, const char[] command, int argc)
 public Action Vote_Callback(int client, const char[] command, int argc)
 {
 	// Fast ready / unready through default keybinds for voting
-	if (IsBuiltinVoteInProgress()) return;
+	if (BuiltinVote_IsVoteInProgress() && IsClientInBuiltinVotePool(client)) return;
+	if (Game_IsVoteInProgress()) return;
 	if (!client) return;
 	
 	char sArg[8];
@@ -810,6 +813,12 @@ void PrintCmd()
 
 void UpdatePanel()
 {
+	if (Game_IsVoteInProgress())
+	{
+		// Hide panel during game vote anyway
+		return;
+	}
+	
 	char survivorBuffer[800] = "";
 	char infectedBuffer[800] = "";
 	char casterBuffer[600] = "";
