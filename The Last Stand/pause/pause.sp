@@ -35,7 +35,7 @@ public Plugin myinfo =
 	name = "Pause plugin",
 	author = "CanadaRox, Sir, Forgetest", //Add support sm1.11 - A1m`
 	description = "Adds pause functionality without breaking pauses, also prevents SI from spawning because of the Pause.",
-	version = "6.6.1",
+	version = "6.6.2",
 	url = "https://github.com/SirPlease/L4D2-Competitive-Rework"
 };
 
@@ -105,9 +105,13 @@ public void OnPluginStart()
 {
 	LoadPluginTranslations();
 	
-	pauseDelayCvar = CreateConVar("sm_pausedelay", "0", "Delay to apply before a pause happens.  Could be used to prevent Tactical Pauses", FCVAR_NONE, true, 0.0);
-	initiatorReadyCvar = CreateConVar("sm_initiatorready", "0", "Require or not the pause initiator should ready before unpausing the game", FCVAR_NONE, true, 0.0);
-	l4d_ready_delay = FindConVar("l4d_ready_delay");
+	pauseDelayCvar = CreateConVar("sm_pausedelay", "0", "Delay to apply before a pause happens.  Could be used to prevent Tactical Pauses", FCVAR_NOTIFY, true, 0.0);
+	initiatorReadyCvar = CreateConVar("sm_initiatorready", "0", "Require or not the pause initiator should ready before unpausing the game", FCVAR_NOTIFY, true, 0.0);
+	
+	if ((l4d_ready_delay = FindConVar("l4d_ready_delay")) == null)
+	{
+		l4d_ready_delay = CreateConVar("l4d_ready_delay", "3", "Created by \"pause\", count down before an unpause happens", FCVAR_NOTIFY, true, 0.0);
+	}
 	
 	FindServerNamer();
 	
