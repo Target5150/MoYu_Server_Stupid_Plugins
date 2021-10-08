@@ -9,7 +9,7 @@
 #undef REQUIRE_PLUGIN
 #include <caster_system>
 
-#define PLUGIN_VERSION "9.3.7"
+#define PLUGIN_VERSION "9.3.8"
 
 public Plugin myinfo =
 {
@@ -1057,18 +1057,18 @@ void InitiateLive(bool real = true)
 	god.Flags |= FCVAR_NOTIFY;
 	sb_stop.SetBool(false);
 	
-	CreateTimer(0.1, Timer_RestartCountdowns, true, TIMER_FLAG_NO_MAPCHANGE);
-	
-	for (int i = 0; i < 4; i++)
-	{
-		GameRules_SetProp("m_iVersusDistancePerSurvivor", 0, _,
-				i + 4 * GameRules_GetProp("m_bAreTeamsFlipped"));
-	}
-	
 	ToggleCommandListeners(false);
 
 	if (real)
 	{
+		CreateTimer(0.1, Timer_RestartCountdowns, true, TIMER_FLAG_NO_MAPCHANGE);
+	
+		for (int i = 0; i < 4; i++)
+		{
+			GameRules_SetProp("m_iVersusDistancePerSurvivor", 0, _,
+					i + 4 * GameRules_GetProp("m_bAreTeamsFlipped"));
+		}
+		
 		Call_StartForward(liveForward);
 		Call_Finish();
 	}
