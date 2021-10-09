@@ -83,29 +83,51 @@
 					"patch"		"\x90\xE9"
 				}
 			}
+			
+			"BrushPatch3"
+			{
+				"signature"		"CSpitterProjectile_Detonate"
+				"linux"
+				{
+					"offset"	"752"
+					"verify"	"\x3B\x15"
+					"patch"		"\xE9\x09\x00\x00\x00"
+				}
+				"windows"
+				{
+					"offset"	"368"
+					"verify"	"\x74"
+					"patch"		"\xE9"
+				}
+			}
 		}
 		
-		/* Windows sig:
-		 *	Search string "SpitProjectile.Bounce", only 2 of them reference to functions.
-		 *	Theoretically they are closed to each other, so you can choose anyone to look into.
-		 *	Find the one that has only 1 string, then go to the vtable of the function.
-		 *	The virtual function 2 offsets above is the sig.
-		**/
 		"Signatures"
 		{
+			/* Windows sig:
+			 *	Search "CSpitterProjectile::Detonate" first.
+			 *	Go to the vtable of the function, "CSpitterProjectile::BounceTouch" is right 1 offset above.
+			**/
 			"CSpitterProjectile_BounceTouch"
 			{
 				"library"		"server"
 				"linux"			"@_ZN18CSpitterProjectile11BounceTouchEP11CBaseEntity"
-				"windows"		"\x55\x8B\xEC\x81\xEC\x94\x00\x00\x00\xA1\x2A\x2A\x2A\x2A\x33\xC5\x89\x45\xFC\x53\x8B\xD9"
+				"windows"		"\x55\x8B\xEC\x83\x2A\x2A\x56\x8B\x2A\x2A\xF6\x2A\x2A\x2A\x2A\x2A\x28\x57\x8B\x2A\x74"
+				/* 55 8B EC 83 ? ? 56 8B ? ? F6 ? ? ? ? ? 28 57 8B ? 74 */
 			}
 			
+			/* Windows sig:
+			 *	Search string "SpitProjectile.Bounce", only 2 of them reference to functions.
+			 *	Theoretically they are closed to each other, so you can choose anyone to look into.
+			 *	Find the one that has only 1 string, then go to the vtable of the function.
+			 *	The virtual function 2 offsets above is the sig.
+			**/
 			"CSpitterProjectile_Detonate"
 			{
 				"library"		"server"
 				"linux"			"@_ZN18CSpitterProjectile8DetonateEv"
-				"windows"		"\x55\x8B\xEC\x81\xEC\x94\x00\x00\x00\xA1\x2A\x2A\x2A\x2A\x33\xC5\x89\x45\xFC\x53\x8B\xD9"
-				/* 55 8B EC 81 EC 94 00 00 00 A1 ? ? ? ? 33 C5 89 45 FC 53 8B D9 */
+				"windows"		"\x55\x8B\xEC\x81\x2A\x2A\x2A\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x33\x2A\x89\x2A\x2A\x53\x8B\x2A\x57"
+				/* 55 8B EC 81 ? ? ? ? ? A1 ? ? ? ? 33 ? 89 ? ? 53 8B ? 57 */
 			}
 		}
 	}

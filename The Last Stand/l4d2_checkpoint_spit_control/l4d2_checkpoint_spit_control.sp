@@ -5,7 +5,7 @@
 #include <sourcescramble>
 #include <dhooks>
 
-#define PLUGIN_VERSION "2.1"
+#define PLUGIN_VERSION "2.2"
 
 public Plugin myinfo =
 {
@@ -23,8 +23,9 @@ public Plugin myinfo =
 #define PATCH_SAFEROOM "SaferoomPatch"
 #define PATCH_BRUSH_1 "BrushPatch1"
 #define PATCH_BRUSH_2 "BrushPatch2"
+#define PATCH_BRUSH_3 "BrushPatch3"
 
-MemoryPatch g_hSaferoomPatch, g_hBrushPatch1, g_hBrushPatch2;
+MemoryPatch g_hSaferoomPatch, g_hBrushPatch1, g_hBrushPatch2, g_hBrushPatch3;
 bool g_bLinux;
 
 DynamicDetour g_hDetour_Detonate, g_hDetour_BounceTouch;
@@ -57,6 +58,10 @@ void LoadSDK()
 	
 	g_hBrushPatch2 = MemoryPatch.CreateFromConf(conf, PATCH_BRUSH_2);
 	if (!g_hBrushPatch2 || !g_hBrushPatch2.Validate())
+		SetFailState("Failed to validate patch \"" ... PATCH_BRUSH_2 ... "\"");
+	
+	g_hBrushPatch3 = MemoryPatch.CreateFromConf(conf, PATCH_BRUSH_2);
+	if (!g_hBrushPatch3 || !g_hBrushPatch3.Validate())
 		SetFailState("Failed to validate patch \"" ... PATCH_BRUSH_2 ... "\"");
 	
 	SetupDetour(conf);
@@ -105,12 +110,16 @@ void ApplyBrushPatch(bool patch)
 		if (!g_hBrushPatch2.Enable())
 			SetFailState("Failed to apply patch \"" ... PATCH_BRUSH_2 ... "\"");
 		
+		if (!g_hBrushPatch3.Enable())
+			SetFailState("Failed to apply patch \"" ... PATCH_BRUSH_2 ... "\"");
+		
 		patched = true;
 	}
 	else if (!patch && patched)
 	{
 		if (g_bLinux) g_hBrushPatch1.Disable();
 		g_hBrushPatch2.Disable();
+		g_hBrushPatch3.Disable();
 		patched = false;
 	}
 }
