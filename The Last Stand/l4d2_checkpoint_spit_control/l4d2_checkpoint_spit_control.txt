@@ -9,36 +9,78 @@
 				"linux"			"0"
 				"windows"		"1"
 			}
+		}
+		
+		"Functions"
+		{
+			"CSpitterProjectile_BounceTouch"
+			{
+				"signature"		"CSpitterProjectile_BounceTouch"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"entity"
+				"arguments"
+				{
+					"a1"
+					{
+						"type"	"cbaseentity"
+					}
+				}
+			}
 			
+			"CSpitterProjectile_Detonate"
+			{
+				"signature"		"CSpitterProjectile_Detonate"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"entity"
+			}
+		}
+		
+		"MemPatches"
+		{
 			"SaferoomPatch"
 			{
-				"linux"			"151"
-				"windows"		"131"
+				"signature"		"CSpitterProjectile_Detonate"
+				"linux"
+				{
+					"offset"	"151"
+					"verify"	"\x01"
+					"patch"		"\x00"
+				}
+				"windows"
+				{
+					"offset"	"131"
+					"verify"	"\x01"
+					"patch"		"\x00"
+				}
 			}
 			
 			"BrushPatch1"
 			{
-				"linux"			"159"
+				"signature"		"CSpitterProjectile_Detonate"
+				"linux"
+				{
+					"offset"	"159"
+					"verify"	"\x0F\x84"
+					"patch"		"\x90\xE9"
+				}
 			}
 			
 			"BrushPatch2"
 			{
-				"linux"			"353"
-				"windows"		"184"
-			}
-		}
-		
-		"Addresses"
-		{
-			"CSpitterProjectile_Detonate"
-			{
+				"signature"		"CSpitterProjectile_Detonate"
 				"linux"
 				{
-					"signature"	"CSpitterProjectile_Detonate"
+					"offset"	"353"
+					"verify"	"\x0F\x85"
+					"patch"		"\x90\xE9"
 				}
 				"windows"
 				{
-					"signature"	"CSpitterProjectile_Detonate"
+					"offset"	"184"
+					"verify"	"\x0F\x85"
+					"patch"		"\x90\xE9"
 				}
 			}
 		}
@@ -51,6 +93,13 @@
 		**/
 		"Signatures"
 		{
+			"CSpitterProjectile_BounceTouch"
+			{
+				"library"		"server"
+				"linux"			"@_ZN18CSpitterProjectile11BounceTouchEP11CBaseEntity"
+				"windows"		"\x55\x8B\xEC\x81\xEC\x94\x00\x00\x00\xA1\x2A\x2A\x2A\x2A\x33\xC5\x89\x45\xFC\x53\x8B\xD9"
+			}
+			
 			"CSpitterProjectile_Detonate"
 			{
 				"library"		"server"

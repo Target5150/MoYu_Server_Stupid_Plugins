@@ -2,8 +2,10 @@
 #pragma newdecls required
 
 #include <sourcemod>
+#include <sourcescramble>
+#include <dhooks>
 
-#define PLUGIN_VERSION "2.0"
+#define PLUGIN_VERSION "2.1"
 
 public Plugin myinfo =
 {
@@ -15,13 +17,17 @@ public Plugin myinfo =
 }
 
 #define GAMEDATA_FILE "l4d2_checkpoint_spit_control"
-#define PATCH_KEY "CSpitterProjectile_Detonate"
-#define OFFSET_SAFEROOM "SaferoomPatch"
-#define OFFSET_BRUSH_1 "BrushPatch1"
-#define OFFSET_BRUSH_2 "BrushPatch2"
+#define KEY_DETONATE "CSpitterProjectile_Detonate"
+#define KEY_BOUNCETOUCH "CSpitterProjectile_BounceTouch"
 
-Address g_pSaferoomPatch, g_pBrushPatch1, g_pBrushPatch2;
-bool g_bWindows;
+#define PATCH_SAFEROOM "SaferoomPatch"
+#define PATCH_BRUSH_1 "BrushPatch1"
+#define PATCH_BRUSH_2 "BrushPatch2"
+
+MemoryPatch g_hSaferoomPatch, g_hBrushPatch1, g_hBrushPatch2;
+bool g_bLinux;
+
+DynamicDetour g_hDetour_Detonate, g_hDetour_BounceTouch;
 
 ConVar g_hAllMaps, g_hAllEntities;
 StringMap g_hSpitSpreadMaps;
@@ -32,116 +38,117 @@ void LoadSDK()
 	if (conf == null)
 		SetFailState("Missing gamedata \"" ... GAMEDATA_FILE ... "\"");
 	
-	Address pAddress = GameConfGetAddress(conf, PATCH_KEY);
-	if (pAddress == Address_Null)
-		SetFailState("Failed to get address of \"" ... PATCH_KEY ... "\"");
-	
 	int offset = GameConfGetOffset(conf, "OS");
 	if (offset == -1)
 		SetFailState("Failed to get offset \"OS\"");
 		
-	g_bWindows = !!offset;
+	g_bLinux = !offset;
 	
-	offset = GameConfGetOffset(conf, OFFSET_SAFEROOM);
-	if (offset == -1)
-		SetFailState("Failed to get offset from \"" ... OFFSET_SAFEROOM ... "\"");
+	g_hSaferoomPatch = MemoryPatch.CreateFromConf(conf, PATCH_SAFEROOM);
+	if (!g_hSaferoomPatch || !g_hSaferoomPatch.Validate())
+		SetFailState("Failed to validate patch \"" ... PATCH_SAFEROOM ... "\"");
 	
-	g_pSaferoomPatch = pAddress + view_as<Address>(offset);
-	
-	if (!g_bWindows)
+	if (g_bLinux)
 	{
-		offset = GameConfGetOffset(conf, OFFSET_BRUSH_1);
-		if (offset == -1)
-			SetFailState("Failed to get offset from \"" ... OFFSET_BRUSH_1 ... "\"");
-		
-		g_pBrushPatch1 = pAddress + view_as<Address>(offset);
+		g_hBrushPatch1 = MemoryPatch.CreateFromConf(conf, PATCH_BRUSH_1);
+		if (!g_hBrushPatch1 || !g_hBrushPatch1.Validate())
+			SetFailState("Failed to validate patch \"" ... PATCH_BRUSH_1 ... "\"");
 	}
 	
-	offset = GameConfGetOffset(conf, OFFSET_BRUSH_2);
-	if (offset == -1)
-		SetFailState("Failed to get offset from \"" ... OFFSET_BRUSH_2 ... "\"");
+	g_hBrushPatch2 = MemoryPatch.CreateFromConf(conf, PATCH_BRUSH_2);
+	if (!g_hBrushPatch2 || !g_hBrushPatch2.Validate())
+		SetFailState("Failed to validate patch \"" ... PATCH_BRUSH_2 ... "\"");
 	
-	g_pBrushPatch2 = pAddress + view_as<Address>(offset);
+	SetupDetour(conf);
 	
 	delete conf;
 }
 
+void SetupDetour(Handle conf)
+{
+	g_hDetour_Detonate = DynamicDetour.FromConf(conf, KEY_DETONATE);
+	if (g_hDetour_Detonate == null)
+		SetFailState("Missing detour setup \"" ... KEY_DETONATE ... "\"");
+	
+	g_hDetour_BounceTouch = DynamicDetour.FromConf(conf, KEY_BOUNCETOUCH);
+	if (g_hDetour_BounceTouch == null)
+		SetFailState("Missing detour setup \"" ... KEY_BOUNCETOUCH ... "\"");
+}
+
 void ApplySaferoomPatch(bool patch)
 {
-	static const int PATCH_FALSE = 0x00;
-	static const int UNPATCH_TRUE = 0x01;
-	
 	static bool patched = false;
 	
 	if (patch && !patched)
 	{
-		int byte = LoadFromAddress(g_pSaferoomPatch, NumberType_Int8);
-		if (byte != UNPATCH_TRUE)
-			SetFailState("Failed to apply patch \"" ... PATCH_KEY ... "\" (expecting 0x%x, got 0x%x)", UNPATCH_TRUE, byte);
+		if (!g_hSaferoomPatch.Enable())
+			SetFailState("Failed to apply patch \"" ... PATCH_SAFEROOM ... "\"");
 		
-		StoreToAddress(g_pSaferoomPatch, PATCH_FALSE, NumberType_Int8);
 		patched = true;
 	}
 	else if (!patch && patched)
 	{
-		int byte = LoadFromAddress(g_pSaferoomPatch, NumberType_Int8);
-		if (byte != PATCH_FALSE)
-			SetFailState("Failed to remove patch \"" ... PATCH_KEY ... "\" (expecting 0x%x, got 0x%x)", PATCH_FALSE, byte);
-		
-		StoreToAddress(g_pSaferoomPatch, UNPATCH_TRUE, NumberType_Int8);
+		g_hSaferoomPatch.Disable();
 		patched = false;
 	}
 }
 
 void ApplyBrushPatch(bool patch)
 {
-	static const int PATCH_BYTES[2] = {0x90, 0xE9};
-	static const int UNPATCH1_BYTES[2] = {0x0F, 0x84};
-	static const int UNPATCH2_BYTES[2] = {0x0F, 0x85};
-	
 	static bool patched = false;
 	
 	if (patch && !patched)
 	{
-		for (int i = 0; i < 2; i++)
-		{
-			int byte = LoadFromAddress(g_pBrushPatch2 + view_as<Address>(i), NumberType_Int8);
-			if (byte != UNPATCH2_BYTES[i])
-				SetFailState("Failed to apply patch \"" ... OFFSET_BRUSH_2 ... "\" (expecting 0x%x, got 0x%x)", UNPATCH2_BYTES[i], byte);
-			
-			StoreToAddress(g_pBrushPatch2 + view_as<Address>(i), PATCH_BYTES[i], NumberType_Int8);
-			
-			if (!g_bWindows)
-			{
-				byte = LoadFromAddress(g_pBrushPatch1 + view_as<Address>(i), NumberType_Int8);
-				if (byte != UNPATCH1_BYTES[i])
-					SetFailState("Failed to apply patch \"" ... OFFSET_BRUSH_1 ... "\" (expecting 0x%x, got 0x%x)", UNPATCH1_BYTES[i], byte);
-				
-				StoreToAddress(g_pBrushPatch1 + view_as<Address>(i), PATCH_BYTES[i], NumberType_Int8);
-			}
-			patched = true;
-		}
+		if (g_bLinux && !g_hBrushPatch1.Enable())
+			SetFailState("Failed to apply patch \"" ... PATCH_BRUSH_1 ... "\"");
+		
+		if (!g_hBrushPatch2.Enable())
+			SetFailState("Failed to apply patch \"" ... PATCH_BRUSH_2 ... "\"");
+		
+		patched = true;
 	}
 	else if (!patch && patched)
 	{
-		for (int i = 0; i < 2; i++)
-		{
-			int byte = LoadFromAddress(g_pBrushPatch2 + view_as<Address>(i), NumberType_Int8);
-			if (byte != PATCH_BYTES[i])
-				SetFailState("Failed to remove patch \"" ... OFFSET_BRUSH_2 ... "\" (expecting 0x%x, got 0x%x)", PATCH_BYTES[i], byte);
-			
-			StoreToAddress(g_pBrushPatch2 + view_as<Address>(i), UNPATCH2_BYTES[i], NumberType_Int8);
-			
-			if (!g_bWindows)
-			{
-				byte = LoadFromAddress(g_pBrushPatch1 + view_as<Address>(i), NumberType_Int8);
-				if (byte != PATCH_BYTES[i])
-					SetFailState("Failed to remove patch \"" ... OFFSET_BRUSH_1 ... "\" (expecting 0x%x, got 0x%x)", PATCH_BYTES[i], byte);
-				
-				StoreToAddress(g_pBrushPatch1 + view_as<Address>(i), UNPATCH1_BYTES[i], NumberType_Int8);
-			}
-			patched = true;
-		}
+		if (g_bLinux) g_hBrushPatch1.Disable();
+		g_hBrushPatch2.Disable();
+		patched = false;
+	}
+}
+
+void ToggleDetour(bool enable)
+{
+	static bool enabled = false;
+	if (enable && !enabled)
+	{
+		if (!g_hDetour_BounceTouch.Enable(Hook_Pre, OnSpitProjectileBounceTouch))
+			SetFailState("Failed to enable pre-detour \"" ... KEY_BOUNCETOUCH ... "\"");
+		
+		if (!g_hDetour_BounceTouch.Enable(Hook_Post, OnSpitProjectileBounceTouch_Post))
+			SetFailState("Failed to enable post-detour \"" ... KEY_BOUNCETOUCH ... "\"");
+		
+		if (!g_hDetour_Detonate.Enable(Hook_Pre, OnSpitProjectileDetonate))
+			SetFailState("Failed to enable pre-detour \"" ... KEY_DETONATE ... "\"");
+		
+		if (!g_hDetour_Detonate.Enable(Hook_Post, OnSpitProjectileDetonate_Post))
+			SetFailState("Failed to enable post-detour \"" ... KEY_DETONATE ... "\"");
+		
+		enabled = true;
+	}
+	else if (!enable && enabled)
+	{
+		if (!g_hDetour_BounceTouch.Disable(Hook_Pre, OnSpitProjectileBounceTouch))
+			SetFailState("Failed to enable pre-detour \"" ... KEY_BOUNCETOUCH ... "\"");
+		
+		if (!g_hDetour_BounceTouch.Disable(Hook_Post, OnSpitProjectileBounceTouch_Post))
+			SetFailState("Failed to enable post-detour \"" ... KEY_BOUNCETOUCH ... "\"");
+		
+		if (!g_hDetour_Detonate.Disable(Hook_Pre, OnSpitProjectileDetonate))
+			SetFailState("Failed to disable pre-detour \"" ... KEY_DETONATE ... "\"");
+		
+		if (!g_hDetour_Detonate.Disable(Hook_Post, OnSpitProjectileDetonate_Post))
+			SetFailState("Failed to disable post-detour \"" ... KEY_DETONATE ... "\"");
+		
+		enabled = false;
 	}
 }
 
@@ -164,7 +171,7 @@ public void OnPluginStart()
 				);
 	
 	g_hAllEntities.AddChangeHook(OnAllEntitiesChanged);
-	ApplyBrushPatch(g_hAllEntities.BoolValue);
+	ToggleDetour(g_hAllEntities.BoolValue);
 	
 	g_hSpitSpreadMaps = new StringMap();
 	
@@ -174,11 +181,12 @@ public void OnPluginStart()
 public void OnPluginEnd()
 {
 	ApplySaferoomPatch(false);
+	ApplyBrushPatch(false);
 }
 
 public void OnAllEntitiesChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	ApplyBrushPatch(g_hAllEntities.BoolValue);
+	ToggleDetour(g_hAllEntities.BoolValue);
 }
 
 public void OnMapStart()
@@ -202,6 +210,75 @@ public Action SetSaferoomSpitSpread(int args)
 	GetCmdArg(1, map, sizeof map);
 	String_ToLower(map);
 	g_hSpitSpreadMaps.SetValue(map, true, false);
+}
+
+int g_iProjectileLastTouch = 0;
+
+public MRESReturn OnSpitProjectileBounceTouch(int pThis, DHookParam hParams)
+{
+	g_iProjectileLastTouch = hParams.Get(1);
+	//static char buffer[64];
+	//GetEntityClassname(g_iProjectileLastTouch, buffer, 64);
+	//PrintToChatAll("BounceTouch: %s (#%i)", buffer, g_iProjectileLastTouch);
+}
+
+public MRESReturn OnSpitProjectileBounceTouch_Post(int pThis, DHookParam hParams)
+{
+	g_iProjectileLastTouch = 0;
+}
+
+public MRESReturn OnSpitProjectileDetonate(int pThis)
+{
+	//static char buffer[64];
+	//GetEntityClassname(g_iProjectileLastTouch, buffer, 64);
+	//PrintToChatAll("Detonate: %s (#%i)", buffer, g_iProjectileLastTouch);
+	
+	if (IsValidEntity(g_iProjectileLastTouch) && g_iProjectileLastTouch > MaxClients)
+	{
+		if (IsValidForSpitBurst(g_iProjectileLastTouch))
+		{
+			//PrintToChatAll("\x04Detonate: IsValidForSpitBurst (%s)", buffer);
+			ApplyBrushPatch(true);
+		}
+	}
+	
+	return MRES_Ignored;
+}
+
+public MRESReturn OnSpitProjectileDetonate_Post(int pThis)
+{
+	ApplyBrushPatch(false);
+}
+
+bool IsValidForSpitBurst(int entity)
+{
+	//static char clsname[64];
+	return Entity_IsSolid(entity)/* && GetEntityClassname(entity, clsname, sizeof clsname) && strncmp(clsname, "func_breakable", 14) != 0*/;
+}
+
+stock bool IsAnySpitterAlive()
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && GetClientTeam(i) == 3 && GetEntProp(i, Prop_Send, "m_zombieClass") == 4 && IsPlayerAlive(i))
+			return true;
+	}
+	return false;
+}
+
+// https://forums.alliedmods.net/showthread.php?t=147732
+#define SOLID_NONE 0
+#define FSOLID_NOT_SOLID 0x0004
+/**
+ * Checks whether the entity is solid or not.
+ *
+ * @param entity            Entity index.
+ * @return                    True if the entity is solid, false otherwise.
+ */
+stock bool Entity_IsSolid(int entity)
+{
+    return (GetEntProp(entity, Prop_Send, "m_nSolidType", 1) != SOLID_NONE &&
+            !(GetEntProp(entity, Prop_Send, "m_usSolidFlags", 2) & FSOLID_NOT_SOLID));
 }
 
 stock int GetCurrentMapLower(char[] buffer, int maxlength)
