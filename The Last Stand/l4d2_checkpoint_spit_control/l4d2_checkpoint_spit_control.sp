@@ -2,10 +2,11 @@
 #pragma newdecls required
 
 #include <sourcemod>
+#include <left4dhooks>
 #include <sourcescramble>
 #include <dhooks>
 
-#define PLUGIN_VERSION "2.3"
+#define PLUGIN_VERSION "2.4"
 
 public Plugin myinfo =
 {
@@ -29,9 +30,12 @@ bool g_bLinux;
 MemoryPatch g_hSaferoomPatch, g_hBrushPatch1, g_hBrushPatch2, g_hBrushPatch3;
 DynamicDetour g_hDetour_Detonate, g_hDetour_BounceTouch;
 
-ConVar g_hAllMaps, g_hAllEntities;
-StringMap g_hSpitSpreadMaps;
+ConVar g_hAllMaps, g_hAllIntros, g_hAllEntities;
+StringMap g_hSpitSpreadMaps, g_hSpitSpreadExceptions;
 
+// ==============================
+// GameData
+// ==============================
 void LoadSDK()
 {
 	Handle conf = LoadGameConfigFile(GAMEDATA_FILE);
@@ -79,6 +83,9 @@ void SetupDetour(Handle conf)
 		SetFailState("Missing detour setup \"" ... KEY_BOUNCETOUCH ... "\"");
 }
 
+// ==============================
+// Patch togglers
+// ==============================
 void ApplySaferoomPatch(bool patch)
 {
 	static bool patched = false;
@@ -123,6 +130,9 @@ void ApplyBrushPatch(bool patch)
 	}
 }
 
+// ==============================
+// Detour toggler
+// ==============================
 void ToggleDetour(bool enable)
 {
 	static bool enabled = false;
@@ -154,6 +164,9 @@ void ToggleDetour(bool enable)
 	}
 }
 
+// ==============================
+// Start Up
+// ==============================
 public void OnPluginStart()
 {
 	LoadSDK();
@@ -161,10 +174,17 @@ public void OnPluginStart()
 	g_hAllMaps = CreateConVar(
 					"cssc_global",
 					"0",
-					"Remove saferoom spit-spread preservation mechanic on all maps by default.",
+					"Remove saferoom spit-spread preservation mechanism on all maps.",
 					FCVAR_NOTIFY, true, 0.0, true, 1.0
 				);
-				
+	
+	g_hAllIntros = CreateConVar(
+					"cssc_intros",
+					"0",
+					"Remove saferoom spit-spread preservation mechanism on all intro maps.",
+					FCVAR_NOTIFY, true, 0.0, true, 1.0
+				);
+	
 	g_hAllEntities = CreateConVar(
 					"cssc_all_entities",
 					"0",
@@ -176,24 +196,38 @@ public void OnPluginStart()
 	ToggleDetour(g_hAllEntities.BoolValue);
 	
 	g_hSpitSpreadMaps = new StringMap();
+	g_hSpitSpreadExceptions = new StringMap();
 	
 	RegServerCmd("saferoom_spit_spread", SetSaferoomSpitSpread);
+	RegServerCmd("saferoom_spit_spread_except", SetSaferoomSpitSpreadException);
 }
 
-public void OnPluginEnd()
-{
-	ApplySaferoomPatch(false);
-	ApplyBrushPatch(false);
-}
-
+// ==============================
+// Map Settings
+// ==============================
 public Action SetSaferoomSpitSpread(int args)
 {
 	char map[128];
 	GetCmdArg(1, map, sizeof map);
 	String_ToLower(map);
-	g_hSpitSpreadMaps.SetValue(map, true, false);
+	bool dummy;
+	if (!g_hSpitSpreadExceptions.GetValue(map, dummy))
+		g_hSpitSpreadMaps.SetValue(map, true, false);
 }
 
+public Action SetSaferoomSpitSpreadException(int args)
+{
+	char map[128];
+	GetCmdArg(1, map, sizeof map);
+	String_ToLower(map);
+	bool dummy;
+	if (!g_hSpitSpreadMaps.GetValue(map, dummy))
+		g_hSpitSpreadExceptions.SetValue(map, true, false);
+}
+
+// ==============================
+// Forwards
+// ==============================
 public void OnAllEntitiesChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	ToggleDetour(g_hAllEntities.BoolValue);
@@ -204,6 +238,32 @@ public void OnMapStart()
 	ApplySaferoomPatch(g_hAllMaps.BoolValue || IsSaferoomSpitSpreadMap());
 }
 
+public void OnConfigsExecuted()
+{
+	ToggleDetour(g_hAllEntities.BoolValue);
+}
+
+// ==============================
+// Map detection
+// ==============================
+bool IsSaferoomSpitSpreadMap()
+{
+	char map[128];
+	GetCurrentMapLower(map, sizeof map);
+	
+	bool dummy;
+	if (g_hSpitSpreadExceptions.GetValue(map, dummy))
+		return false;
+	
+	if (g_hAllIntros.BoolValue && L4D_IsFirstMapInScenario())
+		return true;
+	
+	return g_hSpitSpreadMaps.GetValue(map, dummy);
+}
+
+// ==============================
+// Non-world entity workaround
+// ==============================
 int g_iProjectileLastTouch = 0;
 public MRESReturn OnSpitProjectileBounceTouch(int pThis, DHookParam hParams)
 {
@@ -225,16 +285,9 @@ bool IsValidForSpitBurst(int entity)
 	return IsValidEntity(entity) && entity > MaxClients && Entity_IsSolid(entity);
 }
 
-bool IsSaferoomSpitSpreadMap()
-{
-	if (!g_hSpitSpreadMaps.Size) return false;
-	
-	char map[128];
-	GetCurrentMapLower(map, sizeof map);
-	bool dummy;
-	return g_hSpitSpreadMaps.GetValue(map, dummy);
-}
-
+// ==============================
+// Helper functions
+// ==============================
 // https://forums.alliedmods.net/showthread.php?t=147732
 #define SOLID_NONE 0
 #define FSOLID_NOT_SOLID 0x0004
