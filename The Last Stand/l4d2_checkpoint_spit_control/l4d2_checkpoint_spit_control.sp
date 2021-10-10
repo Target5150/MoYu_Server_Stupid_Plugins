@@ -5,7 +5,7 @@
 #include <sourcescramble>
 #include <dhooks>
 
-#define PLUGIN_VERSION "2.2"
+#define PLUGIN_VERSION "2.3"
 
 public Plugin myinfo =
 {
@@ -25,9 +25,8 @@ public Plugin myinfo =
 #define PATCH_BRUSH_2 "BrushPatch2"
 #define PATCH_BRUSH_3 "BrushPatch3"
 
-MemoryPatch g_hSaferoomPatch, g_hBrushPatch1, g_hBrushPatch2, g_hBrushPatch3;
 bool g_bLinux;
-
+MemoryPatch g_hSaferoomPatch, g_hBrushPatch1, g_hBrushPatch2, g_hBrushPatch3;
 DynamicDetour g_hDetour_Detonate, g_hDetour_BounceTouch;
 
 ConVar g_hAllMaps, g_hAllEntities;
@@ -60,9 +59,9 @@ void LoadSDK()
 	if (!g_hBrushPatch2 || !g_hBrushPatch2.Validate())
 		SetFailState("Failed to validate patch \"" ... PATCH_BRUSH_2 ... "\"");
 	
-	g_hBrushPatch3 = MemoryPatch.CreateFromConf(conf, PATCH_BRUSH_2);
+	g_hBrushPatch3 = MemoryPatch.CreateFromConf(conf, PATCH_BRUSH_3);
 	if (!g_hBrushPatch3 || !g_hBrushPatch3.Validate())
-		SetFailState("Failed to validate patch \"" ... PATCH_BRUSH_2 ... "\"");
+		SetFailState("Failed to validate patch \"" ... PATCH_BRUSH_3 ... "\"");
 	
 	SetupDetour(conf);
 	
@@ -111,7 +110,7 @@ void ApplyBrushPatch(bool patch)
 			SetFailState("Failed to apply patch \"" ... PATCH_BRUSH_2 ... "\"");
 		
 		if (!g_hBrushPatch3.Enable())
-			SetFailState("Failed to apply patch \"" ... PATCH_BRUSH_2 ... "\"");
+			SetFailState("Failed to apply patch \"" ... PATCH_BRUSH_3 ... "\"");
 		
 		patched = true;
 	}
@@ -138,9 +137,6 @@ void ToggleDetour(bool enable)
 		if (!g_hDetour_Detonate.Enable(Hook_Pre, OnSpitProjectileDetonate))
 			SetFailState("Failed to enable pre-detour \"" ... KEY_DETONATE ... "\"");
 		
-		if (!g_hDetour_Detonate.Enable(Hook_Post, OnSpitProjectileDetonate_Post))
-			SetFailState("Failed to enable post-detour \"" ... KEY_DETONATE ... "\"");
-		
 		enabled = true;
 	}
 	else if (!enable && enabled)
@@ -153,9 +149,6 @@ void ToggleDetour(bool enable)
 		
 		if (!g_hDetour_Detonate.Disable(Hook_Pre, OnSpitProjectileDetonate))
 			SetFailState("Failed to disable pre-detour \"" ... KEY_DETONATE ... "\"");
-		
-		if (!g_hDetour_Detonate.Disable(Hook_Post, OnSpitProjectileDetonate_Post))
-			SetFailState("Failed to disable post-detour \"" ... KEY_DETONATE ... "\"");
 		
 		enabled = false;
 	}
@@ -193,6 +186,14 @@ public void OnPluginEnd()
 	ApplyBrushPatch(false);
 }
 
+public Action SetSaferoomSpitSpread(int args)
+{
+	char map[128];
+	GetCmdArg(1, map, sizeof map);
+	String_ToLower(map);
+	g_hSpitSpreadMaps.SetValue(map, true, false);
+}
+
 public void OnAllEntitiesChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	ToggleDetour(g_hAllEntities.BoolValue);
@@ -203,32 +204,10 @@ public void OnMapStart()
 	ApplySaferoomPatch(g_hAllMaps.BoolValue || IsSaferoomSpitSpreadMap());
 }
 
-bool IsSaferoomSpitSpreadMap()
-{
-	if (!g_hSpitSpreadMaps.Size) return false;
-	
-	char map[128];
-	GetCurrentMapLower(map, sizeof map);
-	bool dummy;
-	return g_hSpitSpreadMaps.GetValue(map, dummy);
-}
-
-public Action SetSaferoomSpitSpread(int args)
-{
-	char map[128];
-	GetCmdArg(1, map, sizeof map);
-	String_ToLower(map);
-	g_hSpitSpreadMaps.SetValue(map, true, false);
-}
-
 int g_iProjectileLastTouch = 0;
-
 public MRESReturn OnSpitProjectileBounceTouch(int pThis, DHookParam hParams)
 {
 	g_iProjectileLastTouch = hParams.Get(1);
-	//static char buffer[64];
-	//GetEntityClassname(g_iProjectileLastTouch, buffer, 64);
-	//PrintToChatAll("BounceTouch: %s (#%i)", buffer, g_iProjectileLastTouch);
 }
 
 public MRESReturn OnSpitProjectileBounceTouch_Post(int pThis, DHookParam hParams)
@@ -238,41 +217,22 @@ public MRESReturn OnSpitProjectileBounceTouch_Post(int pThis, DHookParam hParams
 
 public MRESReturn OnSpitProjectileDetonate(int pThis)
 {
-	//static char buffer[64];
-	//GetEntityClassname(g_iProjectileLastTouch, buffer, 64);
-	//PrintToChatAll("Detonate: %s (#%i)", buffer, g_iProjectileLastTouch);
-	
-	if (IsValidEntity(g_iProjectileLastTouch) && g_iProjectileLastTouch > MaxClients)
-	{
-		if (IsValidForSpitBurst(g_iProjectileLastTouch))
-		{
-			//PrintToChatAll("\x04Detonate: IsValidForSpitBurst (%s)", buffer);
-			ApplyBrushPatch(true);
-		}
-	}
-	
-	return MRES_Ignored;
-}
-
-public MRESReturn OnSpitProjectileDetonate_Post(int pThis)
-{
-	ApplyBrushPatch(false);
+	ApplyBrushPatch(IsValidForSpitBurst(g_iProjectileLastTouch));
 }
 
 bool IsValidForSpitBurst(int entity)
 {
-	//static char clsname[64];
-	return Entity_IsSolid(entity)/* && GetEntityClassname(entity, clsname, sizeof clsname) && strncmp(clsname, "func_breakable", 14) != 0*/;
+	return IsValidEntity(entity) && entity > MaxClients && Entity_IsSolid(entity);
 }
 
-stock bool IsAnySpitterAlive()
+bool IsSaferoomSpitSpreadMap()
 {
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientInGame(i) && GetClientTeam(i) == 3 && GetEntProp(i, Prop_Send, "m_zombieClass") == 4 && IsPlayerAlive(i))
-			return true;
-	}
-	return false;
+	if (!g_hSpitSpreadMaps.Size) return false;
+	
+	char map[128];
+	GetCurrentMapLower(map, sizeof map);
+	bool dummy;
+	return g_hSpitSpreadMaps.GetValue(map, dummy);
 }
 
 // https://forums.alliedmods.net/showthread.php?t=147732
