@@ -7,7 +7,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.2.5"
+#define PLUGIN_VERSION "1.3"
 
 public Plugin myinfo = 
 {
@@ -37,7 +37,7 @@ bool g_bSupress;
 
 StringMap g_triePrefixed;
 
-bool readyupAvailable;
+bool casterAvailable;
 
 // ===================================================================
 // Plugin Setup / Backup
@@ -67,7 +67,7 @@ public void OnPluginEnd()
 	{
 		for (int i = 1; i <= MaxClients; i++)
 		{
-			if (IsClientAndInGame(i) && GetClientTeam(i) == L4D2Team_Spectator) RemovePrefix(i);
+			if (IsClientInGame(i) && GetClientTeam(i) == L4D2Team_Spectator) RemovePrefix(i);
 		}
 	}
 }
@@ -76,9 +76,9 @@ public void OnPluginEnd()
 // Ready Up Available
 // ===================================================================
 
-public void OnAllPluginsLoaded() { readyupAvailable = LibraryExists("caster_system"); }
-public void OnLibraryAdded(const char[] name) { if (StrEqual(name, "caster_system")) readyupAvailable = true; }
-public void OnLibraryRemoved(const char[] name) { if (StrEqual(name, "caster_system")) readyupAvailable = false; }
+public void OnAllPluginsLoaded() { casterAvailable = LibraryExists("caster_system"); }
+public void OnLibraryAdded(const char[] name) { if (StrEqual(name, "caster_system")) casterAvailable = true; }
+public void OnLibraryRemoved(const char[] name) { if (StrEqual(name, "caster_system")) casterAvailable = false; }
 
 // ===================================================================
 // Clear Up
@@ -128,7 +128,7 @@ void OnNextFrame(ArrayStack stack)
 {
 	int client = GetClientOfUserId(stack.Pop());
 	
-	if (IsClientAndInGame(client))
+	if (client)
 	{
 		char name[MAX_NAME_LENGTH];
 		stack.PopString(name, sizeof(name));
@@ -149,7 +149,7 @@ public void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
 	int newteam = event.GetInt("team");
 	if (newteam == L4D2Team_None)
 		return;
-		
+	
 	int oldteam = event.GetInt("oldteam");
 	
 	if (newteam == L4D2Team_Spectator) AddPrefix(client);
@@ -176,7 +176,7 @@ void AddPrefix(int client, const char[] newname = "")
 	
 	g_triePrefixed.SetString(authId, name, true);
 	
-	if (readyupAvailable && IsClientCaster(client))
+	if (casterAvailable && IsClientCaster(client))
 	{
 		Format(name, sizeof(name), "%s %s", g_sPrefixTypeCaster, name);
 		CS_SetClientName(client, name);
@@ -242,13 +242,4 @@ void CS_SetClientName(int client, const char[] name)
 bool HasPrefix(const char[] name)
 {
 	return strncmp(name, g_sPrefixType, strlen(g_sPrefixType)) == 0 || strncmp(name, g_sPrefixTypeCaster, strlen(g_sPrefixTypeCaster)) == 0;
-}
-
-stock bool IsClientAndInGame(int client)
-{
-	if (0 < client <= MaxClients)
-	{
-		return IsClientInGame(client);
-	}
-	return false;
 }
