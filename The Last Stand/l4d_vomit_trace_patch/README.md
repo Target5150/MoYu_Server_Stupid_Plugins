@@ -2,7 +2,6 @@
 
 ### Introduction
 - Fix Boomer's vomit being unable to pass through their teammates (ghosts as well).
-- Not tested on Windows for now, will examine later :)
 
 <hr>
 
@@ -19,4 +18,6 @@
 <hr>
 
 ### Changelog
-(v1.0 2021/9/28) Initial release.
+(v2.0 2021/10/17) Fix invalid patch.
+
+(v1.0 2021/10/16) Initial release.
