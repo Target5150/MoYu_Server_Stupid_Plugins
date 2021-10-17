@@ -4,7 +4,7 @@
 #include <sourcemod>
 #include <sourcescramble>
 
-#define PLUGIN_VERSION "2.4"
+#define PLUGIN_VERSION "2.0"
 
 public Plugin myinfo =
 {
@@ -16,8 +16,7 @@ public Plugin myinfo =
 }
 
 #define GAMEDATA_FILE "l4d_vomit_trace_patch"
-#define PATCH_GAMERULES "UpdateAbility_GameRules"
-#define PATCH_ISVERSUSMODE "UpdateAbility_IsVersusMode"
+#define PATCH_MYINFECTEDPOINTER "ShouldHitEntity_MyInfectedPointer"
 
 public void OnPluginStart()
 {
@@ -25,19 +24,12 @@ public void OnPluginStart()
 	if (conf == null)
 		SetFailState("Missing gamedata \"" ... GAMEDATA_FILE ... "\"");
 	
-	MemoryPatch hPatch = MemoryPatch.CreateFromConf(conf, PATCH_GAMERULES);
+	MemoryPatch hPatch = MemoryPatch.CreateFromConf(conf, PATCH_MYINFECTEDPOINTER);
 	if (!hPatch || !hPatch.Validate())
-		SetFailState("Failed to validate patch \"" ... PATCH_GAMERULES ... "\"");
+		SetFailState("Failed to validate patch \"" ... PATCH_MYINFECTEDPOINTER ... "\"");
 	
 	if (!hPatch.Enable())
-		SetFailState("Failed to enable patch \"" ... PATCH_GAMERULES ... "\"");
-	
-	hPatch = MemoryPatch.CreateFromConf(conf, PATCH_ISVERSUSMODE);
-	if (!hPatch || !hPatch.Validate())
-		SetFailState("Failed to validate patch \"" ... PATCH_ISVERSUSMODE ... "\"");
-	
-	if (!hPatch.Enable())
-		SetFailState("Failed to enable patch \"" ... PATCH_ISVERSUSMODE ... "\"");
+		SetFailState("Failed to enable patch \"" ... PATCH_MYINFECTEDPOINTER ... "\"");
 	
 	delete conf;
 }
