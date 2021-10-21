@@ -57,6 +57,15 @@
 				}
 			}
 		}
+
+		"Offsets"
+		{
+			"CBaseAbility::UpdateAbility"
+			{
+				"linux"		"190"
+				"windows"	"189"
+			}
+		}
 		
 		"Signatures"
 		{

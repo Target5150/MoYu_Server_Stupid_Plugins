@@ -180,7 +180,7 @@
 				"windows"	"203"
 			}
 			
-			"CLunge->m_blockMidPounce"
+			"CLunge->m_bBlockWallKick"
 			{
 				"linux"		"1164"
 				"windows"	"1144"
@@ -203,10 +203,16 @@
 				"windows"	"200"
 			}
 			
-			"CLunge->m_blockMidPounce"
+			"CLunge->m_bBlockWallKick"
 			{
 				"linux"		"968"
 				"windows"	"948"
+			}
+			
+			"CBaseAbility::UpdateAbility"
+			{
+				"linux"		"190"
+				"windows"	"189"
 			}
 		}
 	}

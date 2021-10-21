@@ -5,7 +5,7 @@
 #include <dhooks>
 
 #define DEBUG 0
-#define PLUGIN_VERSION "1.2c"
+#define PLUGIN_VERSION "1.2d"
 
 public Plugin myinfo =
 {
@@ -18,10 +18,10 @@ public Plugin myinfo =
 
 #define GAMEDATA_FILE "l4d2_si_ability"
 #define KEY_ONTOUCH "CBaseAbility::OnTouch"
-#define KEY_BLOCKMIDPOUNCE "CLunge->m_blockMidPounce"
+#define KEY_BLOCKWALLKICK "CLunge->m_bBlockWallKick"
 
 Handle hCLunge_OnTouch;
-int iCLunge_BlockMidPounce;
+int iCLunge_BlockWallKick;
 
 public void OnPluginStart()
 {
@@ -39,9 +39,9 @@ public void OnPluginStart()
 	
 	DHookAddParam(hCLunge_OnTouch, HookParamType_CBaseEntity);
 	
-	iCLunge_BlockMidPounce = GameConfGetOffset(conf, KEY_BLOCKMIDPOUNCE);
-	if (iCLunge_BlockMidPounce == -1)
-		SetFailState("Failed to get offset \"" ... KEY_BLOCKMIDPOUNCE ... "\"");
+	iCLunge_BlockWallKick = GameConfGetOffset(conf, KEY_BLOCKWALLKICK);
+	if (iCLunge_BlockWallKick == -1)
+		SetFailState("Failed to get offset \"" ... KEY_BLOCKWALLKICK ... "\"");
 	
 	delete conf;
 	
@@ -102,10 +102,10 @@ public MRESReturn CLunge_OnTouch(int pThis, Handle hParams)
 	) {
 		if (other <= MaxClients)
 		{
-			SetEntData(pThis, iCLunge_BlockMidPounce, 1, 1);
+			SetEntData(pThis, iCLunge_BlockWallKick, 1, 1);
 		}
 	}
-	else if (!GetEntData(pThis, iCLunge_BlockMidPounce, 1))
+	else if (!GetEntData(pThis, iCLunge_BlockWallKick, 1))
 	{
 		if (Entity_IsSolid(other))
 		{
