@@ -113,8 +113,8 @@
 			{
 				"library"		"server"
 				"linux"			"@_ZNK11CBaseEntity13GetTeamNumberEv"
-				"windows"		"\x8B\x81\x2A\x2A\x2A\x2A\xC3\xCC\xCC\xCC\xCC\xCC\xCC\xCC\xCC\xCC\x8B\x2A\x2A\x2A\x2A\x2A\x8B\x2A\x8B\x2A\x2A\x2A\x8B"
-				/* 8B 81 ? ? ? ? C3 CC CC CC CC CC CC CC CC CC 8B ? ? ? ? ? 8B ? 8B ? ? ? 8B */
+				"windows"		"\x8B\x81\xEC\x01\x00\x00\xC3"
+				/* 8B 81 EC 01 00 00 C3 */
 			}
 		}
 	}

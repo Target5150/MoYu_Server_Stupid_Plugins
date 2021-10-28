@@ -5,7 +5,7 @@
 #include <dhooks>
 #include <sourcescramble>
 
-#define PLUGIN_VERSION "2.2"
+#define PLUGIN_VERSION "2.2a"
 
 public Plugin myinfo =
 {
