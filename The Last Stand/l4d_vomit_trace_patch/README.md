@@ -18,6 +18,8 @@
 <hr>
 
 ### Changelog
+(v2.2a 2021/10/28) Better windows signature, avoid reading across functions.
+
 (v2.2 2021/10/28) Extend patch endurability.
 
 (v2.1 2021/10/21) Prevent affecting tongue trace.
