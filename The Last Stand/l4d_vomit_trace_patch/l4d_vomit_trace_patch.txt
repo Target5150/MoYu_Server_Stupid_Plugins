@@ -2,6 +2,17 @@
 {
 	"left4dead"
 	{
+		"Functions"
+		{
+			"CBaseAbility::UpdateAbility"
+			{
+				"offset"		"CBaseAbility::UpdateAbility"
+				"hooktype"		"entity"
+				"return"		"void"
+				"this"			"entity"
+			}
+		}
+		
 		"MemPatches"
 		{
 			"ShouldHitEntity_MyInfectedPointer"
@@ -23,11 +34,11 @@
 					"verify"		"\xFF\x90\x2A\x2A\x2A\x2A\x85\xC0\x75"
 					
 					/*
-					 *	E8 04 10 11 00			call    CBaseEntity::GetTeamNumber(void)
+					 *	E8  ?  ?  ?  ?			call    CBaseEntity::GetTeamNumber(void)
 					 *	83 F8 03				cmp     eax, 3
 					 *	74 CB					jz      short loc_2A614C		; return 0 (no collision)
 					 */
-					"patch"			"\xE8\x04\x10\x11\x00\x83\xF8\x03\x74"
+					"patch"			"\xE8\x00\x00\x00\x00\x83\xF8\x03\x74"
 				}
 				"windows"
 				{
@@ -49,11 +60,11 @@
 					 *
 					 *	OUR_PATCH:
 					 *	8B CE					mov     ecx, esi			; IHandleEntity *
-					 *	E8 87 2E D7 FF			call    sub_1003FA90		; CBaseEntity::GetTeamNumber(void)
+					 *	E8  ?  ?  ?  ?			call    sub_1003FA90		; CBaseEntity::GetTeamNumber(void)
 					 *	83 F8 03				cmp     eax, 3
 					 *	74 0F					jz     short loc_102CCC1D
 					 */
-					"patch"			"\xEB\x02\x66\x90\x8B\xCE\xE8\x87\x2E\xD7\xFF\x83\xF8\x03\x74"
+					"patch"			"\xEB\x02\x66\x90\x8B\xCE\xE8\x00\x00\x00\x00\x83\xF8\x03\x74"
 				}
 			}
 		}
@@ -65,6 +76,27 @@
 				"linux"		"190"
 				"windows"	"189"
 			}
+			
+			"PatchOffset"
+			{
+				"linux"		"1"
+				"windows"	"7"
+			}
+		}
+		
+		"Addresses"
+		{
+			"CBaseEntity_GetTeamNumber"
+			{
+				"linux"
+				{
+					"signature"	"CBaseEntity_GetTeamNumber"
+				}
+				"windows"
+				{
+					"signature"	"CBaseEntity_GetTeamNumber"
+				}
+			}
 		}
 		
 		"Signatures"
@@ -75,6 +107,14 @@
 				"linux"			"@_ZN40CTraceFilterSimpleListNoInfectedOrGhosts15ShouldHitEntityEP13IHandleEntityi"
 				"windows"		"\x53\x8B\x2A\x2A\x2A\x56\x8B\x2A\x2A\x2A\x57\x53\x56\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x84\x2A\x74"
 				/* 53 8B ? ? ? 56 8B ? ? ? 57 53 56 8B ? E8 ? ? ? ? 84 ? 74 */
+			}
+			
+			"CBaseEntity_GetTeamNumber"
+			{
+				"library"		"server"
+				"linux"			"@_ZNK11CBaseEntity13GetTeamNumberEv"
+				"windows"		"\x8B\x81\x2A\x2A\x2A\x2A\xC3\xCC\xCC\xCC\xCC\xCC\xCC\xCC\xCC\xCC\x8B\x2A\x2A\x2A\x2A\x2A\x8B\x2A\x8B\x2A\x2A\x2A\x8B"
+				/* 8B 81 ? ? ? ? C3 CC CC CC CC CC CC CC CC CC 8B ? ? ? ? ? 8B ? 8B ? ? ? 8B */
 			}
 		}
 	}

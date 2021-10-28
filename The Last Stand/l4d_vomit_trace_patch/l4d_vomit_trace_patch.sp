@@ -5,7 +5,7 @@
 #include <dhooks>
 #include <sourcescramble>
 
-#define PLUGIN_VERSION "2.1"
+#define PLUGIN_VERSION "2.2"
 
 public Plugin myinfo =
 {
@@ -17,11 +17,11 @@ public Plugin myinfo =
 }
 
 #define GAMEDATA_FILE "l4d_vomit_trace_patch"
-#define PATCH_MYINFECTEDPOINTER "ShouldHitEntity_MyInfectedPointer"
-#define KEY_UPDATEABILITY "CBaseAbility::UpdateAbility"
+#define OP_CALL_SIZE 5
 
 MemoryPatch g_hPatch;
 DynamicHook g_hDHook;
+int g_iPatchOffs, g_iFuncOffs;
 
 public void OnPluginStart()
 {
@@ -29,17 +29,24 @@ public void OnPluginStart()
 	if (conf == null)
 		SetFailState("Missing gamedata \"" ... GAMEDATA_FILE ... "\"");
 	
-	g_hPatch = MemoryPatch.CreateFromConf(conf, PATCH_MYINFECTEDPOINTER);
+	g_hPatch = MemoryPatch.CreateFromConf(conf, "ShouldHitEntity_MyInfectedPointer");
 	if (!g_hPatch || !g_hPatch.Validate())
-		SetFailState("Failed to validate patch \"" ... PATCH_MYINFECTEDPOINTER ... "\"");
+		SetFailState("Failed to validate patch \"ShouldHitEntity_MyInfectedPointer\"");
 	
-	int iCVomit_UpdateAbility = GameConfGetOffset(conf, KEY_UPDATEABILITY);
-	if (iCVomit_UpdateAbility == -1)
-		SetFailState("Missing offset \"" ... KEY_UPDATEABILITY ... "\"");
-	
-	g_hDHook = new DynamicHook(iCVomit_UpdateAbility, HookType_Entity, ReturnType_Void, ThisPointer_CBaseEntity);
+	g_hDHook = DynamicHook.FromConf(conf, "CBaseAbility::UpdateAbility");
 	if (g_hDHook == null)
-		SetFailState("Failed to create dynamic hook on \"" ... KEY_UPDATEABILITY ... "\"");
+		SetFailState("Failed to create dynamic hook on \"CBaseAbility::UpdateAbility\"");
+	
+	Address pGetTeamNumberFuncAddr = GameConfGetAddress(conf, "CBaseEntity_GetTeamNumber");
+	if (pGetTeamNumberFuncAddr == Address_Null)
+		SetFailState("Missing address/signature \"CBaseEntity_GetTeamNumber\"");
+	
+	g_iPatchOffs = GameConfGetOffset(conf, "PatchOffset");
+	if (g_iPatchOffs == -1)
+		SetFailState("Missing offset \"PatchOffset\"");
+	
+	g_iFuncOffs =
+		view_as<int>(pGetTeamNumberFuncAddr) - (view_as<int>(g_hPatch.Address) + (g_iPatchOffs - 1) + OP_CALL_SIZE);
 	
 	delete conf;
 	
@@ -52,8 +59,9 @@ void ApplyPatch(bool patch)
 	if (patch && !patched)
 	{
 		if (!g_hPatch.Enable())
-			SetFailState("Failed to enable patch \"" ... PATCH_MYINFECTEDPOINTER ... "\"");
+			SetFailState("Failed to enable patch \"ShouldHitEntity_MyInfectedPointer\"");
 		
+		StoreToAddress(g_hPatch.Address + view_as<Address>(g_iPatchOffs), g_iFuncOffs, NumberType_Int32);
 		patched = true;
 	}
 	else
