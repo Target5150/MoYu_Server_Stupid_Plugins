@@ -5,6 +5,12 @@
 
 <hr>
 
+### Requirement
+- [DHooks](https://forums.alliedmods.net/showpost.php?p=2588686&postcount=589)
+- [Source Scramble](https://forums.alliedmods.net/showthread.php?t=317175)
+
+<hr>
+
 ### Installation
 1. Put the **l4d2_pickup.smx** to your _plugins_ folder.
 2. Put the **l4d2_pickup.txt** to your _gamedata_ folder.

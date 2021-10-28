@@ -2,7 +2,6 @@
 
 ### Introduction
 - Patch memory bytes to prevent the game distributing kits and pills to survivors by default setting.
-- Currently supports Linux only for L4D2.
 
 <hr>
 

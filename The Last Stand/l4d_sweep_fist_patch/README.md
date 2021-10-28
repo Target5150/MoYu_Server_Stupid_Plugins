@@ -7,6 +7,7 @@ https://forums.alliedmods.net/showthread.php?t=332046
 <hr>
 
 ### Requirement
+- [DHooks](https://forums.alliedmods.net/showpost.php?p=2588686&postcount=589)
 - [Source Scramble (since v0.7.0)](https://forums.alliedmods.net/showthread.php?t=317175)
 
 <hr>
