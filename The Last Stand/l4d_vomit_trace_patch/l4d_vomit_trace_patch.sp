@@ -5,7 +5,7 @@
 #include <dhooks>
 #include <sourcescramble>
 
-#define PLUGIN_VERSION "2.2a"
+#define PLUGIN_VERSION "2.3"
 
 public Plugin myinfo =
 {
@@ -64,7 +64,7 @@ void ApplyPatch(bool patch)
 		StoreToAddress(g_hPatch.Address + view_as<Address>(g_iPatchOffs), g_iFuncOffs, NumberType_Int32);
 		patched = true;
 	}
-	else
+	else if (!patch && patched)
 	{
 		g_hPatch.Disable();
 		patched = false;
