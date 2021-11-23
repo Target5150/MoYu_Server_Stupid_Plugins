@@ -5,7 +5,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.2.11"
+#define PLUGIN_VERSION "1.3"
 
 public Plugin myinfo = 
 {
@@ -26,10 +26,11 @@ enum Vocalize
 {
 	Vocal_PlayerLaugh,
 	Vocal_PlayerTaunt,
-	Vocal_Playerdeath
+	Vocal_Playerdeath,
+	Vocalize_MAXSIZE
 };
 
-static const char g_szVocalizeNames[Vocalize][] = 
+static const char g_szVocalizeNames[view_as<int>(Vocalize_MAXSIZE)][] = 
 {
 	"PlayerLaugh", "PlayerTaunt", "Playerdeath"
 };
@@ -43,7 +44,8 @@ enum SurvivorCharacter {
     SC_LOUIS,
     SC_ZOEY,
     SC_BILL,
-    SC_FRANCIS
+    SC_FRANCIS,
+    SurvivorCharacter_MAXSIZE
 };
 
 
@@ -82,7 +84,7 @@ enum SurvivorCharacter {
 #define MAX_FRANCIS_TAUNT 10
 #define MAX_FRANCIS_SCREAM 10
 
-static const int g_iMaxVoices[Vocalize][SurvivorCharacter] = 
+static const int g_iMaxVoices[view_as<int>(Vocalize_MAXSIZE)][view_as<int>(SurvivorCharacter_MAXSIZE)] = 
 {
 	{
 		MAX_COACH_LAUGH,	MAX_NICK_LAUGH,		MAX_ROCHELLE_LAUGH,		MAX_ELLIS_LAUGH,
@@ -566,28 +568,34 @@ public void OnVersus(const char[] output, int caller, int activator, float delay
 public Action OnVocalizeCommand(int client, const char[] vocalize, int initiator)
 {
 	if (!g_bVersus)
-		return;
+		return Plugin_Continue;
 	
 	if (!IsSurvivor(client) || !IsPlayerAlive(client))
-		return;
+		return Plugin_Continue;
 	
 	int scene = GetSceneFromActor(client);
 	
 	Vocalize emVocalize = IdentifyVocalize(vocalize);
 	if (emVocalize == NULL_VOCALIZE
 			|| (emVocalize == Vocal_PlayerTaunt && IsValidScene(scene))) // :D
-		return;
+		return Plugin_Continue;
 		
 	if (IsValidScene(scene) && GetSceneInitiator(scene) == SCENE_INITIATOR_WORLD)
-		return;
+		return Plugin_Continue;
 	
 	SurvivorCharacter emCharacter = IdentifySurvivor(client);
 	if (emCharacter == SC_NONE)
-		return;
-
+		return Plugin_Continue;
+	
 	char szVoiceFile[PLATFORM_MAX_PATH];
 	PickVoice(szVoiceFile, sizeof(szVoiceFile), emVocalize, emCharacter);
 	PerformScene(client, g_szVocalizeNames[emVocalize], szVoiceFile);
+	
+	// HACK: (https://github.com/Target5150/MoYu_Server_Stupid_Plugins/issues/7)
+	// Change to Plugin_Continue if it breaks your other plugins.
+	// Plugin_Stop is made to be compatible with Mr. Zero's Vocalize Anti-Flood.
+	
+	return Plugin_Stop;
 }
 
 
