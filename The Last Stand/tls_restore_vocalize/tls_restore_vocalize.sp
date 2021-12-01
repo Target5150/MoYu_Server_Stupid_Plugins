@@ -5,7 +5,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.3"
+#define PLUGIN_VERSION "1.4"
 
 public Plugin myinfo = 
 {
@@ -667,9 +667,9 @@ void PickVoice(char[] szFile, int maxlength, Vocalize emVocalize, SurvivorCharac
 
 Vocalize IdentifyVocalize(const char[] szVocalize)
 {
-	for (Vocalize i; i < Vocalize; i++)
+	for (int i = 0; i < view_as<int>(Vocalize_MAXSIZE); i++)
 		if (strcmp(szVocalize, g_szVocalizeNames[i]) == 0)
-			return i;
+			return view_as<Vocalize>(i);
 			
 	return NULL_VOCALIZE;
 }
@@ -830,7 +830,7 @@ stock bool IsSurvivor(int client)
  * @param max			Max value used as upper border
  * @return				Random Integer number between min and max
  */
-// Simple modification against sequently giving equal numbers.
+// Simple modification against identical numbers in sequence.
 stock int Math_GetRandomInt(int min, int max)
 {
 	int random = GetURandomInt();
@@ -845,5 +845,5 @@ stock int Math_GetRandomInt(int min, int max)
 	static int prev = -1;
 	prev = (prev == pick ? ++pick : pick);
 	
-	return (pick > range ? (pick - range) : pick) + min; // => pick % range + min
+	return (pick == range ? (pick - range) : pick) + min; // => pick % range + min
 }

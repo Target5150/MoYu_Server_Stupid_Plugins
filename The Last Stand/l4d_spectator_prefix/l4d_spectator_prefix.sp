@@ -2,12 +2,11 @@
 #include <sdktools>
 #undef REQUIRE_PLUGIN
 #include <caster_system>
-#define REQUIRE_PLUGIN
 
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.3"
+#define PLUGIN_VERSION "1.4"
 
 public Plugin myinfo = 
 {
@@ -103,6 +102,14 @@ void GetCvars()
 // Events
 // ===================================================================
 
+public void OnClientPostAdminCheck(int client)
+{
+	if (GetClientTeam(client) == L4D2Team_Spectator)
+	{
+		AddPrefix(client);
+	}
+}
+
 public void Event_NameChanged(Event event, const char[] name, bool dontBroadcast)
 {
 	int userid = event.GetInt("userid");
@@ -117,25 +124,27 @@ public void Event_NameChanged(Event event, const char[] name, bool dontBroadcast
 	event.GetString("newname", newname, sizeof(newname));
 	
 	// Use a delay function to prevent issue
-	ArrayStack stack = new ArrayStack();
-	stack.PushString(newname);
-	stack.Push(userid);
+	DataPack dp = new DataPack();
+	dp.WriteCell(userid);
+	dp.WriteString(newname);
 	
-	RequestFrame(OnNextFrame, stack);
+	RequestFrame(OnNextFrame, dp);
 }
 
-void OnNextFrame(ArrayStack stack)
+void OnNextFrame(DataPack dp)
 {
-	int client = GetClientOfUserId(stack.Pop());
+	dp.Reset();
+	
+	int client = GetClientOfUserId(dp.ReadCell());
 	
 	if (client)
 	{
 		char name[MAX_NAME_LENGTH];
-		stack.PopString(name, sizeof(name));
-		if (!HasPrefix(name)) AddPrefix(client, name);
+		dp.ReadString(name, sizeof(name));
+		AddPrefix(client, name);
 	}
 	
-	delete stack;
+	delete dp;
 }
 
 public void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
@@ -162,17 +171,18 @@ public void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
 
 void AddPrefix(int client, const char[] newname = "")
 {
-	char authId[64], name[MAX_NAME_LENGTH];
-	GetClientAuthId(client, AuthId_Steam2, authId, sizeof(authId));
+	char authId[64];
+	if (!GetClientAuthId(client, AuthId_Steam2, authId, sizeof(authId)))
+		return;
 	
+	char name[MAX_NAME_LENGTH];
 	if (strlen(newname) > 0)
-	{
 		strcopy(name, sizeof(name), newname);
-	}
 	else
-	{
 		GetClientName(client, name, sizeof(name));
-	}
+	
+	if (HasPrefix(name))
+		return;
 	
 	g_triePrefixed.SetString(authId, name, true);
 	
@@ -190,9 +200,11 @@ void AddPrefix(int client, const char[] newname = "")
 
 void RemovePrefix(int client)
 {
-	char authId[64], name[MAX_NAME_LENGTH];
-	GetClientAuthId(client, AuthId_Steam2, authId, sizeof(authId));
+	char authId[64];
+	if (!GetClientAuthId(client, AuthId_Steam2, authId, sizeof(authId)))
+		return;
 	
+	char name[MAX_NAME_LENGTH];
 	if (g_triePrefixed.GetString(authId, name, sizeof(name)))
 	{
 		g_triePrefixed.Remove(authId);
@@ -202,15 +214,15 @@ void RemovePrefix(int client)
 
 void CS_SetClientName(int client, const char[] name)
 {
-	char oldname[MAX_NAME_LENGTH];
-	GetClientName(client, oldname, sizeof(oldname));
-	
 	SetClientInfo(client, "name", name);
 	SetEntPropString(client, Prop_Data, "m_szNetname", name);
 	
 	if (g_bSupress)
 		return;
 
+	char oldname[MAX_NAME_LENGTH];
+	GetClientName(client, oldname, sizeof(oldname));
+	
 	Event event = CreateEvent("player_changename");
 	
 	if (event != null)

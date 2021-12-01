@@ -1,4 +1,4 @@
-#define PLUGIN_VERSION 		"3.0"
+#define PLUGIN_VERSION 		"4.0"
 
 /*
 *	Ladder Rambos Dhooks
@@ -50,6 +50,7 @@ ConVar	Cvar_M2;
 ConVar	Cvar_Reload;
 ConVar	Cvar_SgReload;
 ConVar	Cvar_Switch;
+ConVar	Cvar_Recoil;
 
 // ConVar Storage
 bool	bCvar_Enabled;
@@ -57,6 +58,12 @@ bool	bCvar_M2;
 bool	bCvar_Reload;
 bool	bCvar_SgReload;
 int		iCvar_Switch;
+bool	bCvar_Recoil;
+
+// Detour Handles
+Handle hDetour_CanDeployFor;
+Handle hDetour_Reload;
+Handle hDetour_ShotgunReload;
 
 // Patching from [l4d2_cs_ladders] credit to Lux
 #define PLUGIN_NAME_KEY "[cs_ladders]"
@@ -131,10 +138,17 @@ public void OnPluginStart()
 	Cvar_Switch		= CreateConVar(
 								"cssladders_allow_switch",
 								"1",
-								"Allow switching to other inventory whilst on a ladder?" ...
+								"Allow switching to other inventory whilst on a ladder?\n" ...
 								"2 to allow all, 1 to allow only between guns, 0 to block.",
 								FCVAR_NOTIFY|FCVAR_SPONLY,
 								true, 0.0, true, 2.0);
+	Cvar_Recoil		= CreateConVar(
+								"cssladders_reduce_recoil",
+								"0",
+								"Allow reducing recoil whilst shooting on a ladder?\n" ...
+								"1 to allow, 0 to block.",
+								FCVAR_NOTIFY|FCVAR_SPONLY,
+								true, 0.0, true, 1.0);
 	
 	// Setup ConVars change hook
 	Cvar_Enabled.AddChangeHook(OnEnableDisable);
@@ -142,6 +156,7 @@ public void OnPluginStart()
 	Cvar_Reload.AddChangeHook(OnConVarChanged);
 	Cvar_SgReload.AddChangeHook(OnConVarChanged);
 	Cvar_Switch.AddChangeHook(OnConVarChanged);
+	Cvar_Recoil.AddChangeHook(OnConVarChanged);
 	
 	// ConVar Storage
 	GetCvars();
@@ -151,82 +166,23 @@ public void OnPluginStart()
 	if( hGameData == null ) 
 		SetFailState("Failed to load \"%s.txt\" gamedata.", GAMEDATA);
 	
-	//Get signature for CanDeployFor.
-	Handle hDetour_CanDeployFor = DHookCreateFromConf(hGameData, "CTerrorWeapon::CanDeployFor");
-	if( !hDetour_CanDeployFor )
-		SetFailState("Failed to setup detour for hDetour_CanDeployFor");
-	
-	// Get signature for reload weapon.
-	Handle hDetour_Reload = DHookCreateFromConf(hGameData, "CTerrorGun::Reload");
-	if( !hDetour_Reload )
-		SetFailState("Failed to setup detour for hDetour_Reload");
-
-	// Get signature for reload shotgun specific
-	Handle hDetour_ShotgunReload = DHookCreateFromConf(hGameData, "CBaseShotgun::Reload");
-	if( !hDetour_ShotgunReload )
-		SetFailState("Failed to setup detour for hDetour_ShotgunReload");
-	
-	StartPrepSDKCall(SDKCall_Entity);
-	if (!PrepSDKCall_SetFromConf(hGameData, SDKConf_Virtual, "CBaseCombatWeapon::AbortReload")) {
-		SetFailState("Failed to find offset \"CBaseCombatWeapon::AbortReload\"");
-	} else {
-		hSDKCall_AbortReload = EndPrepSDKCall();
-		if (hSDKCall_AbortReload == null)
-			SetFailState("Failed to setup SDKCall \"CBaseCombatWeapon::AbortReload\"");
-	}
-	
-	StartPrepSDKCall(SDKCall_Entity);
-	if (!PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "CBaseShotgun::PlayReloadAnim")) {
-		SetFailState("Failed to find offset \"CBaseShotgun::PlayReloadAnim\"");
-	} else {
-		PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
-		PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
-		PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
-		hSDKCall_PlayReloadAnim = EndPrepSDKCall();
-		if (hSDKCall_PlayReloadAnim == null)
-			SetFailState("Failed to setup SDKCall \"CBaseShotgun::PlayReloadAnim\"");
-	}
-	
-	StartPrepSDKCall(SDKCall_Entity);
-	if (!PrepSDKCall_SetFromConf(hGameData, SDKConf_Virtual, "CBaseCombatWeapon::Holster")) {
-		SetFailState("Failed to find offset \"CBaseCombatWeapon::Holster\"");
-	} else {
-		PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_ByValue);
-		hSDKCall_Holster = EndPrepSDKCall();
-		if (hSDKCall_Holster == null)
-			SetFailState("Failed to setup SDKCall \"CBaseCombatWeapon::Holster\"");
-	}
-	
-	hPatch_CanDeployFor = MemoryPatch.CreateFromConf(hGameData, TERROR_CAN_DEPLOY_FOR_KEY);
-	if(!hPatch_CanDeployFor.Validate())
-		SetFailState("%s Failed to validate patch \"%s\"", PLUGIN_NAME_KEY, TERROR_CAN_DEPLOY_FOR_KEY);
-	
-	hPatch_PreThink = MemoryPatch.CreateFromConf(hGameData, TERROR_PRE_THINK_KEY);
-	if(!hPatch_PreThink.Validate())
-		SetFailState("%s Failed to validate patch \"%s\"", PLUGIN_NAME_KEY, TERROR_PRE_THINK_KEY);
-	
-	// not as important as first 2 patches, can still function enough to be good enough.
-	hPatch_OnLadderMount = MemoryPatch.CreateFromConf(hGameData, TERROR_ON_LADDER_MOUNT_KEY);
-	if(!hPatch_OnLadderMount.Validate())
-		LogError("%s Failed to validate patch \"%s\"", PLUGIN_NAME_KEY, TERROR_ON_LADDER_MOUNT_KEY);
-	
-	hPatch_OnLadderDismount = MemoryPatch.CreateFromConf(hGameData, TERROR_ON_LADDER_DISMOUNT_KEY);
-	if(!hPatch_OnLadderDismount.Validate())
-		LogError("%s Failed to validate patch \"%s\"", PLUGIN_NAME_KEY, TERROR_ON_LADDER_DISMOUNT_KEY);
+	SetupDetours(hGameData);
+	SetupSDKCalls(hGameData);
+	SetupMemPatches(hGameData);
 	
 	delete hGameData;
 	
 	// And a pre hook for CTerrorWeapon::CanDeployFor.
 	if (!DHookEnableDetour(hDetour_CanDeployFor, false, Detour_CanDeployFor))
-		SetFailState("Failed to detour CTerrorWeapon::CanDeployFor post.");
+		SetFailState("Failed to detour CTerrorWeapon::CanDeployFor.");
 	
 	// And a pre hook for CTerrorGun::Reload.
 	if (!DHookEnableDetour(hDetour_Reload, false, Detour_Reload))
-		SetFailState("Failed to detour CTerrorGun::Reload post.");
+		SetFailState("Failed to detour CTerrorGun::Reload.");
 	
 	// And a pre hook for CBaseShotgun::Reload.
 	if (!DHookEnableDetour(hDetour_ShotgunReload, false, Detour_ShotgunReload))
-		SetFailState("Failed to detour CBaseShotgun::Reload post.");
+		SetFailState("Failed to detour CBaseShotgun::Reload.");
 	
 	// Apply our patch
 	ApplyPatch((bCvar_Enabled = Cvar_Enabled.BoolValue));
@@ -281,6 +237,7 @@ void GetCvars()
 	bCvar_Reload = Cvar_Reload.BoolValue;
 	bCvar_SgReload = Cvar_SgReload.BoolValue;
 	iCvar_Switch = Cvar_Switch.IntValue;
+	bCvar_Recoil = Cvar_Recoil.BoolValue;
 }
 
 // ====================================================================================================
@@ -386,6 +343,9 @@ public MRESReturn Detour_CanDeployFor(int pThis, Handle hReturn)
 		}
 	}
 	
+	if (bCvar_Recoil && Weapon_IsGun(pThis))
+		SetEntityFlags(client, GetEntityFlags(client) | FL_ONGROUND);
+	
 	return MRES_Ignored;
 }
 
@@ -474,6 +434,82 @@ void Weapon_AbortReload(int weapon)
 void Weapon_Holster(int weapon)
 {
 	SDKCall(hSDKCall_Holster, weapon, 0);
+}
+
+// ====================================================================================================
+// Setup* - Setup everything
+// ====================================================================================================
+
+void SetupDetours(Handle hGameData)
+{
+	//Get signature for CanDeployFor.
+	hDetour_CanDeployFor = DHookCreateFromConf(hGameData, "CTerrorWeapon::CanDeployFor");
+	if( !hDetour_CanDeployFor )
+		SetFailState("Failed to setup detour for \"CBaseShotgun::Reload\"");
+	
+	// Get signature for reload weapon.
+	hDetour_Reload = DHookCreateFromConf(hGameData, "CTerrorGun::Reload");
+	if( !hDetour_Reload )
+		SetFailState("Failed to setup detour for \"CBaseShotgun::Reload\"");
+	
+	// Get signature for reload shotgun specific
+	hDetour_ShotgunReload = DHookCreateFromConf(hGameData, "CBaseShotgun::Reload");
+	if( !hDetour_ShotgunReload )
+		SetFailState("Failed to setup detour for \"CBaseShotgun::Reload\"");
+}
+
+void SetupSDKCalls(Handle hGameData)
+{
+	StartPrepSDKCall(SDKCall_Entity);
+	if (!PrepSDKCall_SetFromConf(hGameData, SDKConf_Virtual, "CBaseCombatWeapon::AbortReload")) {
+		SetFailState("Failed to find offset \"CBaseCombatWeapon::AbortReload\"");
+	} else {
+		hSDKCall_AbortReload = EndPrepSDKCall();
+		if (hSDKCall_AbortReload == null)
+			SetFailState("Failed to setup SDKCall \"CBaseCombatWeapon::AbortReload\"");
+	}
+	
+	StartPrepSDKCall(SDKCall_Entity);
+	if (!PrepSDKCall_SetFromConf(hGameData, SDKConf_Signature, "CBaseShotgun::PlayReloadAnim")) {
+		SetFailState("Failed to find offset \"CBaseShotgun::PlayReloadAnim\"");
+	} else {
+		PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
+		PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
+		PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain);
+		hSDKCall_PlayReloadAnim = EndPrepSDKCall();
+		if (hSDKCall_PlayReloadAnim == null)
+			SetFailState("Failed to setup SDKCall \"CBaseShotgun::PlayReloadAnim\"");
+	}
+	
+	StartPrepSDKCall(SDKCall_Entity);
+	if (!PrepSDKCall_SetFromConf(hGameData, SDKConf_Virtual, "CBaseCombatWeapon::Holster")) {
+		SetFailState("Failed to find offset \"CBaseCombatWeapon::Holster\"");
+	} else {
+		PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_ByValue);
+		hSDKCall_Holster = EndPrepSDKCall();
+		if (hSDKCall_Holster == null)
+			SetFailState("Failed to setup SDKCall \"CBaseCombatWeapon::Holster\"");
+	}
+}
+
+void SetupMemPatches(Handle hGameData)
+{
+	hPatch_CanDeployFor = MemoryPatch.CreateFromConf(hGameData, TERROR_CAN_DEPLOY_FOR_KEY);
+	if(!hPatch_CanDeployFor.Validate())
+		SetFailState("%s Failed to validate patch \"%s\"", PLUGIN_NAME_KEY, TERROR_CAN_DEPLOY_FOR_KEY);
+	
+	hPatch_PreThink = MemoryPatch.CreateFromConf(hGameData, TERROR_PRE_THINK_KEY);
+	if(!hPatch_PreThink.Validate())
+		SetFailState("%s Failed to validate patch \"%s\"", PLUGIN_NAME_KEY, TERROR_PRE_THINK_KEY);
+	
+	// not as important as first 2 patches, can still function enough to be good enough.
+	hPatch_OnLadderMount = MemoryPatch.CreateFromConf(hGameData, TERROR_ON_LADDER_MOUNT_KEY);
+	if(!hPatch_OnLadderMount.Validate())
+		LogError("%s Failed to validate patch \"%s\"", PLUGIN_NAME_KEY, TERROR_ON_LADDER_MOUNT_KEY);
+	
+	hPatch_OnLadderDismount = MemoryPatch.CreateFromConf(hGameData, TERROR_ON_LADDER_DISMOUNT_KEY);
+	if(!hPatch_OnLadderDismount.Validate())
+		LogError("%s Failed to validate patch \"%s\"", PLUGIN_NAME_KEY, TERROR_ON_LADDER_DISMOUNT_KEY);
 }
 
 // ====================================================================================================
