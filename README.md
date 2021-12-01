@@ -13,10 +13,13 @@ Feel free to take any plugin here for any stuff.
 If you find a bug or something strange when using this project, any report is appreciated (via **Issues** or **Pull requests**).
 
 # Requirement
-- **Sourcemod 1.10 (Since 6495)**
-- (Optional) **[Left4DHooks](https://forums.alliedmods.net/showthread.php?p=2684862)**
+- **Sourcemod 1.11 (Since 6825)**
+  - Or you can try to compile it yourselves.
+- **[Left4DHooks](https://forums.alliedmods.net/showthread.php?p=2684862)**
 
 # Credit
+> It can be hard to list everyone who has contributed to this repository, but heartfelt thanks to all of you as always.
+
 > Plugin contributor
 - Crasher_3637
 - Dragokas
@@ -32,4 +35,6 @@ If you find a bug or something strange when using this project, any report is ap
 - Kanna (x-xoxo)
 - Paanchan
 - SirPlease
+- lunatixxx
+- vikingo12
 - Tobu (Kain)
