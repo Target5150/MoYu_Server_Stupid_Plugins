@@ -87,6 +87,10 @@ Handle hSDKCall_Holster;
 // Temp storage for shove time
 float fSavedShoveTime[MAXPLAYERS+1];
 
+// Temp storage for block unwanted deploy
+bool bLadderMounted[MAXPLAYERS+1];
+bool bBlockDeploy[MAXPLAYERS+1];
+
 // ====================================================================================================
 // myinfo - Basic plugin information
 // ====================================================================================================
@@ -247,6 +251,8 @@ void GetCvars()
 public void OnClientPutInServer(int client)
 {
 	fSavedShoveTime[client] = 0.0;
+	bLadderMounted[client] = false;
+	bBlockDeploy[client] = false;
 }
 
 // ====================================================================================================
@@ -256,7 +262,11 @@ public void OnClientPutInServer(int client)
 public void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {
 	for (int i = 1; i <= MaxClients; i++)
+	{
 		fSavedShoveTime[i] = 0.0;
+		bLadderMounted[i] = false;
+		bBlockDeploy[i] = false;
+	}
 }
 
 // ====================================================================================================
@@ -281,6 +291,9 @@ public MRESReturn Detour_CanDeployFor(int pThis, Handle hReturn)
 			SetEntPropFloat(client, Prop_Send, "m_flNextShoveTime", fSavedShoveTime[client]);
 			fSavedShoveTime[client] = 0.0;
 		}
+		if (bLadderMounted[client]) bLadderMounted[client] = false;
+		if (bBlockDeploy[client]) bBlockDeploy[client] = false;
+		
 		return MRES_Ignored;
 	}
 	
@@ -291,11 +304,23 @@ public MRESReturn Detour_CanDeployFor(int pThis, Handle hReturn)
 		return MRES_Supercede;
 	}
 	
+	if (bBlockDeploy[client])
+	{
+		DHookSetReturn(hReturn, 0);
+		return MRES_Supercede;
+	}
+	
+	bool bFirstTimeOfMount = !bLadderMounted[client];
+	if (bFirstTimeOfMount)
+		bLadderMounted[client] = true;
+	
 	// v2.4: Forgot melees, block them
 	// v2.5: Forgot other inventories :(
-	if (iCvar_Switch < 2 && ( Weapon_IsMelee(pThis) || !Weapon_IsGun(pThis) ))
+	// v4.2: Fixed carry items getting thrown out if switch == 1
+	if (iCvar_Switch < 2 && ( Weapon_IsCarryItem(pThis) || Weapon_IsMelee(pThis) || !Weapon_IsGun(pThis) ))
 	{
 		// Mimic how original ladder rambos performs
+		if (bFirstTimeOfMount) bBlockDeploy[client] = true;
 		DHookSetReturn(hReturn, 0);
 		return MRES_Supercede;
 	}
@@ -380,6 +405,33 @@ public MRESReturn Detour_ShotgunReload(int pThis, Handle hReturn)
 	}
 	
 	return MRES_Ignored;
+}
+
+// ====================================================================================================
+// Weapon_IsCarryItem - Stock method to check if weapon is carried item
+// ====================================================================================================
+
+bool Weapon_IsCarryItem(int weapon)
+{
+	static StringMap hCarryItemsMap = null;
+	if (hCarryItemsMap == null)
+	{
+		hCarryItemsMap = new StringMap();
+		hCarryItemsMap.SetValue("weapon_gascan", 1);
+		hCarryItemsMap.SetValue("weapon_propanetank", 1);
+		hCarryItemsMap.SetValue("weapon_oxygentank", 1);
+		hCarryItemsMap.SetValue("weapon_fireworkcrate", 1);
+		hCarryItemsMap.SetValue("weapon_gnome", 1);
+		hCarryItemsMap.SetValue("weapon_cola_bottles", 1);
+	}
+	
+	static char clsname[64];
+	if (GetEdictClassname(weapon, clsname, sizeof(clsname)))
+	{
+		return hCarryItemsMap.ContainsKey(clsname);
+	}
+	
+	return false;
 }
 
 // ====================================================================================================
