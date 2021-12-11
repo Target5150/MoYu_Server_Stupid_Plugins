@@ -1,7 +1,6 @@
-# Simple Playtime Interface
+# [L4D2] Simple Playtime Interface
 
 ### Introduction
-
 - Simply provide a native to get the game playtime of a player.
 
 <hr>
