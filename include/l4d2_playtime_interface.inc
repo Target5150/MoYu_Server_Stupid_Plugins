@@ -10,7 +10,7 @@
  * @param AuthID		String of steam64 auth
  * @param real			If true, value is actual playtime (shown in Achievements),
  *						total time otherwise
- * @param value			Playtime in seconds
+ * @param value			Playtime in seconds, -1 if not recorded, -2 if reached privacy.
  *
  * @noreturn
  */
@@ -24,7 +24,7 @@ forward void L4D2_OnGetPlaytime(const char[] auth, bool real, int value);
  * @param real			True to retrieve actual playtime (shown in Achievements),
  *						total time otherwise
  *
- * @return				Playtime in seconds on success, -1 on failure
+ * @return				Playtime in seconds, -1 if not recorded, -2 if reached privacy.
  */
 native int L4D2_GetTotalPlaytime(const char[] auth, bool real);
 

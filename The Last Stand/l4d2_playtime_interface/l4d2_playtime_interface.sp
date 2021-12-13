@@ -4,7 +4,7 @@
 #include <sourcemod>
 #include <ripext>
 
-#define PLUGIN_VERSION "1.4"
+#define PLUGIN_VERSION "1.5"
 
 public Plugin myinfo = 
 {
@@ -15,9 +15,10 @@ public Plugin myinfo =
 	url = "na"
 };
 
-#define HOST_PATH "api.steampowered.com"
-#define TOTAL_PLAYTIME_URL "IPlayerService/GetOwnedGames/v1"
-#define REAL_PLAYTIME_URL "ISteamUserStats/GetUserStatsForGame/v2"
+#define APPID_LEFT4DEAD2 550
+#define HOST_PATH "https://api.steampowered.com"
+#define TOTAL_PLAYTIME_URL "/IPlayerService/GetOwnedGames/v1"
+#define REAL_PLAYTIME_URL "/ISteamUserStats/GetUserStatsForGame/v2"
 
 ConVar g_cvAPIkey;
 StringMap g_hTrie_Playtime;
@@ -47,7 +48,7 @@ public void OnPluginStart()
 	CreateConVar("sm_l4d2_simple_playtime_interface_version", PLUGIN_VERSION, "Standard plugin version ConVar. Please don't change me!", FCVAR_REPLICATED|FCVAR_DONTRECORD);
 	g_cvAPIkey = CreateConVar("l4d2_playtime_apikey", "XXXXXXXXXXXXXXXXXXXX", "Steam developer web API key", FCVAR_PROTECTED);
 	
-	AutoExecConfig(true, "l4d2_simple_playtime_interface");
+	AutoExecConfig(true, "l4d2_playtime_interface");
 	
 	g_hTrie_Playtime = new StringMap();
 }
@@ -60,7 +61,7 @@ public void OnClientAuthorized(int client, const char[] auth)
 	}
 	
 	char authId64[65];
-	if (GetClientAuthId(client, AuthId_SteamID64, authId64, sizeof(authId64)))
+	if (!GetClientAuthId(client, AuthId_SteamID64, authId64, sizeof(authId64)))
 	{
 		return;
 	}
@@ -69,54 +70,52 @@ public void OnClientAuthorized(int client, const char[] auth)
 	g_cvAPIkey.GetString(apikey, sizeof(apikey));
 	
 	DataPack dp = new DataPack();
-	dp.WriteString(authId64);
-	
-	// since we're performing 2 requests, need 2 separate packs.
+	dp.WriteString(auth);
 	DataPack dp2 = view_as<DataPack>(CloneHandle(dp));
 	
-	HTTPRequest request = new HTTPRequest(HOST_PATH);
-	request.AppendQueryParam(
-			"%s/?key=%s&include_appinfo=0&include_played_free_games=0&appids_filter[0]=550&steamid=%s",
-			TOTAL_PLAYTIME_URL, apikey, authId64);
+	HTTPRequest request = new HTTPRequest(HOST_PATH...TOTAL_PLAYTIME_URL);
+	request.AppendQueryParam("key", "%s", apikey);
+	request.AppendQueryParam("steamid", "%s", authId64);
+	request.AppendQueryParam("appids_filter[0]", "%i", APPID_LEFT4DEAD2);
+	request.AppendQueryParam("include_appinfo", "%i", 0);
+	request.AppendQueryParam("include_played_free_games", "%i", 0);
 	request.Get(HTTPResponse_GetOwnedGames, dp);
 	
-	request = new HTTPRequest(HOST_PATH);
-	request.AppendQueryParam(
-			"%s/?key=%s&appid=550&steamid=%s",
-			REAL_PLAYTIME_URL, apikey, authId64);
+	request = new HTTPRequest(HOST_PATH...REAL_PLAYTIME_URL);
+	request.AppendQueryParam("key", "%s", apikey);
+	request.AppendQueryParam("steamid", "%s", authId64);
+	request.AppendQueryParam("appid", "%i", APPID_LEFT4DEAD2);
 	request.Get(HTTPResponse_GetUserStatsForGame, dp2);
 }
 
 public void HTTPResponse_GetOwnedGames(HTTPResponse response, DataPack dp)
 {
-	if (response.Status != HTTPStatus_OK)
-	{
-		LogMessage("Failed to retrieve response - HTTPStatus: %i", view_as<int>(response.Status));
-		return;
-	}
-	
 	dp.Reset();
 	
-	char authId64[65];
-	dp.ReadString(authId64, sizeof(authId64));
+	char authId[65];
+	dp.ReadString(authId, sizeof(authId));
 	
 	delete dp;
+	
+	if (response.Status != HTTPStatus_OK || response.Data == null)
+	{
+		LogMessage("Failed to retrieve response (GetOwnedGames) - HTTPStatus: %i", view_as<int>(response.Status));
+		return;
+	}
 	
 	/*
 	{
 		"response":
 		{
 			"game_count":1,
-			"games":
-			[
-				{
-					"appid":550,
-					"playtime_forever":0,
-					"playtime_windows_forever":0,
-					"playtime_mac_forever":0,
-					"playtime_linux_forever":0
-				}
-			]
+			"games": [
+			{
+				"appid":550,
+				"playtime_forever":0,
+				"playtime_windows_forever":0,
+				"playtime_mac_forever":0,
+				"playtime_linux_forever":0
+			}]
 		}
 	}
 	*/
@@ -124,9 +123,15 @@ public void HTTPResponse_GetOwnedGames(HTTPResponse response, DataPack dp)
 	// go to response body
 	JSONObject dataObj = view_as<JSONObject>(view_as<JSONObject>(response.Data).Get("response"));
 	
-	// privacy?
+	// invalid json data due to privacy?
+	if (!dataObj)
+	{
+		SetPlaytime(authId, -2, false);
+		return;
+	}
 	if (!dataObj.Size || !dataObj.HasKey("games") || dataObj.IsNull("games"))
 	{
+		SetPlaytime(authId, -2, false);
 		delete dataObj;
 		return;
 	}
@@ -139,7 +144,7 @@ public void HTTPResponse_GetOwnedGames(HTTPResponse response, DataPack dp)
 	dataObj = view_as<JSONObject>(jsonArray.Get(0));
 	
 	// playtime is formatted in minutes
-	SetPlaytime(authId64, dataObj.GetInt("playtime_forever") * 60, false);
+	SetPlaytime(authId, dataObj.GetInt("playtime_forever") * 60, false);
 	
 	delete jsonArray;
 	delete dataObj;
@@ -147,33 +152,40 @@ public void HTTPResponse_GetOwnedGames(HTTPResponse response, DataPack dp)
 
 public void HTTPResponse_GetUserStatsForGame(HTTPResponse response, DataPack dp)
 {
-	if (response.Status != HTTPStatus_OK)
-	{
-		LogMessage("Failed to retrieve response - HTTPStatus: %i", view_as<int>(response.Status));
-		return;
-	}
-	
 	dp.Reset();
 	
-	char authId64[65];
-	dp.ReadString(authId64, sizeof(authId64));
+	char authId[65];
+	dp.ReadString(authId, sizeof(authId));
 	
 	delete dp;
 	
+	if (response.Status != HTTPStatus_OK || response.Data == null)
+	{
+		LogMessage("Failed to retrieve response (GetUserStatsForGame) - HTTPStatus: %i", view_as<int>(response.Status));
+		
+		// seems chances that this error represents privacy as well.
+		if (response.Status == HTTPStatus_InternalServerError)
+		{
+			SetPlaytime(authId, -2, true);
+		}
+		
+		return;
+	}
+	
 	/*
 	{
-		"response":
+		"playerstats":
 		{
-			"game_count":1,
-			"games":
-			[
-				{
-					"appid":550,
-					"playtime_forever":0,
-					"playtime_windows_forever":0,
-					"playtime_mac_forever":0,
-					"playtime_linux_forever":0
-				}
+			"steamID":"STEAM64",
+			"gameName":"",
+			"achievements":[
+				{"name": "...", "achieved": 1},
+				...
+			],
+			"stats":[
+				...,
+				{"name": "Stat.TotalPlayTime.Total", "value": ?},
+				...
 			]
 		}
 	}
@@ -182,10 +194,21 @@ public void HTTPResponse_GetUserStatsForGame(HTTPResponse response, DataPack dp)
 	// go to response body
 	JSONObject dataObj = view_as<JSONObject>(view_as<JSONObject>(response.Data).Get("playerstats"));
 	
-	// privacy?
-	if (!dataObj.Size || !dataObj.HasKey("stats") || dataObj.IsNull("stats"))
+	// invalid json data due to privacy?
+	if (dataObj)
 	{
-		delete dataObj;
+		if ( !dataObj.Size
+			|| !dataObj.HasKey("stats")
+			|| dataObj.IsNull("stats") )
+		{
+			SetPlaytime(authId, -2, true);
+			delete dataObj;
+			return;
+		}
+	}
+	else
+	{
+		SetPlaytime(authId, -2, true);
 		return;
 	}
 	
@@ -199,11 +222,11 @@ public void HTTPResponse_GetUserStatsForGame(HTTPResponse response, DataPack dp)
 		delete dataObj;
 		dataObj = view_as<JSONObject>(jsonArray.Get(i));
 		
-		dataObj.GetString("name", keyname, sizeof(keyname));
-		if (strcmp(keyname, "Stat.TotalPlayTime.Total") == 0)
+		if ( dataObj.GetString("name", keyname, sizeof(keyname))
+			&& strcmp(keyname, "Stat.TotalPlayTime.Total") == 0 )
 		{
 			// playtime is formatted in seconds
-			SetPlaytime(authId64, dataObj.GetInt("value"), true);
+			SetPlaytime(authId, dataObj.GetInt("value"), true);
 			break;
 		}
 	}
@@ -211,6 +234,11 @@ public void HTTPResponse_GetUserStatsForGame(HTTPResponse response, DataPack dp)
 	delete jsonArray;
 	delete dataObj;
 }
+
+/*
+ * Playtime array = int[2]
+ * array[0] = Total time, array[1] = Real time.
+ */
 
 void SetPlaytime(const char[] auth, int seconds, bool real)
 {
