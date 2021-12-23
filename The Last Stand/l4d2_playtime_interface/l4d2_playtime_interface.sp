@@ -45,7 +45,7 @@ public int _Native_GetTotalPlaytime(Handle plugin, int numParams)
 
 public void OnPluginStart()
 {
-	CreateConVar("sm_l4d2_simple_playtime_interface_version", PLUGIN_VERSION, "Standard plugin version ConVar. Please don't change me!", FCVAR_REPLICATED|FCVAR_DONTRECORD);
+	CreateConVar("sm_l4d2_playtime_interface_version", PLUGIN_VERSION, "Standard plugin version ConVar. Please don't change me!", FCVAR_REPLICATED|FCVAR_DONTRECORD);
 	g_cvAPIkey = CreateConVar("l4d2_playtime_apikey", "XXXXXXXXXXXXXXXXXXXX", "Steam developer web API key", FCVAR_PROTECTED);
 	
 	AutoExecConfig(true, "l4d2_playtime_interface");
@@ -61,10 +61,7 @@ public void OnClientAuthorized(int client, const char[] auth)
 	}
 	
 	char authId64[65];
-	if (!GetClientAuthId(client, AuthId_SteamID64, authId64, sizeof(authId64)))
-	{
-		return;
-	}
+	GetClientAuthId(client, AuthId_SteamID64, authId64, sizeof(authId64));
 	
 	char apikey[65];
 	g_cvAPIkey.GetString(apikey, sizeof(apikey));
