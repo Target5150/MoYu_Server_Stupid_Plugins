@@ -1,7 +1,7 @@
-# [L4D2] Spit Frozen Fix
+# [L4D2] Spit Cooldown Frozen Fix
 
 ### Introduction
-- Simple fix for spit activation being "frozen".
+- Simple fix for spit cooldown being "frozen".
   - Spit activation timer gets reset only when the Update function finds current animation completed.
     - So if you despawn or are climbing ladders before it resets, the ability never goes into cooldown but "deadlocked".
 
