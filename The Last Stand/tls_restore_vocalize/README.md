@@ -1,10 +1,13 @@
 # Restore Blocked Vocalize in Competitive
 
+### Notice (2021/12/25)
+- VPK solution is found, which comes in as the most native way. Feel free to stay on the plugin, but the vpk is generally better if no conflict.
+	- See [here](https://github.com/Tsuey/L4D2-Community-Update/tree/master/root/scripts/talker) for TLS-official talker files.
+
 ### Introduction
-- **Self-descriptive**
-	- Perform **Laughter**, **Taunt**, **Death Scream** _nearly_ as naturally as in vanilla.
-		- Works via `PerformScene()` provided with **scene files** (.vcd).
-		- **nearly** simply means since The Last Stand update, I cannot tell if certain voicelines are enabled or not, and how the new system of vocalize works.
+- Perform **Laughter**, **Taunt**, **Death Scream** _nearly_ as naturally as in vanilla.
+	- Works via `PerformScene()` provided with **scene files** (.vcd).
+	- **nearly** simply means since The Last Stand update, I cannot tell if certain voicelines are enabled or not, and how the new system of vocalize works.
 
 <hr>
 
