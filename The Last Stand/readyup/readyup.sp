@@ -198,7 +198,7 @@ public void OnPluginStart()
 {
 	LoadSDK(true);
 	
-	l4d_ready_enabled			= CreateConVar("l4d_ready_enabled", "1", "Enable this plugin. (Values: 1 = Manual ready, 2 = Auto start)", FCVAR_NOTIFY, true, 0.0, true, 2.0);
+	l4d_ready_enabled			= CreateConVar("l4d_ready_enabled", "1", "Enable this plugin. (Values: 0 = Disabled, 1 = Manual ready, 2 = Auto start)", FCVAR_NOTIFY, true, 0.0, true, 2.0);
 	l4d_ready_cfg_name			= CreateConVar("l4d_ready_cfg_name", "", "Configname to display on the ready-up panel", FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 	l4d_ready_server_cvar		= CreateConVar("l4d_ready_server_cvar", "sn_main_name", "ConVar to retrieve the server name for displaying on the ready-up panel", FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
 	l4d_ready_disable_spawns	= CreateConVar("l4d_ready_disable_spawns", "0", "Prevent SI from having spawns during ready-up", FCVAR_NOTIFY, true, 0.0, true, 1.0);
@@ -992,6 +992,8 @@ void UpdatePanel()
 
 void InitiateReadyUp()
 {
+	if (!l4d_ready_enabled.BoolValue) return;
+	
 	Call_StartForward(preInitiateForward);
 	Call_Finish();
 	
@@ -1565,17 +1567,7 @@ stock void GetClientFixedName(int client, char[] name, int length)
 
 stock bool IsScavenge()
 {
-	static ConVar mp_gamemode;
-	
-	if (mp_gamemode == null)
-	{
-		mp_gamemode = FindConVar("mp_gamemode");
-	}
-	
-	char sGamemode[16];
-	mp_gamemode.GetString(sGamemode, sizeof(sGamemode));
-	
-	return strcmp(sGamemode, "scavenge") == 0;
+	return L4D2_IsScavengeMode();
 }
 
 stock bool IsEmptyString(const char[] str, int length)
