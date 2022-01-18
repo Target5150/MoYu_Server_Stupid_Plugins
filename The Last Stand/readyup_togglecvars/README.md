@@ -18,3 +18,8 @@
 ### Installation
 
 - Put _readyup_togglecvars.smx_ to **addons/sourcemod/plugins**
+
+### Changelog
+(v1.1 2022/1/18) Implement info and improvement
+
+(v1.0 2022/1/17) Initial release.
