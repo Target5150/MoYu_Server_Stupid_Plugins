@@ -5,13 +5,18 @@
 #undef REQUIRE_PLUGIN
 #include <readyup>
 
-StringMap g_smToggleCvars;
+#define PLUGIN_VERSION "1.1"
 
-enum struct ToggleVal_t
+public Plugin myinfo = 
 {
-	char sOn[64];
-	char sOff[64];
-}
+	name = "[L4D2] Ready-Up Toggle Cvars",
+	author = "Forgetest",
+	description = "Customize your own Ready-Up state.",
+	version = PLUGIN_VERSION,
+	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
+};
+
+StringMap g_smToggleCvars;
 
 public void OnPluginStart()
 {
@@ -20,6 +25,12 @@ public void OnPluginStart()
 	RegServerCmd("sm_readyup_add_togglecvars", Cmd_AddToggleCvars);
 	RegServerCmd("sm_readyup_remove_togglecvars", Cmd_RemoveToggleCvars);
 	RegServerCmd("sm_readyup_clear_togglecvars", Cmd_ClearToggleCvars);
+}
+
+public void OnPluginEnd()
+{
+	OnRoundIsLive();
+	Cmd_ClearToggleCvars(0);
 }
 
 Action Cmd_AddToggleCvars(int args)
@@ -33,12 +44,16 @@ Action Cmd_AddToggleCvars(int args)
 	char sCvar[128];
 	GetCmdArg(1, sCvar, sizeof(sCvar));
 	
-	ToggleVal_t ToggleVal;
-	GetCmdArg(2, ToggleVal.sOn, sizeof(ToggleVal.sOn));
-	GetCmdArg(3, ToggleVal.sOff, sizeof(ToggleVal.sOff));
+	DataPack dp = new DataPack();
 	
-	g_smToggleCvars.SetArray(sCvar, ToggleVal, sizeof(ToggleVal));
-	PrintToServer("[ReadyUp ToggleCvars] Added: %s <%s|%s>", sCvar, ToggleVal.sOn, ToggleVal.sOff);
+	char sOn[64], sOff[64];
+	GetCmdArg(2, sOn, sizeof(sOn));
+	dp.WriteString(sOn);
+	GetCmdArg(3, sOff, sizeof(sOff));
+	dp.WriteString(sOff);
+	
+	g_smToggleCvars.SetValue(sCvar, dp);
+	PrintToServer("[ReadyUp ToggleCvars] Added: %s <%s|%s>", sCvar, sOn, sOff);
 	
 	return Plugin_Handled;
 }
@@ -53,57 +68,80 @@ Action Cmd_RemoveToggleCvars(int args)
 	
 	char sCvar[128];
 	GetCmdArg(1, sCvar, sizeof(sCvar));
-	
-	g_smToggleCvars.Remove(sCvar);
-	PrintToServer("[ReadyUp ToggleCvars] Removed: %s", sCvar);
+	RemoveToggleCvar(sCvar);
 	
 	return Plugin_Handled;
 }
 
 Action Cmd_ClearToggleCvars(int args)
 {
-	g_smToggleCvars.Clear();
+	StringMapSnapshot ss = g_smToggleCvars.Snapshot();
+	
+	char sCvar[128];
+	for (int i = 0; i < ss.Length; ++i)
+	{
+		ss.GetKey(i, sCvar, sizeof(sCvar));
+		RemoveToggleCvar(sCvar);
+	}
 	PrintToServer("[ReadyUp ToggleCvars] Cleared all entries.");
+	
+	delete ss;
 	
 	return Plugin_Handled;
 }
 
+void RemoveToggleCvar(const char[] sCvar)
+{
+	DataPack dp;
+	if (g_smToggleCvars.GetValue(sCvar, dp))
+	{
+		delete dp;
+		g_smToggleCvars.Remove(sCvar);
+		PrintToServer("[ReadyUp ToggleCvars] Removed: %s", sCvar);
+	}
+}
+
 public void OnReadyUpInitiate()
 {
-	StringMapSnapshot snapshot = g_smToggleCvars.Snapshot();
+	StringMapSnapshot ss = g_smToggleCvars.Snapshot();
 	
-	char sCvar[128];
-	ConVar cvar;
-	ToggleVal_t ToggleVal;
-	for (int i = 0; i < snapshot.Length; ++i)
+	char buffer[128];
+	for (int i = 0; i < ss.Length; ++i)
 	{
-		snapshot.GetKey(i, sCvar, sizeof(sCvar));
-		if ((cvar = FindConVar(sCvar)) != null)
+		ss.GetKey(i, buffer, sizeof(buffer));
+		for (ConVar cvar = FindConVar(buffer); cvar != null;)
 		{
-			g_smToggleCvars.GetArray(sCvar, ToggleVal, sizeof(ToggleVal));
-			cvar.SetString(ToggleVal.sOn);
+			DataPack dp;
+			if (g_smToggleCvars.GetValue(buffer, dp))
+			{
+				dp.ReadString(buffer, sizeof(buffer));
+				cvar.SetString(buffer);
+			}
 		}
 	}
 	
-	delete snapshot;
+	delete ss;
 }
 
 public void OnRoundIsLive()
 {
-	StringMapSnapshot snapshot = g_smToggleCvars.Snapshot();
+	StringMapSnapshot ss = g_smToggleCvars.Snapshot();
 	
-	char sCvar[128];
-	ConVar cvar;
-	ToggleVal_t ToggleVal;
-	for (int i = 0; i < snapshot.Length; ++i)
+	char buffer[128];
+	for (int i = 0; i < ss.Length; ++i)
 	{
-		snapshot.GetKey(i, sCvar, sizeof(sCvar));
-		if ((cvar = FindConVar(sCvar)) != null)
+		ss.GetKey(i, buffer, sizeof(buffer));
+		for (ConVar cvar = FindConVar(buffer); cvar != null;)
 		{
-			g_smToggleCvars.GetArray(sCvar, ToggleVal, sizeof(ToggleVal));
-			cvar.SetString(ToggleVal.sOff);
+			DataPack dp;
+			if (g_smToggleCvars.GetValue(buffer, dp))
+			{
+				dp.ReadString(buffer, sizeof(buffer));
+				dp.ReadString(buffer, sizeof(buffer));
+				cvar.SetString(buffer);
+			}
 		}
 	}
 	
-	delete snapshot;
+	delete ss;
 }
