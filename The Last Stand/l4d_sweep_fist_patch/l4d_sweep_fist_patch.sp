@@ -95,6 +95,7 @@ public void OnPluginStart()
 	
 	delete hGameData;
 	
+	CreateConVar("l4d_sweep_fist_patch_version", PLUGIN_VERSION, "Sweep Fist Patch Version", FCVAR_DONTRECORD|FCVAR_NOTIFY|FCVAR_REPLICATED|FCVAR_SPONLY);
 	FindConVar("mp_gamemode").AddChangeHook(OnGameModeChanged);
 }
 
