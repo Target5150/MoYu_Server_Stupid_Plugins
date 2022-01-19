@@ -5,7 +5,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "2.3"
+#define PLUGIN_VERSION "2.3a"
 
 public Plugin myinfo = 
 {
@@ -267,24 +267,24 @@ void ToggleDetour(bool enable)
 
 public MRESReturn OnDoSwingPre(int pThis)
 {
-	if (IsValidEntity(pThis))
-		PatchSweepFist(true);
+	if (IsValidEntity(pThis)) PatchSweepFist(true);
+	return MRES_Ignored;
 }
 
 public MRESReturn OnDoSwingPost(int pThis)
 {
-	if (IsValidEntity(pThis))
-		PatchSweepFist(false);
+	if (IsValidEntity(pThis)) PatchSweepFist(false);
+	return MRES_Ignored;
 }
 
 public MRESReturn OnGroundPoundPre(int pThis)
 {
-	if (IsValidEntity(pThis))
-		PatchGroundPound(true);
+	if (IsValidEntity(pThis)) PatchGroundPound(true);
+	return MRES_Ignored;
 }
 
 public MRESReturn OnGroundPoundPost(int pThis)
 {
-	if (IsValidEntity(pThis))
-		PatchGroundPound(false);
+	if (IsValidEntity(pThis)) PatchGroundPound(false);
+	return MRES_Ignored;
 }

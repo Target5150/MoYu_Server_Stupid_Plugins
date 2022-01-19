@@ -27,6 +27,9 @@ https://forums.alliedmods.net/showthread.php?t=332046
 
 ### Changelog
 (v2.3 2021/8/18 UTC+8)
+- Add version ConVar for tracking and minor fix for compiling warnings.
+
+(v2.3 2021/8/18 UTC+8)
 - Final fix on both games both platforms.
 - Polished MemortPatch error output.
   - Exception being bitflags, notifies which patches error out. (1 = Sweep Fist Check1, 2 = Sweep Fist Check2, 4 = Ground Pound Check)
