@@ -15,7 +15,7 @@ public Plugin myinfo =
 	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 };
 
-#define GAMEDATA_FILE "l4d2_fix_deathfall_cam"
+#define GAMEDATA_FILE "l4d_fix_deathfall_cam"
 
 ArrayList g_aDeathFallClients;
 Handle g_hSDKCall_SetViewEntity;
