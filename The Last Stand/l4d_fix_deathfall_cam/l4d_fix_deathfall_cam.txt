@@ -1,0 +1,48 @@
+"Games"
+{
+	"left4dead"
+	{
+		"Offsets"
+		{
+			"m_bShowViewModel"
+			{
+				"linux"		"2364"
+				"windows"	"2344"
+			}
+		}
+		
+		"Signatures"
+		{
+			"CBasePlayer::SetViewEntity"
+			{
+				"library"	"server"
+				"linux"		"@_ZN11CBasePlayer13SetViewEntityEP11CBaseEntity"
+				"windows"	"\x8B\x2A\x2A\x2A\x56\x57\x8B\x2A\x8D\x2A\x2A\x2A\x2A\x2A\x50\x8B"
+				/* 8B ? ? ? 56 57 8B ? 8D ? ? ? ? ? 50 8B */
+			}
+		}
+	}
+	
+	"left4dead2"
+	{
+		"Offsets"
+		{
+			"m_bShowViewModel"
+			{
+				"linux"		"6856"
+				"windows"	"6860"
+			}
+		}
+		
+		"Signatures"
+		{
+			"CBasePlayer::SetViewEntity"
+			{
+				"library"	"server"
+				"linux"		"@_ZN11CBasePlayer13SetViewEntityEP11CBaseEntity"
+				"windows"	"\x55\x8B\xEC\x8B\x2A\x2A\x56\x57\x8B\x2A\x50\x8D\x2A\x2A\x2A\x2A\x2A\xE8"
+				/* 55 8B EC 8B ? ? 56 57 8B ? 50 8D ? ? ? ? ? E8 */
+			}
+		}
+	}
+}
