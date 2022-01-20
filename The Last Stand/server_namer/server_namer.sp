@@ -70,7 +70,6 @@ ConVar cvarMpGameMode;
 ConVar cvarZDifficulty;
 ConVar cvarHostname;
 
-ConVar cvarReadyUpEnabled;
 ConVar cvarReadyUpCfgName;
 
 KeyValues kv;
@@ -162,6 +161,8 @@ public Action Cmd_Hostname(int client, int args)
 		GetCmdArg(1, arg1, sizeof(arg1));
 		SetConVarString(cvarHostname, arg1, false, false);
 	}
+	
+	return Plugin_Handled;
 }
 
 void SetName()
@@ -174,12 +175,11 @@ void SetName()
 	isempty = ServerIsEmpty();
 	if (IsConfoglAvailable)
 	{
-		if (cvarReadyUpEnabled == INVALID_HANDLE)
+		if (cvarReadyUpCfgName == INVALID_HANDLE)
 		{
-			cvarReadyUpEnabled = FindConVar("l4d_ready_enabled");
 			cvarReadyUpCfgName = FindConVar("l4d_ready_cfg_name");
 		}
-		if (cvarReadyUpEnabled != INVALID_HANDLE && GetConVarBool(cvarReadyUpEnabled))
+		if (cvarReadyUpCfgName != INVALID_HANDLE)
 		{
 			SetConfoglName();
 		}
