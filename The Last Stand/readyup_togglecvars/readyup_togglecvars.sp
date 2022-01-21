@@ -5,7 +5,7 @@
 #undef REQUIRE_PLUGIN
 #include <readyup>
 
-#define PLUGIN_VERSION "1.1"
+#define PLUGIN_VERSION "1.2"
 
 public Plugin myinfo = 
 {
@@ -117,6 +117,7 @@ public void OnReadyUpInitiate()
 				dp.ReadString(buffer, sizeof(buffer));
 				cvar.SetString(buffer);
 			}
+			break;
 		}
 	}
 	
@@ -140,6 +141,7 @@ public void OnRoundIsLive()
 				dp.ReadString(buffer, sizeof(buffer));
 				cvar.SetString(buffer);
 			}
+			break;
 		}
 	}
 	
