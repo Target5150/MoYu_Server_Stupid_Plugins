@@ -50,19 +50,30 @@ public void OnPluginStart()
 	g_aDeathFallClients = new ArrayList();
 	
 	HookEvent("round_start", Event_RoundStart, EventHookMode_PostNoCopy);
+	HookEvent("gameinstructor_nodraw", Event_NoDraw, EventHookMode_PostNoCopy);
 	HookEvent("player_team", Event_PlayerTeam);
 	HookEvent("player_death", Event_PlayerDeath);
 }
 
 void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {
-	if (FindEntityByClassname(MaxClients+1, "point_viewcontrol*") != INVALID_ENT_REFERENCE || FindEntityByClassname(MaxClients+1, "point_deathfall_camera") != INVALID_ENT_REFERENCE)
+	if (L4D_IsMissionFinalMap()
+		&& (FindEntityByClassname(MaxClients+1, "point_viewcontrol*") != INVALID_ENT_REFERENCE
+			|| FindEntityByClassname(MaxClients+1, "point_deathfall_camera") != INVALID_ENT_REFERENCE))
 	{
 		for (int i = 1; i <= MaxClients; ++i)
-			if (IsClientInGame(i) && !IsFakeClient(i)) ReleaseFromViewControl(_, i);
+			if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) != 2)
+				ReleaseFromViewControl(_, i);
 	}
 	
 	g_aDeathFallClients.Clear();
+}
+
+void Event_NoDraw(Event event, const char[] name, bool dontBroadcast)
+{
+	for (int i = 1; i <= MaxClients; ++i)
+		if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) != 2)
+			ReleaseFromViewControl(_, i);
 }
 
 void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
