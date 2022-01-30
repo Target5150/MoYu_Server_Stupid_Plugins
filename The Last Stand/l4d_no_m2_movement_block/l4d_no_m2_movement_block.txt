@@ -1,0 +1,57 @@
+"Games"
+{
+	"left4dead"
+	{
+		"Functions"
+		{
+			"CTerrorGameMovement::PlayerMove"
+			{
+				"signature"		"CTerrorGameMovement::PlayerMove"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"address"
+			}
+		}
+		
+		"Offsets"
+		{
+			"CTerrorGameMovement::m_pPlayer"
+			{
+				"linux"			"2092"
+				"windows"		"2092"
+			}
+			
+			"CTerrorGameMovement::CMoveData"
+			{
+				"linux"			"8"
+				"windows"		"8"
+			}
+			
+			"CMoveData::m_nButtons"
+			{
+				"linux"			"36"
+				"windows"		"36"
+			}
+			
+			"CMoveData::m_flSideMove"
+			{
+				"linux"			"48"
+				"windows"		"48"
+			}
+		}
+		
+		"Signatures"
+		{
+			"CTerrorGameMovement::PlayerMove"
+			{
+				"library"		"server"
+				"linux"			"@_ZN19CTerrorGameMovement10PlayerMoveEv"
+				"windows"		"\x83\xEC\x2A\x53\x56\x8B\x2A\x8B\x2A\x2A\x2A\x2A\x2A\x8B\x2A\x8B\x2A\x2A\x57\x89"
+				/* sub_10265220 */
+				/* 83 EC ? 53 56 8B ? 8B ? ? ? ? ? 8B ? 8B ? ? 57 89 */
+				/* Luckily resulted by straight searching bytes [83 60 24 FB],
+				   which are exactly opcodes on "CTerrorGameMovement.CMoveData.m_nButtons" inside this function. */
+			}
+		}
+	}
+}
