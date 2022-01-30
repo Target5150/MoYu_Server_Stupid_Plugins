@@ -6,7 +6,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.4"
+#define PLUGIN_VERSION "1.5"
 
 public Plugin myinfo = 
 {
@@ -37,10 +37,17 @@ bool g_bSupress;
 StringMap g_triePrefixed;
 
 bool casterAvailable;
+bool g_bLateLoad;
 
 // ===================================================================
 // Plugin Setup / Backup
 // ===================================================================
+
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+	g_bLateLoad = late;
+	return APLRes_Success;
+}
 
 public void OnPluginStart()
 {
@@ -58,6 +65,17 @@ public void OnPluginStart()
 	
 	HookEvent("player_team", Event_PlayerTeam);
 	HookEvent("player_changename", Event_NameChanged);
+	
+	if (g_bLateLoad)
+	{
+		for (int i = 1; i <= MaxClients; ++i)
+		{
+			if (IsClientInGame(i) && GetClientTeam(i) == L4D2Team_Spectator && !IsFakeClient(i))
+			{
+				AddPrefix(i);
+			}
+		}
+	}
 }
 
 public void OnPluginEnd()
@@ -154,12 +172,14 @@ public void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
 	if (!client
 		|| IsFakeClient(client))
 		return;
-		
+	
 	int newteam = event.GetInt("team");
 	if (newteam == L4D2Team_None)
 		return;
 	
 	int oldteam = event.GetInt("oldteam");
+	if (newteam == oldteam)
+		return;
 	
 	if (newteam == L4D2Team_Spectator) AddPrefix(client);
 	else if (oldteam == L4D2Team_Spectator) RemovePrefix(client);
