@@ -1,9 +1,9 @@
 # [L4D Only] No M2 Movement Block
 
 ### Introduction
-- Allow free movement as SI when scratching like L4D2.
+- Allow **free movement as SI** when scratching like L4D2.
 	- In L4D1, SIs are blocked from ducking and side-moving whenever they are scratching.
-- Worth memtioning that client-side predition issue is still there.
+- Worth memtioning that **client-side predition** issue is still there.
 	- Original Mem-Patch version raises obvious visual glitches especially when crouching, because client-side prediction insist on movement block.
 	- New Detour version tries its best to reduce this effect by tricking the client not scratching.
 
