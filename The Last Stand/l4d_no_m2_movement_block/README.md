@@ -16,7 +16,7 @@
 <hr>
 
 ### Changelog
-(v2.1 2022/1/31 UTC+8) Reworked again and remove selective enabling due to client prediction again.
+(v2.1 2022/1/31 UTC+8) Reworked again to fix silenced hunter scratches and remove selective enabling due to client prediction again.
 
 (v2.0 2022/1/31 UTC+8) Initial release of reworked version.
 
