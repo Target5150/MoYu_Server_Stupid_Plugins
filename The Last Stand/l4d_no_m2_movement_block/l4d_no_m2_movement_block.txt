@@ -11,6 +11,14 @@
 				"return"		"void"
 				"this"			"address"
 			}
+			
+			"CTerrorWeapon::IsAttacking"
+			{
+				"signature"		"CTerrorWeapon::IsAttacking"
+				"callconv"		"thiscall"
+				"return"		"bool"
+				"this"			"entity"
+			}
 		}
 		
 		"Offsets"
@@ -51,6 +59,16 @@
 				/* 83 EC ? 53 56 8B ? 8B ? ? ? ? ? 8B ? 8B ? ? 57 89 */
 				/* Luckily resulted by straight searching bytes [83 60 24 FB],
 				   which are exactly opcodes on "CTerrorGameMovement.CMoveData.m_nButtons" inside this function. */
+			}
+			
+			"CTerrorWeapon::IsAttacking"
+			{
+				"library"		"server"
+				"linux"			"@_ZNK13CTerrorWeapon11IsAttackingEv"
+				"windows"		"\x56\x8D\x2A\x2A\x2A\x2A\x2A\x8B\x2A\xE8\x2A\x2A\x2A\x2A\xD8\x2A\x2A\x5E\xD8\x2A\x2A\x2A\x2A\x2A\xDF\x2A\xF6\x2A\x2A\x75"
+				/* sub_10353A80 */
+				/* 56 8D ? ? ? ? ? 8B ? E8 ? ? ? ? D8 ? ? 5E D8 ? ? ? ? ? DF ? F6 ? ? 75 */
+				/* VTable method */
 			}
 		}
 	}
