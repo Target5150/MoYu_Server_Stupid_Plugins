@@ -108,7 +108,7 @@
                 "signature"		"CTerrorGun_EquipSecondWeapon"
                 "linux"
                 {
-                    "offset"	"297"
+                    "offset"	"290"
                     "verify"	"\x8B"
                     "patch"		"\xE9\x0E\x00\x00\x00"
                 }
@@ -124,7 +124,7 @@
                 "signature"		"CTerrorGun_EquipSecondWeapon"
                 "linux"
                 {
-                    "offset"	"316"
+                    "offset"	"309"
                     "verify"	"\x89"
                     "patch"		"\xE9\x0B\x00\x00\x00"
                 }
@@ -140,7 +140,7 @@
                 "signature"		"CTerrorGun_EquipSecondWeapon"
                 "linux"
                 {
-                    "offset"	"332"
+                    "offset"	"325"
                     "verify"	"\x8B"
                     "patch"		"\xE9\x06\x00\x00\x00"
                 }
