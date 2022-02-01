@@ -41,7 +41,7 @@
 				"signature"			"CTankClaw::SweepFist"
 				"linux"
 				{
-					"offset"		"1051"
+					"offset"		"1052"
 					"verify"		"\xE8" // make sure the 'call' instruction starts with E8
 					"patch"			"\x90\x90\x90\x90\x90" // patch the 'call' instruction with NOPs (5 bytes)
 				}
@@ -59,7 +59,7 @@
 				"signature"			"CTankClaw::SweepFist"
 				"linux"
 				{
-					"offset"		"3418"
+					"offset"		"3424"
 					"verify"		"\xE8" // make sure the 'call' instruction starts with E8
 					"patch"			"\x90\x90\x90\x90\x90" // patch the 'call' instruction with NOPs (5 bytes)
 				}
@@ -124,7 +124,7 @@
 			"CTankClaw::SweepFist"
 			{
 				"library"			"server"
-				"linux"				"@_ZN9CTankClaw9SweepFistERK6VectorS2_.constprop.248"
+				"linux"				"@_ZN9CTankClaw9SweepFistERK6VectorS2_.constprop.246"
 				"windows"			"\x2A\x2A\x2A\x2A\x2A\x2A\x55\x56\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x8B\x2A\x85\x2A\x0F\x84\x2A\x2A\x2A\x2A\x8B\x0D"
 									/* ? ? ? ? ? ? 55 56 8B ? E8 ? ? ? ? 8B ? 85 ? 0F 84 ? ? ? ? 8B 0D */
 			}
