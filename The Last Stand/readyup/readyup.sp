@@ -9,7 +9,7 @@
 #undef REQUIRE_PLUGIN
 #include <caster_system>
 
-#define PLUGIN_VERSION "9.3.10"
+#define PLUGIN_VERSION "9.3.11"
 
 public Plugin myinfo =
 {
@@ -929,9 +929,9 @@ void UpdatePanel()
 				}
 			}
 			
-			if (GetClientMenu(client) != MenuSource_None)
+			switch (GetClientMenu(client))
 			{
-				continue;
+				case MenuSource_External, MenuSource_Normal: continue;
 			}
 			
 			menuPanel.Send(client, DummyHandler, 1);
