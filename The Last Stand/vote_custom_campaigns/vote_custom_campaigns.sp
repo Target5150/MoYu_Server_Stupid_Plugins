@@ -3,6 +3,7 @@
 
 #undef REQUIRE_PLUGIN
 #tryinclude <l4d2_changelevel>
+#include <l4d2_mission_manager>
 #define REQUIRE_PLUGIN
 
 #pragma newdecls required
@@ -23,8 +24,7 @@ public Plugin myinfo =
  * Globals
  */
 #define PLURAL(%0) ((%0) > 1 ? "s" : "")
-#define CAMPAIGN_FILE "configs/VoteCustomCampaigns.txt"
- 
+
 ArrayList g_aCampaignList;
 
 ConVar g_cVotePercent;
@@ -67,38 +67,55 @@ public void OnPluginStart()
 	
 	AutoExecConfig(true);
 	
-	g_aCampaignList = new ArrayList(ByteCountToCells(128));
-	
+	g_aCampaignList = new ArrayList();
+}
+
+public void OnLMMUpdateList()
+{
 	ParseCampaigns();
 }
+
+public void OnConfigsExecuted()
+{
+	ParseCampaigns();
+}
+
 
 /**
  * Commands
  */
-public Action Command_ReloadCampaigns(int client, int args)
+Action Command_ReloadCampaigns(int client, int args)
 {
 	if( ParseCampaigns() ) {
 		ReplyToCommand(client, "[VCC] Successfully reloaded custom campaign list.");
 	} else {
 		ReplyToCommand(client, "[VCC] Failed to reload custom campaign list. (See error logs)");
 	}
+	
+	return Plugin_Handled;
 }
 
-public Action Command_VoteCampaign(int client, int args) 
-{ 
+Action Command_VoteCampaign(int client, int args) 
+{
 	if( !client ) { return Plugin_Handled; }
 	
 	int arraysize = g_aCampaignList.Length;
+	if( !arraysize ) { return Plugin_Handled; }
 	
 	Menu menu = new Menu(MapMenuHandler);
-	menu.SetTitle( "▲ Vote Custom Campaigns <%d map%s>", arraysize / 2, PLURAL(arraysize) );
+	menu.SetTitle( "▲ Vote Custom Campaigns <%d map%s>", arraysize, PLURAL(arraysize) );
 	
-	char sCode[128], sName[128];
-	for( int i = 0; i < arraysize; i += 2 )
+	LMM_GAMEMODE gamemode = LMM_GetCurrentGameMode();
+	
+	char sMission[128], sMissionName[128];
+	for( int i = 0; i < arraysize; ++i )
 	{
-		g_aCampaignList.GetString(i, sCode, sizeof sCode);
-		g_aCampaignList.GetString(i + 1, sName, sizeof sName);
-		menu.AddItem(sCode, sName);
+		int missionIndex = g_aCampaignList.Get(i);
+		
+		LMM_GetMapName(gamemode, missionIndex, 0, sMission, sizeof(sMission));
+		LMM_GetMissionLocalizedName(gamemode, missionIndex, sMissionName, sizeof(sMissionName), client);
+		
+		menu.AddItem(sMission, sMissionName);
 	}
 	
 	menu.ExitBackButton = true;
@@ -112,41 +129,30 @@ public Action Command_VoteCampaign(int client, int args)
 /**
  * Menu Handlers
  */
-public int MapMenuHandler(Menu menu, MenuAction action, int client, int itemNum)
+int MapMenuHandler(Menu menu, MenuAction action, int param1, int param2)
 {
 	if( action == MenuAction_Select ) 
 	{
+		char sMission[128], sMissionName[128];
 		GetMenuItem(menu,
-				itemNum,
-				g_sVoteCampaign, sizeof g_sVoteCampaign,
+				param2,
+				sMission, sizeof(sMission),
 				_,
-				g_sVoteCampaignName, sizeof g_sVoteCampaignName);
+				sMissionName, sizeof(sMissionName));
 				
-		DisplayVoteMapsMenu(client);
+		DisplayVoteMapsMenu(param1, sMission, sMissionName);
 	}
 	else if( action == MenuAction_End )
 	{
 		delete menu;
 	}
+	
+	return 1;
 }
 
-void DisplayVoteMapsMenu(int client)
+void DisplayVoteMapsMenu(int client, const char[] sMission, const char[] sMissionName)
 {
-	if( GetClientTeam(client) == 1 ) // 1 -> Spectator
-	{
-		PrintToChat(client, "\x01<\x05VCC\x01> \x05Spectators \x01cannot vote.");
-		return;
-	}
-	if( IsBuiltinVoteInProgress() )
-	{
-		PrintToChat(client, "\x01<\x05VCC\x01> There's a vote \x05in progress\x01.");
-		return;
-	}
-	if( CheckBuiltinVoteDelay() > 0 )
-	{
-		PrintToChat(client, "\x01<\x05VCC\x01> Wait for \x04%ds \x01to call another vote.", CheckBuiltinVoteDelay());
-		return;
-	}
+	if (!CheckVoteAccess(client)) return;
 	
 	Handle vote = CreateBuiltinVote(CampaignVoteHandler, BuiltinVoteType_ChgCampaign, BuiltinVoteAction_Select|BuiltinVoteAction_Cancel|BuiltinVoteAction_End);
 	
@@ -159,6 +165,9 @@ void DisplayVoteMapsMenu(int client)
 			players[total++] = i;
 	}
 	
+	strcopy(g_sVoteCampaign, sizeof(g_sVoteCampaign), sMission);
+	strcopy(g_sVoteCampaignName, sizeof(g_sVoteCampaignName), sMissionName);
+	
 	SetBuiltinVoteArgument(vote, g_sVoteCampaignName);
 	SetBuiltinVoteInitiator(vote, client);
 	SetBuiltinVoteResultCallback(vote, CampaignVoteResult);
@@ -166,11 +175,31 @@ void DisplayVoteMapsMenu(int client)
 	DisplayBuiltinVote(vote, players, total, FindConVar("sv_vote_timer_duration").IntValue);
 }
 
+bool CheckVoteAccess(int client)
+{
+	if( GetClientTeam(client) == 1 ) // 1 -> Spectator
+	{
+		PrintToChat(client, "\x01<\x05VCC\x01> \x05Spectators \x01cannot vote.");
+		return false;
+	}
+	if( IsBuiltinVoteInProgress() )
+	{
+		PrintToChat(client, "\x01<\x05VCC\x01> There's a vote \x05in progress\x01.");
+		return false;
+	}
+	if( CheckBuiltinVoteDelay() > 0 )
+	{
+		PrintToChat(client, "\x01<\x05VCC\x01> Wait for \x04%ds \x01to call another vote.", CheckBuiltinVoteDelay());
+		return false;
+	}
+	
+	return true;
+}
 
 /**
  * Menu CallBacks
  */
-public int CampaignVoteHandler(Handle vote, BuiltinVoteAction action, int param1, int param2)
+int CampaignVoteHandler(Handle vote, BuiltinVoteAction action, int param1, int param2)
 {
 	switch( action )
 	{
@@ -191,14 +220,16 @@ public int CampaignVoteHandler(Handle vote, BuiltinVoteAction action, int param1
 			delete vote;
 		}
 	}
+	
+	return 1;
 }
 
-public int CampaignVoteResult(Handle vote, int num_votes, int num_clients, const client_info[][2], int num_items, const item_info[][2])
+int CampaignVoteResult(Handle vote, int num_votes, int num_clients, const int[][] client_info, int num_items, const int[][] item_info)
 {
 	if( (float(num_votes) / float(num_clients)) < g_cVotePercent.FloatValue )
 	{
 		DisplayBuiltinVoteFail(vote, BuiltinVoteFail_NotEnoughVotes);
-		return;
+		return 0;
 	}
 	
 	int votey = 0;
@@ -213,24 +244,26 @@ public int CampaignVoteResult(Handle vote, int num_votes, int num_clients, const
 		DisplayBuiltinVotePass2(vote, TRANSLATION_L4D_VOTE_CHANGECAMPAIGN_PASSED, g_sVoteCampaignName);
 		
 		PrintToChatAll("\x01<\x05VCC\x01> Map changing... -> \x04%s", g_sVoteCampaignName);
-		CreateTimer(3.0, Timer_Changelevel);
+		CreateTimer(3.0, Timer_Changelevel, .flags = TIMER_FLAG_NO_MAPCHANGE);
 	}
 	else
 	{
 		DisplayBuiltinVoteFail(vote, BuiltinVoteFail_Loses);
 	}
+	
+	return 1;
 }
 
 
 /**
  * Timers
  */
-public Action Timer_Changelevel(Handle timer)
+Action Timer_Changelevel(Handle timer)
 {
 	if( !IsMapValid(g_sVoteCampaign) )
 	{
 		PrintToChatAll("\x01<\x05VCC\x01> \x04Failed \x01to change map (\x03%s\x01)", g_sVoteCampaignName);
-		return;
+		return Plugin_Stop;
 	}
 	
 	if( GetFeatureStatus(FeatureType_Native, "L4D2_ChangeLevel") == FeatureStatus_Available )
@@ -239,8 +272,10 @@ public Action Timer_Changelevel(Handle timer)
 	}
 	else
 	{
-		ServerCommand("changelevel %s", g_sVoteCampaign);
+		ForceChangeLevel(g_sVoteCampaign, "Vote custom campaigns");
 	}
+	
+	return Plugin_Stop;
 }
 
 
@@ -250,36 +285,34 @@ public Action Timer_Changelevel(Handle timer)
  */
 bool ParseCampaigns()
 {
-	if (g_aCampaignList) g_aCampaignList.Clear();
+	g_aCampaignList.Clear();
 	
-	KeyValues kv = new KeyValues("VoteCustomCampaigns");
-
-	char sPath[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sPath, sizeof(sPath), CAMPAIGN_FILE);
-
-	if ( !kv.ImportFromFile(sPath) )
+	if( GetFeatureStatus(FeatureType_Native, "LMM_GetCurrentGameMode") != FeatureStatus_Available )
 	{
-		LogMessage("<VCC> File doesn't exist! (%s)", sPath);
 		return false;
 	}
-	if ( !kv.GotoFirstSubKey() )
+	
+	LMM_GAMEMODE gamemode = LMM_GetCurrentGameMode();
+	if( gamemode == LMM_GAMEMODE_UNKNOWN )
 	{
-		LogMessage("<VCC> Failed to locate first sub key.");
+		return false;
+	}
+	
+	int missionNum = LMM_GetNumberOfMissions(gamemode);
+	if( missionNum <= 0 )
+	{
 		return false;
 	}
 	
 	char buffer[128];
-	do
+	for( int i = 0; i < missionNum; ++i )
 	{
-		kv.GetSectionName(buffer, sizeof buffer);
-		g_aCampaignList.PushString(buffer);
-		
-		kv.GetString("name", buffer, sizeof buffer, "ERROR NOT FOUND!");
-		g_aCampaignList.PushString(buffer);
+		if( LMM_GetMissionName(gamemode, i, buffer, sizeof(buffer)) != -1 && strncmp(buffer, "L4D2C", 5) != 0 )
+		{
+			g_aCampaignList.Push(i);
+		}
 	}
-	while (kv.GotoNextKey());
 	
-	delete kv;
-	return true;
+	return g_aCampaignList.Length > 0;
 }
 
