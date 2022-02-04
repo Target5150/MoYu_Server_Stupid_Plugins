@@ -1,3 +1,6 @@
+#pragma newdecls required
+#pragma semicolon 1
+
 #include <sourcemod>
 #include <builtinvotes>
 
@@ -6,10 +9,7 @@
 #include <l4d2_mission_manager>
 #define REQUIRE_PLUGIN
 
-#pragma newdecls required
-#pragma semicolon 1
-
-#define PLUGIN_VERSION "1.3"
+#define PLUGIN_VERSION "2.0"
 
 public Plugin myinfo =
 {
