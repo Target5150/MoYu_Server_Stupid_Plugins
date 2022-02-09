@@ -4,7 +4,7 @@
 #include <sourcemod>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "1.1"
+#define PLUGIN_VERSION "1.2"
 
 public Plugin myinfo = 
 {
@@ -14,6 +14,17 @@ public Plugin myinfo =
 	version = PLUGIN_VERSION,
 	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 };
+
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+	CreateNative("L4D_ReleaseFromViewControl", Ntv_ReleaseFromViewControl);
+	return APLRes_Success;
+}
+
+public any Ntv_ReleaseFromViewControl(Handle plugin, int numParams)
+{
+	return ReleaseFromViewControl(_, GetNativeCell(1));
+}
 
 #define GAMEDATA_FILE "l4d_fix_deathfall_cam"
 
