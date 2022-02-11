@@ -1,7 +1,7 @@
-# [L4D2 Only] Fix Scavenge First-Class
+# [L4D2 Only] Fix Scavenge First-Hit
 
 ### Introduction
-- Fix first class varying between halves and staying the same for rounds.
+- Fix first hit classes varying between halves and staying the same for rounds.
 
 <hr>
 

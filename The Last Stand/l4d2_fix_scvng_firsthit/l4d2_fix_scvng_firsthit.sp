@@ -8,9 +8,9 @@
 
 public Plugin myinfo =
 {
-	name = "[L4D2] Fix Scavenge First-Class",
+	name = "[L4D2] Fix Scavenge First-Hit",
 	author = "Forgetest",
-	description = "Fix first class varying between halves and staying the same for rounds.",
+	description = "Fix first hit classes varying between halves and staying the same for rounds.",
 	version = PLUGIN_VERSION,
 	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 }
