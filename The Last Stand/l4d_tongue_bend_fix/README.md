@@ -1,0 +1,16 @@
+# [L4D & 2] Tongue Bend Fix
+
+### Introduction
+- Straight patch out cases of "bending too many times" that unexpectedly breaks tongue.
+- Tested only on L4D2 Linux.
+
+<hr>
+
+### Installation
+1. Put the **l4d_tongue_bend_fix.smx** to your _plugins_ folder.
+2. Put the **l4d_tongue_bend_fix.txt** to your _gamedata_ folder.
+
+<hr>
+
+### Changelog
+(v1.0 2022/2/12 UTC+8) Initial release.
