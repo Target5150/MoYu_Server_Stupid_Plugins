@@ -1,0 +1,37 @@
+"Games"
+{
+	"left4dead2"
+	{
+		"Offsets"
+		{
+			/* Windows offset:
+			 *
+			 * Search string "PlayerLedgeHangMiddle", which will lead you to "CTerrorPlayerAnimState::HandleActivity_Incapacitated".
+			 * Go to its only xref function, and again, then you are at vtable of "CTerrorPlayerAnimState".
+			 * Double click on the first virtual function "CTerrorPlayerAnimState::ClearAnimationState".
+			 * Go to its function xref 3 times, and you will meet with an enormous constructor function.
+			 * 
+			 * 1. Generate pseudocode and you can easily find the offset where the cursor is.
+			 * 2. See the "mov" instruction below the highlighted "call".
+			 */
+			
+			"CTerrorPlayerAnimState::m_hAnimState"
+			{
+				"linux"		"10512"
+				"windows"	"10524"
+			}
+			
+			"CTerrorPlayerAnimState::ClearAnimationState"
+			{
+				"linux"		"0"
+				"windows"	"0"
+			}
+			
+			"CTerrorPlayerAnimState::RestartMainSequence"
+			{
+				"linux"		"14"
+				"windows"	"14"
+			}
+		}
+	}
+}
