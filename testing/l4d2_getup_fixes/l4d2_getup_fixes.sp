@@ -1,7 +1,23 @@
+#pragma semicolon 1
+#pragma newdecls required
+
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
 #include <left4dhooks>
+#undef REQUIRE_PLUGIN
+#include <godframecontrol>
+
+#define PLUGIN_VERSION "2.0"
+
+public Plugin myinfo = 
+{
+	name = "[L4D2] Merged Get-Up Fixes",
+	author = "Forgetest",
+	description = "Fixes all double/missing get-up cases.",
+	version = PLUGIN_VERSION,
+	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
+};
 
 #define GAMEDATA_FILE "l4d2_getup_fixes"
 #define KEY_ANIMSTATE "CTerrorPlayerAnimState::m_hAnimState"
@@ -37,10 +53,19 @@ methodmap CTerrorPlayerAnimState
 bool
 	g_bLateLoad;
 
+bool
+	g_bLongCharged[MAXPLAYERS+1];
+
 int
 	g_iChargerVictim[MAXPLAYERS+1],
 	g_iChargerAttacker[MAXPLAYERS+1],
-	g_iWasPouncedOrPummeled[MAXPLAYERS+1];
+	g_iQueuedGetupType[MAXPLAYERS+1];
+
+ConVar
+	g_hChargeDuration,
+	g_hLongChargeDuration,
+	cvar_keepWallSlamLongGetUp,
+	cvar_keepLongChargeLongGetUp;
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
@@ -79,6 +104,14 @@ public void OnPluginStart()
 {
 	LoadSDK();
 	
+	g_hChargeDuration = FindConVar("gfc_charger_duration");
+	g_hLongChargeDuration = CreateConVar("gfc_long_charger_duration", "2.2", "God frame duration for long charger getup animations");
+	
+	cvar_keepWallSlamLongGetUp = CreateConVar("charger_keep_wall_charge_animation", "1", "Enable the long wall slam animation (with god frames)");
+	cvar_keepLongChargeLongGetUp = CreateConVar("charger_keep_far_charge_animation", "0", "Enable the long 'far' slam animation (with god frames)");
+	
+	HookEvent("player_team", Event_PlayerTeam);
+	HookEvent("revive_success", Event_ReviveSuccess);
 	HookEvent("tongue_release", Event_TongueRelease);
 	HookEvent("pounce_end", Event_PounceEnd);
 	HookEvent("lunge_pounce", Event_LungePounce);
@@ -100,9 +133,28 @@ public void OnClientPutInServer(int client)
 {
 	g_iChargerVictim[client] = -1;
 	g_iChargerAttacker[client] = -1;
-	g_iWasPouncedOrPummeled[client] = 0;
-	
+	g_iQueuedGetupType[client] = 0;
+	g_bLongCharged[client] = false;
+		
 	SDKHook(client, SDKHook_OnTakeDamage, SDK_OnTakeDamage);
+}
+
+void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
+{
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	if (client)
+	{
+		g_iChargerVictim[client] = -1;
+		g_iChargerAttacker[client] = -1;
+		g_iQueuedGetupType[client] = 0;
+		g_bLongCharged[client] = false;
+	}
+}
+
+void Event_ReviveSuccess(Event event, const char[] name, bool dontBroadcast)
+{
+	int client = GetClientOfUserId(event.GetInt("subject"));
+	if (client) CTerrorPlayerAnimState(client).ClearAnimationState();
 }
 
 
@@ -121,7 +173,7 @@ public Action L4D_OnGrabWithTongue(int victim, int attacker)
 // Clear hunter get-up animation
 void Event_TongueRelease(Event event, const char[] name, bool dontBroadcast)
 {
-	int client = GetClientOfUserId(event.GetInt("victim"))
+	int client = GetClientOfUserId(event.GetInt("victim"));
 	if (client) CTerrorPlayerAnimState(client).ClearAnimationState();
 }
 
@@ -132,11 +184,12 @@ void Event_TongueRelease(Event event, const char[] name, bool dontBroadcast)
 // Remind that the victim was pounced and should be in hunter get-up
 void Event_PounceEnd(Event event, const char[] name, bool dontBroadcast)
 {
-	int client = GetClientOfUserId(event.GetInt("victim"))
+	int client = GetClientOfUserId(event.GetInt("victim"));
 	if (client)
 	{
-		g_iWasPouncedOrPummeled[client] = 1;
-		CreateTimer(0.04, Timer_ResetCappedInfo, client);
+		g_iQueuedGetupType[client] = 1;
+		RequestFrame(OnNextFrame_OverrideAnimation, GetClientUserId(client));
+		CreateTimer(0.04, Timer_ResetGetupInfo, client);
 	}
 }
 
@@ -170,33 +223,49 @@ public Action L4D_OnPouncedOnSurvivor(int victim, int attacker)
  * Charger & Tank
  */
 // 1. Handle self-clear levels
-// 2. Remind that the victim was pummeled
+// 2. Check if the victim was slammed and therefore should be in charger get-up
 void Event_ChargerKilled(Event event, const char[] name, bool dontBroadcast)
 {
-	int victim = GetClientOfUserId(event.GetInt("userid"));
-	if (victim)
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	if (client)
 	{
-		int attacker = GetClientOfUserId(event.GetInt("attacker"));
-		//PrintToChatAll("Event_ChargerKilled: %N, %i", victim, attacker);
-		if (attacker && g_iChargerVictim[victim] == attacker)
+		int victim = g_iChargerVictim[client];
+		if (victim != -1)
 		{
-			CTerrorPlayerAnimState(attacker).ClearAnimationState();
+			int attacker = GetClientOfUserId(event.GetInt("attacker"));
+			if (attacker && victim == attacker)
+			{
+				CTerrorPlayerAnimState(victim).ClearAnimationState();
+			}
+			else
+			{
+				g_iQueuedGetupType[victim] = 2;
+				
+				if( (!cvar_keepWallSlamLongGetUp.BoolValue && !g_bLongCharged[victim]) 
+					|| (!cvar_keepLongChargeLongGetUp.BoolValue && g_bLongCharged[victim]) )
+				{
+					RequestFrame(OnNextFrame_OverrideAnimation, GetClientUserId(victim));
+					//PrintToChatAll("No long animation (isLong = %s)", g_bLongCharged[victim] ? "true" : "false");
+					GiveClientGodFrames(victim, g_hChargeDuration.FloatValue, 6);
+				}
+				else
+				{
+					//PrintToChatAll("Yes long animation (isLong = %s)", g_bLongCharged[victim] ? "true" : "false");
+					GiveClientGodFrames(victim, g_hLongChargeDuration.FloatValue, 6);
+				}
+			}
+			
+			g_iChargerAttacker[victim] = -1;
+			CreateTimer(0.04, Timer_ResetGetupInfo, victim);
+			g_iChargerVictim[client] = -1;
 		}
-		
-		if (g_iChargerVictim[victim] != -1)
-		{
-			g_iWasPouncedOrPummeled[g_iChargerVictim[victim]] = 2;
-			CreateTimer(0.04, Timer_ResetCappedInfo, g_iChargerVictim[victim]);
-			g_iChargerAttacker[g_iChargerVictim[victim]] = -1;
-		}
-		
-		g_iChargerVictim[victim] = -1;
 	}
 }
 
-Action Timer_ResetCappedInfo(Handle timer, int client)
+Action Timer_ResetGetupInfo(Handle timer, int client)
 {
-	g_iWasPouncedOrPummeled[client] = 0;
+	g_iQueuedGetupType[client] = 0;
+	g_bLongCharged[client] = false;
 	return Plugin_Stop;
 }
 
@@ -220,6 +289,14 @@ void Event_ChargeEnd(Event event, const char[] name, bool dontBroadcast)
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	if (client && g_iChargerVictim[client] != -1)
 	{
+		static ConVar z_charge_duration = null;
+		if (z_charge_duration == null)
+			z_charge_duration = FindConVar("z_charge_duration");
+		
+		int ability = GetEntPropEnt(client, Prop_Send, "m_customAbility");
+		if (GetGameTime() - GetEntPropFloat(ability, Prop_Send, "m_chargeStartTime") >= z_charge_duration.FloatValue)
+			g_bLongCharged[g_iChargerVictim[client]] = true;
+		
 		//PrintToChatAll("Event_ChargeEnd: %N", client);
 		RequestFrame(OnNextFrame_OverrideAnimation, GetClientUserId(g_iChargerVictim[client]));
 	}
@@ -270,13 +347,15 @@ void OnNextFrame_OverrideAnimation(int userid)
 		
 		int animation;
 		if (g_iChargerAttacker[client] != -1 && GetEntPropEnt(client, Prop_Send, "m_pummelAttacker") == -1)
-			animation = 80; // ANIM_CHARGER_SLAMMED
-		else if (g_iWasPouncedOrPummeled[client] == 1)
-			animation = 86;
-		else if (g_iWasPouncedOrPummeled[client] == 2)
-			animation = 78;
+			animation = g_bLongCharged[client] ?
+					 80 // ANIM_CHARGER_SLAMMED
+					: 81; // ANIM_CHARGER_LONG_SLAMMED
+		else if (g_iQueuedGetupType[client] == 1)
+			animation = 86; // ANIM_HUNTER_GETUP
+		else if (g_iQueuedGetupType[client] == 2)
+			animation = 78; // ANIM_CHARGER_GETUP
 		else
-			animation = 96;
+			animation = 96; // ANIM_TANK_PUNCH_GETUP
 		
 		L4D2Direct_DoAnimationEvent(client, animation);
 		//PrintToChatAll("OverrideAnimation: %N, %i", client, animation);
@@ -285,6 +364,7 @@ void OnNextFrame_OverrideAnimation(int userid)
 	}
 }
 
+// Stop tank queuing stumbles to victims being pummeled
 public Action L4D_TankClaw_OnPlayerHit_Pre(int tank, int claw, int player)
 {
 	if (GetClientTeam(player) == 2 && GetEntPropEnt(player, Prop_Send, "m_pummelAttacker") != -1)
