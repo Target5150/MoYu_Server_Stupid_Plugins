@@ -1,7 +1,6 @@
 - To install this, make sure you have removed:
   - `l4d2_getupfix`
   - `double_getup`
-- And you need to install old version `l4d2_charger_getup_fix`, which provides godframes only.
-  - Get it [here](https://github.com/spoon-l4d2/Plugins/commit/2135f7e4b61decbbda47da3396d76d8bc9e56559)
+  - `l4d2_charger_getup_fix`
 - As the above, this is a plugin containing all the get-up fixes in a better (meybe) way. However, perhaps I still miss some points that need to cover with more data.
 - Any report is greatly appreciated!
