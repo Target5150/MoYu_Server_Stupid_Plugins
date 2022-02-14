@@ -4,7 +4,7 @@
 #include <sourcemod>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "1.2"
+#define PLUGIN_VERSION "1.3"
 
 public Plugin myinfo = 
 {
@@ -30,7 +30,6 @@ public any Ntv_ReleaseFromViewControl(Handle plugin, int numParams)
 
 ArrayList g_aDeathFallClients;
 Handle g_hSDKCall_SetViewEntity;
-int m_bShowViewModel;
 
 void LoadSDK()
 {
@@ -44,10 +43,6 @@ void LoadSDK()
 	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
 	if ((g_hSDKCall_SetViewEntity = EndPrepSDKCall()) == null)
 		SetFailState("Failed to finish SDkCall \"CBasePlayer::SetViewEntity\"");
-	
-	m_bShowViewModel = GameConfGetOffset(conf, "m_bShowViewModel");
-	if (m_bShowViewModel == -1)
-		SetFailState("Missing offset \"m_bShowViewModel\"");
 	
 	delete conf;
 }
@@ -156,11 +151,16 @@ stock void ReleaseFromViewControl(int userid = 0, int client = 0)
 	
 	int flags = GetEntityFlags(client);
 	SetEntityFlags(client, flags & ~FL_FROZEN);
-	SetEntData(client, m_bShowViewModel, 1, 1);
+	SetEntProp(client, Prop_Send, "m_bDrawViewmodel", 1, 1);
 	SetViewEntity(client, -1);
 	
 	if (GetClientTeam(client) == 1)
 		SetEntProp(client, Prop_Send, "m_iHideHUD", HIDEHUD_BONUS_PROGRESS & HIDEHUD_HEALTH);
 	else
 		SetEntProp(client, Prop_Send, "m_iHideHUD", HIDEHUD_BONUS_PROGRESS);
+			
+	SetEntPropEnt(client, Prop_Send, "m_hZoomOwner", -1);
+	SetEntProp(client, Prop_Send, "m_iFOV", 0);
+	SetEntProp(client, Prop_Send, "m_iFOVStart", 0);
+	SetEntPropFloat(client, Prop_Send, "m_flFOVRate", 0.0);
 }

@@ -2,15 +2,6 @@
 {
 	"left4dead"
 	{
-		"Offsets"
-		{
-			"m_bShowViewModel"
-			{
-				"linux"		"2364"
-				"windows"	"2344"
-			}
-		}
-		
 		"Signatures"
 		{
 			"CBasePlayer::SetViewEntity"
@@ -25,15 +16,6 @@
 	
 	"left4dead2"
 	{
-		"Offsets"
-		{
-			"m_bShowViewModel"
-			{
-				"linux"		"6856"
-				"windows"	"6860"
-			}
-		}
-		
 		"Signatures"
 		{
 			"CBasePlayer::SetViewEntity"
