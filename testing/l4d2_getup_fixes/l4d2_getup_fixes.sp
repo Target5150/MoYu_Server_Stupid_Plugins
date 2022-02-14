@@ -8,7 +8,7 @@
 #undef REQUIRE_PLUGIN
 #include <godframecontrol>
 
-#define PLUGIN_VERSION "2.0"
+#define PLUGIN_VERSION "2.1"
 
 public Plugin myinfo = 
 {
@@ -110,7 +110,9 @@ public void OnPluginStart()
 	cvar_keepWallSlamLongGetUp = CreateConVar("charger_keep_wall_charge_animation", "1", "Enable the long wall slam animation (with god frames)");
 	cvar_keepLongChargeLongGetUp = CreateConVar("charger_keep_far_charge_animation", "0", "Enable the long 'far' slam animation (with god frames)");
 	
-	HookEvent("player_team", Event_PlayerTeam);
+	HookEvent("round_start", Event_RoundStart);
+	HookEvent("player_bot_replace", Event_PlayerBotReplace);
+	HookEvent("bot_player_replace", Event_BotPlayerReplace);
 	HookEvent("revive_success", Event_ReviveSuccess);
 	HookEvent("tongue_release", Event_TongueRelease);
 	HookEvent("pounce_end", Event_PounceEnd);
@@ -139,17 +141,62 @@ public void OnClientPutInServer(int client)
 	SDKHook(client, SDKHook_OnTakeDamage, SDK_OnTakeDamage);
 }
 
-void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
+void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {
-	int client = GetClientOfUserId(event.GetInt("userid"));
-	if (client)
+	for (int i = 1; i <= MaxClients; ++i)
 	{
-		g_iChargerVictim[client] = -1;
-		g_iChargerAttacker[client] = -1;
-		g_iQueuedGetupType[client] = 0;
-		g_bLongCharged[client] = false;
+		g_iChargerVictim[i] = -1;
+		g_iChargerAttacker[i] = -1;
+		g_iQueuedGetupType[i] = 0;
+		g_bLongCharged[i] = false;
 	}
 }
+
+void Event_PlayerBotReplace(Event event, const char[] name, bool dontBroadcast)
+{
+	int replacer = GetClientOfUserId(event.GetInt("bot"));
+	int replacee = GetClientOfUserId(event.GetInt("userid"));
+	if (replacer && replacee)
+		HandlePlayerReplace(replacer, replacee);
+}
+
+void Event_BotPlayerReplace(Event event, const char[] name, bool dontBroadcast)
+{
+	int replacer = GetClientOfUserId(event.GetInt("userid"));
+	int replacee = GetClientOfUserId(event.GetInt("bot"));
+	if (replacer && replacee)
+		HandlePlayerReplace(replacer, replacee);
+}
+
+void HandlePlayerReplace(int replacer, int replacee)
+{
+	if (GetClientTeam(replacer) == 3)
+	{
+		if (g_iChargerVictim[replacee] != -1)
+		{
+			g_iChargerVictim[replacer] = g_iChargerVictim[replacee];
+			g_iChargerAttacker[g_iChargerVictim[replacee]] = replacer;
+			g_iChargerVictim[replacee] = -1;
+		}
+	}
+	else
+	{
+		if (g_iChargerAttacker[replacee] != -1)
+		{
+			g_iChargerAttacker[replacer] = g_iChargerAttacker[replacee];
+			g_iChargerVictim[g_iChargerAttacker[replacee]] = replacer;
+			g_iChargerAttacker[replacee] = -1;
+		}
+		
+		g_iQueuedGetupType[replacer] = 0;
+		g_bLongCharged[replacer] = false;
+	}
+}
+
+
+/*
+ * Survivor Incap
+ */
 
 void Event_ReviveSuccess(Event event, const char[] name, bool dontBroadcast)
 {
