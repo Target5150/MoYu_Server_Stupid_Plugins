@@ -8,7 +8,7 @@
 #undef REQUIRE_PLUGIN
 #include <godframecontrol>
 
-#define PLUGIN_VERSION "2.3"
+#define PLUGIN_VERSION "2.4"
 
 public Plugin myinfo = 
 {
@@ -55,13 +55,11 @@ methodmap CTerrorPlayerAnimState
 bool
 	g_bLateLoad;
 
-bool
-	g_bLongCharged[MAXPLAYERS+1];
-
 int
 	g_iChargerVictim[MAXPLAYERS+1],
 	g_iChargerAttacker[MAXPLAYERS+1],
-	g_iQueuedGetupType[MAXPLAYERS+1];
+	g_iQueuedGetupType[MAXPLAYERS+1],
+	g_iLongChargedGetup[MAXPLAYERS+1];
 
 ConVar
 	g_hChargeDuration,
@@ -142,7 +140,7 @@ public void OnClientPutInServer(int client)
 	g_iChargerVictim[client] = -1;
 	g_iChargerAttacker[client] = -1;
 	g_iQueuedGetupType[client] = 0;
-	g_bLongCharged[client] = false;
+	g_iLongChargedGetup[client] = 0;
 		
 	SDKHook(client, SDKHook_OnTakeDamage, SDK_OnTakeDamage);
 }
@@ -154,7 +152,7 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 		g_iChargerVictim[i] = -1;
 		g_iChargerAttacker[i] = -1;
 		g_iQueuedGetupType[i] = 0;
-		g_bLongCharged[i] = false;
+		g_iLongChargedGetup[i] = 0;
 	}
 }
 
@@ -195,7 +193,7 @@ void HandlePlayerReplace(int replacer, int replacee)
 		}
 		
 		g_iQueuedGetupType[replacer] = 0;
-		g_bLongCharged[replacer] = false;
+		g_iLongChargedGetup[replacer] = 0;
 	}
 }
 
@@ -296,17 +294,20 @@ void Event_ChargerKilled(Event event, const char[] name, bool dontBroadcast)
 			{
 				g_iQueuedGetupType[victim] = 2;
 				
-				if( (!cvar_keepWallSlamLongGetUp.BoolValue && !g_bLongCharged[victim]) 
-					|| (!cvar_keepLongChargeLongGetUp.BoolValue && g_bLongCharged[victim]) )
+				if (g_iLongChargedGetup[victim])
 				{
-					RequestFrame(OnNextFrame_OverrideAnimation, GetClientUserId(victim));
-					//PrintToChatAll("No long animation (isLong = %s)", g_bLongCharged[victim] ? "true" : "false");
-					GiveClientGodFrames(victim, g_hChargeDuration.FloatValue, 6);
-				}
-				else
-				{
-					//PrintToChatAll("Yes long animation (isLong = %s)", g_bLongCharged[victim] ? "true" : "false");
-					GiveClientGodFrames(victim, g_hLongChargeDuration.FloatValue, 6);
+					if( (!cvar_keepWallSlamLongGetUp.BoolValue && g_iLongChargedGetup[victim] == 1) 
+						|| (!cvar_keepLongChargeLongGetUp.BoolValue && g_iLongChargedGetup[victim] == 2) )
+					{
+						RequestFrame(OnNextFrame_OverrideAnimation, GetClientUserId(victim));
+						//PrintToChatAll("No long animation (isLong = %s)", g_iLongChargedGetup[victim] == 2 ? "true" : "false");
+						GiveClientGodFrames(victim, g_hChargeDuration.FloatValue, 6);
+					}
+					else
+					{
+						//PrintToChatAll("Yes long animation (isLong = %s)", g_iLongChargedGetup[victim] == 2 ? "true" : "false");
+						GiveClientGodFrames(victim, g_hLongChargeDuration.FloatValue, 6);
+					}
 				}
 			}
 			
@@ -320,7 +321,7 @@ void Event_ChargerKilled(Event event, const char[] name, bool dontBroadcast)
 Action Timer_ResetGetupInfo(Handle timer, int client)
 {
 	g_iQueuedGetupType[client] = 0;
-	g_bLongCharged[client] = false;
+	g_iLongChargedGetup[client] = 0;
 	return Plugin_Stop;
 }
 
@@ -335,7 +336,11 @@ void Event_CarryStart(Event event, const char[] name, bool dontBroadcast)
 void Event_PummelStart(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("victim"));
-	if (client) CTerrorPlayerAnimState(client).ClearAnimationState();
+	if (client)
+	{
+		CTerrorPlayerAnimState(client).ClearAnimationState();
+		g_iLongChargedGetup[client] = 0;
+	}
 }
 
 // Clear all other animation so charger slammed can be played
@@ -350,7 +355,9 @@ void Event_ChargeEnd(Event event, const char[] name, bool dontBroadcast)
 		
 		int ability = GetEntPropEnt(client, Prop_Send, "m_customAbility");
 		if (GetGameTime() - GetEntPropFloat(ability, Prop_Send, "m_chargeStartTime") >= z_charge_duration.FloatValue)
-			g_bLongCharged[g_iChargerVictim[client]] = true;
+			g_iLongChargedGetup[g_iChargerVictim[client]] = 2;
+		else
+			g_iLongChargedGetup[g_iChargerVictim[client]] = 1;
 		
 		//PrintToChatAll("Event_ChargeEnd: %N", client);
 		RequestFrame(OnNextFrame_OverrideAnimation, GetClientUserId(g_iChargerVictim[client]));
@@ -402,7 +409,7 @@ void OnNextFrame_OverrideAnimation(int userid)
 		
 		int animation;
 		if (g_iChargerAttacker[client] != -1 && GetEntPropEnt(client, Prop_Send, "m_pummelAttacker") == -1)
-			animation = !g_bLongCharged[client] ?
+			animation = g_iLongChargedGetup[client] == 1 ?
 					 80 // ANIM_CHARGER_SLAMMED
 					: 81; // ANIM_CHARGER_LONG_SLAMMED
 		else if (g_iQueuedGetupType[client] == 1)
