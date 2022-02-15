@@ -8,7 +8,7 @@
 #undef REQUIRE_PLUGIN
 #include <godframecontrol>
 
-#define PLUGIN_VERSION "2.1"
+#define PLUGIN_VERSION "2.2"
 
 public Plugin myinfo = 
 {
@@ -394,7 +394,7 @@ void OnNextFrame_OverrideAnimation(int userid)
 		
 		int animation;
 		if (g_iChargerAttacker[client] != -1 && GetEntPropEnt(client, Prop_Send, "m_pummelAttacker") == -1)
-			animation = g_bLongCharged[client] ?
+			animation = !g_bLongCharged[client] ?
 					 80 // ANIM_CHARGER_SLAMMED
 					: 81; // ANIM_CHARGER_LONG_SLAMMED
 		else if (g_iQueuedGetupType[client] == 1)
