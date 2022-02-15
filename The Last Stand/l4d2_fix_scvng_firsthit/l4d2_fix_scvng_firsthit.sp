@@ -3,9 +3,10 @@
 
 #include <sourcemod>
 #include <sdktools_gamerules>
+#include <sdkhooks>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "1.1"
+#define PLUGIN_VERSION "1.3"
 
 public Plugin myinfo =
 {
@@ -39,8 +40,20 @@ public void OnPluginStart()
 	
 	g_cvAllow = CreateConVar("l4d2_scvng_firsthit_shuffle", "0", "Shuffle first hit classes.\nValue: 1 = Shuffle every round, 2 = Shuffle every match, 0 = Disable.", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 2.0);
 	
+	HookEvent("player_team", Event_PlayerTeam);
 	HookEvent("round_start_pre_entity", Event_RoundStartPreEntity, EventHookMode_PostNoCopy);
 	HookEvent("player_transitioned", Event_PlayerTransitioned);
+}
+
+void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
+{
+	if (!L4D2_IsScavengeMode()) return;
+	
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	if (client && event.GetInt("oldteam") == 3)
+	{
+		ResetClassSpawnSystem(client);
+	}
 }
 
 void Event_RoundStartPreEntity(Event event, const char[] name, bool dontBroadcast)
@@ -49,9 +62,9 @@ void Event_RoundStartPreEntity(Event event, const char[] name, bool dontBroadcas
 	
 	for (int i = 1; i <= MaxClients; ++i)
 	{
-		if (IsClientInGame(i) && !IsFakeClient(i))
+		if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) != 1)
 		{
-			ResetClassSpawnSystem(i);
+			SDKHook(i, SDKHook_Spawn, SDK_OnSpawn);
 		}
 	}
 	
@@ -60,6 +73,14 @@ void Event_RoundStartPreEntity(Event event, const char[] name, bool dontBroadcas
 		SetRandomSeed(GetTime());
 		CDirector_SetFirstClassIndex(GetRandomInt(1, 6));
 	}
+}
+
+Action SDK_OnSpawn(int entity)
+{
+	ResetClassSpawnSystem(entity);
+	SDKUnhook(entity, SDKHook_Spawn, SDK_OnSpawn);
+	
+	return Plugin_Continue;
 }
 
 void Event_PlayerTransitioned(Event event, const char[] name, bool dontBroadcast)
