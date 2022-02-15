@@ -8,7 +8,7 @@
 #undef REQUIRE_PLUGIN
 #include <godframecontrol>
 
-#define PLUGIN_VERSION "2.2"
+#define PLUGIN_VERSION "2.3"
 
 public Plugin myinfo = 
 {
@@ -23,13 +23,15 @@ public Plugin myinfo =
 #define KEY_ANIMSTATE "CTerrorPlayerAnimState::m_hAnimState"
 #define KEY_CLEARANIMATIONSTATE "CTerrorPlayerAnimState::ClearAnimationState"
 #define KEY_RESTARTMAINSEQUENCE "CTerrorPlayerAnimState::RestartMainSequence"
-#define KEY_ISGETTINGUP "CTerrorPlayer::IsGettingUp"
+#define KEY_QUEUEDPUMMELATTACKER "CTerrorPlayer->m_queuedPummelAttacker"
 
 Handle
 	g_hSDKCall_ClearAnimationState,
 	g_hSDKCall_RestartMainSequence;
 
-int m_hAnimState;
+int
+	m_hAnimState,
+	m_queuedPummelAttacker;
 
 methodmap CTerrorPlayerAnimState
 {
@@ -82,6 +84,10 @@ void LoadSDK()
 	m_hAnimState = GameConfGetOffset(conf, KEY_ANIMSTATE);
 	if (m_hAnimState == -1)
 		SetFailState("Missing offset \""...KEY_ANIMSTATE..."\"");
+	
+	m_queuedPummelAttacker = GameConfGetOffset(conf, KEY_QUEUEDPUMMELATTACKER);
+	if (m_queuedPummelAttacker == -1)
+		SetFailState("Missing offset \""...KEY_QUEUEDPUMMELATTACKER..."\"");
 	
 	StartPrepSDKCall(SDKCall_Raw);
 	if (!PrepSDKCall_SetFromConf(conf, SDKConf_Virtual, KEY_CLEARANIMATIONSTATE))
@@ -229,11 +235,13 @@ void Event_TongueRelease(Event event, const char[] name, bool dontBroadcast)
  * Hunter
  */
 // Remind that the victim was pounced and should be in hunter get-up
+// v2.3: check for pouncing into charger carry victims
 void Event_PounceEnd(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("victim"));
-	if (client)
+	if (client && GetQueuedPummelAttacker(client) != -1)
 	{
+		//PrintToChatAll("Event_PounceEnd: %N", client);
 		g_iQueuedGetupType[client] = 1;
 		RequestFrame(OnNextFrame_OverrideAnimation, GetClientUserId(client));
 		CreateTimer(0.04, Timer_ResetGetupInfo, client);
@@ -246,7 +254,7 @@ void Event_LungePounce(Event event, const char[] name, bool dontBroadcast)
 	int client = GetClientOfUserId(event.GetInt("victim"));
 	if (client)
 	{
-		if (GetEntProp(client, Prop_Send, "m_carryAttacker") != -1 || g_iChargerAttacker[client] != -1)
+		if (g_iChargerAttacker[client] != -1)
 		{
 			CTerrorPlayerAnimState(client).ClearAnimationState();
 			L4D2Direct_DoAnimationEvent(client, 80); // ANIM_CHARGER_SLAMMED
@@ -420,4 +428,9 @@ public Action L4D_TankClaw_OnPlayerHit_Pre(int tank, int claw, int player)
 	}
 	
 	return Plugin_Continue;
+}
+
+stock int GetQueuedPummelAttacker(int client)
+{
+	return GetEntDataEnt2(client, m_queuedPummelAttacker);
 }

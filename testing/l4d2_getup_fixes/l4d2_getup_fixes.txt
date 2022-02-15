@@ -32,6 +32,43 @@
 				"linux"		"14"
 				"windows"	"14"
 			}
+			
+			/* @A1m`:
+			 * It cannot be simply found using sourcemod, 
+			 * now there is a problem with this plugin, it can break after every update. 
+			 * Need to check this every update.
+			 * I need to add game data here to make it easier to fix.
+			 *
+			 * After the last update, all offsets in the class 'CTerrorPlayer' changed to offset - 32,
+			 * which proves that we found it right (old offset 15988 -32 = 15956)
+			 *
+			 * How can find this:
+			 * function 'CTerrorPlayer::OnPummelEnded' the very end:
+			 *
+			 *        v37 = *((_DWORD *)this + 3757);
+			 *        *((_DWORD *)this + 3989) = -1; 									//we need to find this line 3989. 3989*4=15956
+			 *        result = (*(int (__fastcall **)(void *))(v37 + 248))(v35);
+			 *        if ( !*((_BYTE *)this + 14833) )
+			 *          result = CTerrorPlayer::WarpToValidPositionIfStuck();
+			 *
+			 * How to find it on windows: 
+			 * We need to find the string "charger_pummel_end",
+			 * this will point to a function 'CTerrorPlayer::OnPummelEnded' in windows.
+			 * function 'CTerrorPlayer::OnPummelEnded' the very end:
+			 *
+			 *        v3[3994] = -1;													//we need to find this line 3994. 3994*4=15976
+			 *        (*(void (**)(void))(v3[3762] + 244))();
+			 *        sub_102FB440(v3);
+			 *
+			 *        //sub_102FB440 this is a function WarpToValidPositionIfStuck(), click on it there should be a line at the end
+			 *        //DevMsg("unsticking %s from %.1f %.1f %.1f to %.1f %.1f %.1f\n", v5); 
+			 *        //if it is, then you have found the right place
+			 */
+			"CTerrorPlayer->m_queuedPummelAttacker"
+			{
+				"linux"		"15956"
+				"windows"	"15976"
+			}
 		}
 	}
 }
