@@ -2,7 +2,7 @@
 
 ### Introduction
 - Straight patch out cases of "bending too many times" that unexpectedly breaks tongue.
-- Tested only on L4D2 Linux.
+  - This feature also affects "self-clearing" using props (i.e. gascans).
 
 <hr>
 
