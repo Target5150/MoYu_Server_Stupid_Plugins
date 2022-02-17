@@ -7,7 +7,7 @@
 #include <dhooks>
 #include <sourcescramble>
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo = 
 {
@@ -152,7 +152,6 @@ Action SDK_OnThink(int entity)
 	
 	dp = new DataPack();
 	dp.WriteCell(entity);
-	dp.WriteCell(GetEntPropEnt(entity, Prop_Send, "m_hThrower"));
 	DataPackPos pos = dp.Position;
 	
 	for (int i = 1; i <= MaxClients; ++i)
@@ -231,7 +230,7 @@ bool ComputeClosestPoint(const float vLastPos[3], const float vPos[3], const flo
 bool ProximityThink_TraceFilterList(int entity, int contentsMask, DataPack dp)
 {
 	dp.Reset();
-	if (entity == dp.ReadCell() || entity == dp.ReadCell() || entity == dp.ReadCell())
+	if (entity == dp.ReadCell() || entity == dp.ReadCell())
 		return false;
 	
 	if (entity > 0 && entity <= MaxClients && GetClientTeam(entity) == 3)
