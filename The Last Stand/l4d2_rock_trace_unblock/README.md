@@ -16,4 +16,6 @@
 <hr>
 
 ### Changelog
+(v1.1 2022/2/18 UTC+8) Prevent rock detonating on close survivors
+
 (v1.0 2022/2/18 UTC+8) Initial release.
