@@ -7,7 +7,7 @@
 #include <dhooks>
 #include <sourcescramble>
 
-#define PLUGIN_VERSION "1.1"
+#define PLUGIN_VERSION "1.2"
 
 public Plugin myinfo = 
 {
@@ -105,11 +105,7 @@ void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue
 void GetCvars()
 {
 	g_iFlags = g_cvFlags.IntValue;
-	
-	if (g_iFlags)
-		g_hPatch_ForEachPlayer.Enable();
-	else
-		g_hPatch_ForEachPlayer.Disable();
+	ApplyPatch(g_iFlags > 0);
 	
 	g_fRockRadiusSquared = z_tank_rock_radius.FloatValue * z_tank_rock_radius.FloatValue;
 	if (L4D2_HasConfigurableDifficultySetting())
@@ -123,6 +119,14 @@ void GetCvars()
 		if (strcmp(buffer, "Easy") == 0)
 			g_fRockRadiusSquared *= 0.75;
 	}
+}
+
+void ApplyPatch(bool patch)
+{
+	if (patch)
+		g_hPatch_ForEachPlayer.Enable();
+	else
+		g_hPatch_ForEachPlayer.Disable();
 }
 
 public Action L4D_TankRock_OnRelease(int tank, int rock, float vecPos[3], float vecAng[3], float vecVel[3], float vecRot[3])
@@ -172,12 +176,15 @@ Action SDK_OnThink(int entity)
 			
 			if (!TR_DidHit(tr) && TR_GetFraction(tr) >= 1.0)
 			{
+				SetAbsOrigin(entity, vOrigin);
+				
 				int hunter = GetEntPropEnt(i, Prop_Send, "m_pounceAttacker");
 				if (hunter != -1)
 				{
 					BounceTouch(entity, hunter);
 				}
 				BounceTouch(entity, i);
+				
 				break;
 			}
 			
