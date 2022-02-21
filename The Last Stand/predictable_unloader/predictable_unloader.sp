@@ -53,8 +53,8 @@
 public Plugin myinfo = 
 {
 	name = "Predictable Plugin Unloader",
-	author = "Sir (heavily influenced by keyCat)",
-	version = "1.3.0",
+	author = "Sir (heavily influenced by keyCat), Forgetest",
+	version = "1.4.0",
 	description = "Allows for unloading plugins from last to first."
 }
 
@@ -68,7 +68,7 @@ public void OnPluginEnd()
 	ServerCommand("sm plugins refresh");
 }
 
-public Action UnloadPlugins(int args) 
+Action UnloadPlugins(int args) 
 {
 	ArrayStack aReservedPlugins = new ArrayStack();
 	
@@ -79,8 +79,11 @@ public Action UnloadPlugins(int args)
 	// - Supports moving the plugin to another folder. (INVALID_HANDLE simply gets the calling plugin)
 	Handle myself = GetMyHandle();
 
-	// Ourself as the last to unload.
-	PushStackCell(aReservedPlugins, myself);
+	if (args == -1)
+	{
+		// Ourself as the last to unload.
+		aReservedPlugins.Push(myself);
+	}
 
 	while (MorePlugins(pluginIterator))
 	{
@@ -88,7 +91,7 @@ public Action UnloadPlugins(int args)
 
 		// Prevent double pushing.
 		if (currentPlugin != myself) {
-			PushStackCell(aReservedPlugins, currentPlugin);
+			aReservedPlugins.Push(currentPlugin);
 		}
 	}
 	
@@ -104,5 +107,17 @@ public Action UnloadPlugins(int args)
 		ServerCommand("sm plugins unload %s", sReserved);
 	}
 	
-	delete aReservedPlugins; // I have no idea whether this can be reached, whatever.
+	delete aReservedPlugins;
+	
+	if (args != -1)
+	{
+		RequestFrame(OnNextFrame_DoubleCheck);
+	}
+	
+	return Plugin_Handled;
+}
+
+void OnNextFrame_DoubleCheck()
+{
+	UnloadPlugins(-1);
 }
