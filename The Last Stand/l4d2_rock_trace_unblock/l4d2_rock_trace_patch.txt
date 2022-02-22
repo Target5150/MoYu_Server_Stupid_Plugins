@@ -1,0 +1,73 @@
+"Games"
+{
+	"left4dead2"
+	{
+		"MemPatches"
+		{
+			"ForEachPlayer_ProximityThink__TraceFilter_ctorCall"
+			{
+				"signature"		"ForEachPlayer_ProximityCheck"
+				"linux"
+				{
+					"offset"	"571h"
+					"verify"	"\xE8"
+					"patch"		"\x90\x90\x90\x90\x90"
+				}
+				"windows"
+				{
+					"offset"	"1BAh"
+					"verify"	"\xE8"
+					"patch"		"\x90\x90\x90\x90\x90"
+				}
+			}
+		}
+		
+		"Addresses"
+		{
+			"ForEachPlayer_ProximityThink__TraceFilter_ctorStackPtr"
+			{
+				"signature"		"ForEachPlayer_ProximityCheck"
+				"linux"
+				{
+					"read"		"1378"
+				}
+				"windows"
+				{
+					"read"		"438"
+				}
+			}
+			
+			"CVomit::UpdateAbility__NoInfectedTeamOrGhosts_vtablePtr"
+			{
+				"signature"		"CVomit::UpdateAbility"
+				"linux"
+				{
+					"read"		"1784"
+				}
+				"windows"
+				{
+					"read"		"1169"
+				}
+			}
+		}
+		
+		"Signatures"
+		{
+			"CVomit::UpdateAbility"
+			{
+				"library"		"server"
+				"linux"			"@_ZN6CVomit13UpdateAbilityEv"
+				"windows"		"\x55\x8B\xEC\x81\xEC\x2A\x2A\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x33\x2A\x89\x2A\x2A\x53\x56\x57\x8B\x2A\x8B\x2A\x2A\x2A\x2A\x2A\x83"
+				/* 55 8B EC 81 EC ? ? ? ? A1 ? ? ? ? 33 ? 89 ? ? 53 56 57 8B ? 8B ? ? ? ? ? 83 */
+			}
+			
+			"ForEachPlayer_ProximityCheck"
+			{
+				"library"		"server"
+				"linux"			"@_Z13ForEachPlayerI14ProximityCheckEbRT_"
+				"windows"		"\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x33\x2A\x89\x2A\x2A\x56\x8B\x2A\x2A\x57\x8B\x2A\x85\x2A\x74"
+				/* ? ? ? ? ? ? ? ? ? A1 ? ? ? ? 33 ? 89 ? ? 56 8B ? ? 57 8B ? 85 ? 74 */
+			}
+		}
+	}
+}
