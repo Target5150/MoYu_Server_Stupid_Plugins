@@ -199,9 +199,14 @@ Action SDK_OnThink(int entity)
 }
 
 /**
- * @brief Valve's built-in function to get a closest point to potential rock victim.
+ * @brief Valve's built-in function to get closest points to potential rock victims.
+ *
+ * @param vLastPos		Last recorded position of moving object.
+ * @param vPos			Current position of moving object.
+ * @param vTargetPos	Target position to test.
+ * @param result		Vector to store the result.
  * 
- * @return		True if motion entity is bypassing the target position, false if any other situation.
+ * @return				True if the closest point (for this moment), false otherwise.
  */
 
 bool ComputeClosestPoint(const float vLastPos[3], const float vPos[3], const float vTargetPos[3], float result[3])
@@ -227,7 +232,7 @@ bool ComputeClosestPoint(const float vLastPos[3], const float vPos[3], const flo
 			return false;
 		}
 	}
-	else // seems like valve risks potential hitting for tiny performance?
+	else // seems to potentially risk a hit, for tiny performance?
 	{
 		result = vLastPos;
 		return false;

@@ -31,15 +31,20 @@ public void OnPluginStart()
 	MemoryPatch hPatch = MemoryPatch.CreateFromConf(conf, KEY_CTORCALL);
 	if (!hPatch.Validate()) SetFailState("Failed to validate patch \""...KEY_CTORCALL..."\"");
 	
+	// relative addressing `CTraceFilterSimpleList()`
 	Address addy = hPatch.Address + view_as<Address>(JMP_NEAR_LEN)
 					+ LoadFromAddress(hPatch.Address + view_as<Address>(1), NumberType_Int32);
 	
 	MemoryBlock hAlloc = new MemoryBlock(MOV_INDIRECT_REG_IMM32_LEN + JMP_NEAR_LEN * 2);
-	PatchNearJump(0xE8, hAlloc.Address, addy);
 	
+	// Patch original call to a jump to our block
 	if (!hPatch.Enable()) SetFailState("Failed to enable patch \""...KEY_CTORCALL..."\"");
 	PatchNearJump(0xE9, hPatch.Address, hAlloc.Address);
 	
+	// First call the constructor
+	PatchNearJump(0xE8, hAlloc.Address, addy); 
+	
+	// Then change its virtual function `ShouldHitEntity`
 	// mov [ebp+?], imm32
 	hAlloc.StoreToOffset(JMP_NEAR_LEN, 0xC7, NumberType_Int8);
 	hAlloc.StoreToOffset(JMP_NEAR_LEN + 1, 0x85, NumberType_Int8);
@@ -52,6 +57,7 @@ public void OnPluginStart()
 	if (addy == Address_Null) SetFailState("Failed to get address \""...KEY_VTABLEPTR..."\"");
 	hAlloc.StoreToOffset(JMP_NEAR_LEN + 6, view_as<int>(addy), NumberType_Int32);
 	
+	// Finally go back
 	PatchNearJump(0xE9, hAlloc.Address + view_as<Address>(MOV_INDIRECT_REG_IMM32_LEN + JMP_NEAR_LEN), hPatch.Address + view_as<Address>(JMP_NEAR_LEN));
 }
 
