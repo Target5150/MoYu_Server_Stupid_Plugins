@@ -1,3 +1,5 @@
+# Deprecated. See [l4d2_spit_spread_patch](https://github.com/Target5150/MoYu_Server_Stupid_Plugins/tree/master/The%20Last%20Stand/l4d2_spit_spread_patch)
+
 # Checkpoint Spit Control
 
 ### Introduction
