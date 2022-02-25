@@ -2,12 +2,12 @@
 
 ### Introduction
 - Fix various spit spread issues.
-	1. Spit bursts under entities rather than on their surfaces.
-	2. Spit doesn't spread on entities (i.e. in elevator).
+	1. Spit bursts under props rather than on their surfaces.
+	2. Spit doesn't spread on certain props (i.e. in elevator, on some stairs).
 	3. Spit doesn't spread in saferoom/area.
 		- Optional feature, controls provided to turn it off accordingly.
-	4. Death spit doesn't land (game insists to create it whilst the trace fails to ground).
-		- Fix is not there but a ConVar is provided to modify the trace length.
+	4. Death spit becomes invisible (game insists to create it even if the trace misses).
+		- Fix is not there but a `ConVar` is provided to modify the trace length.
 
 <hr>
 
