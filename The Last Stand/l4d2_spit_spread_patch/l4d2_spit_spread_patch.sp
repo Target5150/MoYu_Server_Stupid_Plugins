@@ -8,7 +8,7 @@
 #include <sourcescramble>
 #include <collisionhook>
 
-#define PLUGIN_VERSION "1.1"
+#define PLUGIN_VERSION "1.2"
 
 public Plugin myinfo = 
 {
@@ -30,7 +30,7 @@ public Plugin myinfo =
 
 MemoryBlock g_hAlloc_TraceHeight;
 
-ConVar g_cvSaferoomSpread, g_cvDeathSpitTraceHeight;
+ConVar g_cvSaferoomSpread, g_cvTraceHeight;
 StringMap g_smNoSpreadMaps;
 bool g_bSaferoomSpread;
 
@@ -102,7 +102,7 @@ public void OnPluginStart()
 							FCVAR_NOTIFY|FCVAR_SPONLY,
 							true, 0.0, true, 2.0);
 	
-	g_cvDeathSpitTraceHeight = CreateConVar(
+	g_cvTraceHeight = CreateConVar(
 							"l4d2_deathspit_trace_height",
 							"240.0",
 							"Decides the height the game trace will try to test for death spits.\n"
@@ -110,8 +110,8 @@ public void OnPluginStart()
 							FCVAR_NOTIFY|FCVAR_SPONLY,
 							true, 0.0);
 	
-	g_cvDeathSpitTraceHeight.AddChangeHook(OnTraceHeightConVarChanged);
-	OnTraceHeightConVarChanged(g_cvDeathSpitTraceHeight, "", "");
+	g_cvTraceHeight.AddChangeHook(OnTraceHeightConVarChanged);
+	OnTraceHeightConVarChanged(g_cvTraceHeight, "", "");
 	
 	g_smNoSpreadMaps = new StringMap();
 	RegServerCmd("spit_spread_saferoom_except", SetSaferoomSpitSpreadException);
@@ -210,7 +210,7 @@ Action SDK_OnThink(int entity)
 			float vEnd[3];
 			TR_GetEndPosition(vEnd, tr);
 			
-			if (vPos[2] - vEnd[2] >= 46.0) // seems like the max height a puddle can be forced to ground.
+			if (vPos[2] - vEnd[2] >= g_cvTraceHeight.FloatValue + 46.0) // seems like the max height a puddle can be forced to ground.
 			{
 				// TODO: remove entity to avoid confusion due to sound?
 				SetEntProp(entity, Prop_Send, "m_fireCount", 1);
