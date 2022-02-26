@@ -8,7 +8,7 @@
 #include <sourcescramble>
 #include <collisionhook>
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo = 
 {
@@ -54,15 +54,15 @@ enum
 	TERROR_NAV_RESCUE_CLOSET = 0x10000,
 	TERROR_NAV_RESCUE_VEHICLE = 0x8000
 }
-int g_iTerrorNavArea_SpawnAttributes;
+int g_iOffs_SpawnAttributes;
 
 public void OnPluginStart()
 {
 	GameData conf = new GameData(GAMEDATA_FILE);
 	if (!conf) SetFailState("Missing gamedata \""...GAMEDATA_FILE..."\"");
 	
-	g_iTerrorNavArea_SpawnAttributes = conf.GetOffset(KEY_SPAWNATTRIBUTES);
-	if (g_iTerrorNavArea_SpawnAttributes == -1) SetFailState("Missing offset \""...KEY_SPAWNATTRIBUTES..."\"");
+	g_iOffs_SpawnAttributes = conf.GetOffset(KEY_SPAWNATTRIBUTES);
+	if (g_iOffs_SpawnAttributes == -1) SetFailState("Missing offset \""...KEY_SPAWNATTRIBUTES..."\"");
 	
 	MemoryPatch hPatch = MemoryPatch.CreateFromConf(conf, KEY_DETONATE_FLAG_PATCH);
 	if (!hPatch.Enable()) SetFailState("Failed to enable patch \""...KEY_DETONATE_FLAG_PATCH..."\"");
@@ -131,8 +131,8 @@ Action SetSaferoomSpitSpreadException(int args)
 	}
 	
 	char map[64];
-	GetCmdArg(1, map, sizeof map);
-	String_ToLower(map);
+	GetCmdArg(1, map, sizeof(map));
+	String_ToLower(map, sizeof(map));
 	g_smNoSpreadMaps.SetValue(map, false);
 	
 	return Plugin_Handled;
@@ -157,7 +157,7 @@ public void OnMapStart()
 
 public void OnEntityCreated(int entity, const char[] classname)
 {
-	if (classname[6] == '_' && classname[0] == 'i' && strcmp(classname, "insect_swarm") == 0)
+	if (classname[6] == '_' && strcmp(classname, "insect_swarm") == 0)
 	{
 		SDKHook(entity, SDKHook_SpawnPost, SDK_OnSpawnPost);
 	}
@@ -175,27 +175,59 @@ Action SDK_OnThink(int entity)
 		m_fireSpread = FindSendPropInfo("CInsectSwarm", "m_fireCount") + 356;
 	
 	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-	if (owner != -1 && GetEntData(entity, m_fireSpread, 4) == 2) // 2 -> don't spread (likely)
+	if (owner != -1 && GetEntProp(owner, Prop_Send, "m_zombieClass") == 4 && IsPlayerAlive(owner))
 	{
-		if (!g_bSaferoomSpread)
+		if (GetEntData(entity, m_fireSpread, 4) == 2) // 2 -> don't spread (likely)
 		{
-			float vPos[3];
-			GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", vPos);
-			
-			int nav = L4D_GetNearestNavArea(vPos);
-			if (nav == 0 || ~TerrorNavArea_GetSpawnAttributes(nav) & TERROR_NAV_CHECKPOINT)
+			if (!g_bSaferoomSpread)
 			{
-				SetEntData(entity, m_fireSpread, IsPlayerAlive(owner) ? 10 : 2, 4); // 10 -> spit spread (likely)
+				float vPos[3];
+				GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", vPos);
+				
+				int nav = L4D_GetNearestNavArea(vPos);
+				if (nav == 0 || ~TerrorNavArea_GetSpawnAttributes(nav) & TERROR_NAV_CHECKPOINT)
+				{
+					SetEntData(entity, m_fireSpread, 10, 4); // 10 -> spit spread (likely)
+				}
+			}
+			else
+			{
+				SetEntData(entity, m_fireSpread, 10, 4); // 10 -> spit spread (likely)
 			}
 		}
-		else
+	}
+	else
+	{
+		float vPos[3];
+		GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", vPos);
+		vPos[2] += 10.0;
+		
+		Handle tr = TR_TraceRayFilterEx(vPos, view_as<float>({90.0, 0.0, 0.0}), MASK_SHOT, RayType_Infinite, TraceRayFilter_NoPlayers, entity);
+		if (TR_DidHit(tr))
 		{
-			SetEntData(entity, m_fireSpread, IsPlayerAlive(owner) ? 10 : 2, 4); // 10 -> spit spread (likely)
+			vPos[2] -= 10.0;
+			
+			float vEnd[3];
+			TR_GetEndPosition(vEnd, tr);
+			
+			if (vPos[2] - vEnd[2] >= 46.0) // seems like the max height a puddle can be forced to ground.
+			{
+				// TODO: remove entity to avoid confusion due to sound?
+				SetEntProp(entity, Prop_Send, "m_fireCount", 1);
+				L4D2Direct_SetInfernoMaxFlames(entity, 1);
+			}
 		}
+		
+		delete tr;
 	}
 	
 	SDKUnhook(entity, SDKHook_Think, SDK_OnThink);
 	return Plugin_Continue;
+}
+
+bool TraceRayFilter_NoPlayers(int entity, int contentsMask, any self)
+{
+	return entity != self && (!entity || entity > MaxClients);
 }
 
 int g_iDetonateObj = -1;
@@ -215,7 +247,12 @@ public Action CH_PassFilter(int touch, int pass, bool &result)
 {
 	static char cls[64], touch_cls[64];
 	
+	// 1. (pass = projectile): detonate
+	// 2. (pass = spitter): death spit
+	// 3. (pass = insect_swarm): spit spread
+	
 	if( pass == g_iDetonateObj
+		|| (pass <= MaxClients && GetClientTeam(pass) == 3 && GetEntProp(pass, Prop_Send, "m_zombieClass") == 4 && !IsPlayerAlive(pass))
 		|| (GetEdictClassname(pass, cls, sizeof(cls)) && strcmp(cls, "insect_swarm") == 0) )
 	{
 		if (touch > MaxClients)
@@ -234,18 +271,25 @@ public Action CH_PassFilter(int touch, int pass, bool &result)
 
 stock int TerrorNavArea_GetSpawnAttributes(int nav)
 {
-	return LoadFromAddress(view_as<Address>(nav + g_iTerrorNavArea_SpawnAttributes), NumberType_Int32);
+	return LoadFromAddress(view_as<Address>(nav + g_iOffs_SpawnAttributes), NumberType_Int32);
 }
 
 stock int GetCurrentMapLower(char[] buffer, int maxlength)
 {
 	int bytes = GetCurrentMap(buffer, maxlength);
-	String_ToLower(buffer);
+	String_ToLower(buffer, maxlength);
 	return bytes;
 }
 
-stock void String_ToLower(char[] buffer)
+stock void String_ToLower(char[] buffer, int maxlength)
 {
-	int len = strlen(buffer);
-	for (int i = 0; i < len; ++i) buffer[i] = CharToLower(buffer[i]);
+	int len = strlen(buffer); //Сounts string length to zero terminator
+
+	for (int i = 0; i < len && i < maxlength; i++) { //more security, so that the cycle is not endless
+		if (IsCharUpper(buffer[i])) {
+			buffer[i] = CharToLower(buffer[i]);
+		}
+	}
+
+	buffer[len] = '\0';
 }
