@@ -5,10 +5,9 @@
 #include <sdktools>
 #include <sdkhooks>
 #include <left4dhooks>
-#undef REQUIRE_PLUGIN
 #include <godframecontrol>
 
-#define PLUGIN_VERSION "2.4"
+#define PLUGIN_VERSION "2.5"
 
 public Plugin myinfo = 
 {
@@ -340,6 +339,7 @@ void Event_PummelStart(Event event, const char[] name, bool dontBroadcast)
 	{
 		CTerrorPlayerAnimState(client).ClearAnimationState();
 		g_iLongChargedGetup[client] = 0;
+		//PrintToChatAll("Event_PummelStart: %N", client);
 	}
 }
 
@@ -402,7 +402,7 @@ Action SDK_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 void OnNextFrame_OverrideAnimation(int userid)
 {
 	int client = GetClientOfUserId(userid);
-	if (client && GetClientTeam(client) == 2 && IsPlayerAlive(client) && GetEntPropEnt(client, Prop_Send, "m_jockeyAttacker") == -1)
+	if (client && GetClientTeam(client) == 2 && IsPlayerAlive(client) && !L4D_IsPlayerIncapacitated(client) && !L4D_IsPlayerHangingFromLedge(client) && GetEntPropEnt(client, Prop_Send, "m_jockeyAttacker") == -1)
 	{
 		CTerrorPlayerAnimState hAnimState = CTerrorPlayerAnimState(client);
 		hAnimState.ClearAnimationState();
