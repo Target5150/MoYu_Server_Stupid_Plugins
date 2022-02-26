@@ -7,7 +7,8 @@
 	3. Spit doesn't spread in saferoom/area.
 		- Optional feature, controls provided to turn it off accordingly.
 	4. Death spit becomes invisible (game insists to create it even if the trace misses).
-		- Fix is not there but a `ConVar` is provided to modify the trace length.
+		- Approach to disable spit puddle is from [l4d2_fix_deathspit](https://github.com/SirPlease/L4D2-Competitive-Rework/blob/master/addons/sourcemod/scripting/l4d2_fix_deathspit.sp), but improved the detection.
+		- There's also a `ConVar` provided to modify the trace length.
 
 <hr>
 
@@ -30,4 +31,6 @@
 <hr>
 
 ### Changelog
+(v1.1 2022/2/26 UTC+8) Fix death spit.
+
 (v1.0 2022/2/25 UTC+8) Initial release.
