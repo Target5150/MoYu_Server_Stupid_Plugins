@@ -4,6 +4,14 @@
 	{
 		"MemPatches"
 		{
+			/**
+			 * Aiming to change the trace filter
+			 * from `CTraceFilterSimpleList` to `CTraceFilterSimpleNoInfectedTeamOrGhosts`,
+			 * so the game don't take infected teammates as obstacles against rock landing.
+			 */
+			
+			/**< Patch the call to a jump to our function block */
+			// Given that jump near is relatively addressing, patch is completed in plugin.
 			"ForEachPlayer_ProximityThink__TraceFilter_ctorCall"
 			{
 				"signature"		"ForEachPlayer_ProximityCheck"
@@ -11,19 +19,20 @@
 				{
 					"offset"	"571h"
 					"verify"	"\xE8"
-					"patch"		"\x90\x90\x90\x90\x90"
+					"patch"		"\x90\x90\x90\x90\x90" // NOPs
 				}
 				"windows"
 				{
 					"offset"	"1BAh"
 					"verify"	"\xE8"
-					"patch"		"\x90\x90\x90\x90\x90"
+					"patch"		"\x90\x90\x90\x90\x90" // NOPs
 				}
 			}
 		}
 		
 		"Addresses"
 		{
+			// The stack pointer where this ptr of the trace filter is
 			"ForEachPlayer_ProximityThink__TraceFilter_ctorStackPtr"
 			{
 				"signature"		"ForEachPlayer_ProximityCheck"
@@ -37,6 +46,7 @@
 				}
 			}
 			
+			// Due to how VTable works, we're getting the virtual function pointer here
 			"CVomit::UpdateAbility__NoInfectedTeamOrGhosts_vtablePtr"
 			{
 				"signature"		"CVomit::UpdateAbility"

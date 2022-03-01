@@ -4,6 +4,7 @@
 	{
 		"MemPatches"
 		{
+			// Skip the `ForEachPlayer<ProximityThink>` call as the plugin does it all.
 			"CTankRock::ProximityThink__No_ForEachPlayer"
 			{
 				"signature"		"CTankRock::ProximityThink"
@@ -17,7 +18,7 @@
 				{
 					"offset"	"20Bh"
 					"verify"	"\x8D\x2A\x2A\x52\x89\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x83\x2A\x2A\x84\x2A\x75"
-					"patch"	"\xEB\x0F\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xEB"
+					"patch"		"\xEB\x0F\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\x90\xEB"
 				}
 			}
 		}
