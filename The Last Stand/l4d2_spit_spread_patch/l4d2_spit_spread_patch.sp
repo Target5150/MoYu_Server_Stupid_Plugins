@@ -8,7 +8,7 @@
 #include <sourcescramble>
 #include <collisionhook>
 
-#define PLUGIN_VERSION "1.4"
+#define PLUGIN_VERSION "1.5"
 
 public Plugin myinfo = 
 {
@@ -31,7 +31,7 @@ public Plugin myinfo =
 MemoryBlock g_hAlloc_TraceHeight;
 
 ConVar g_cvSaferoomSpread, g_cvTraceHeight;
-StringMap g_smNoSpreadMaps;
+StringMap g_smNoSpreadMaps, g_smNoDetonatable;
 int g_iSaferoomSpread;
 
 // TerrorNavArea
@@ -125,6 +125,10 @@ public void OnPluginStart()
 	
 	g_smNoSpreadMaps = new StringMap();
 	RegServerCmd("spit_spread_saferoom_except", SetSaferoomSpitSpreadException);
+	
+	g_smNoDetonatable = new StringMap();
+	g_smNoDetonatable.SetValue("infected", 0);
+	g_smNoDetonatable.SetValue("trigger_finale", 0);
 }
 
 void OnTraceHeightConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -229,19 +233,19 @@ Action SDK_OnThink(int entity)
 			// What is invisible death spit? As far as I know it's an issue where the game
 			// traces for solid surfaces within certain height, but regardless of the hitting result.
 			// If the trace misses, the death spit will have its origin set to the trace end.
-			// And if it's at a height over 46 units, it becomes invisible in the air.
+			// And if it's at a height over "46.0" units, it becomes invisible in the air.
 			// Or, if the trace hits Survivors, the death spit is on their head, still invisible.
 			//
-			// Let's say the float "46.0" is the extra range.
+			// Let's say the "46.0" is the extra range.
 			//
-			// Given a case where the spitter jumped at a height greater than the trace length and died,
-			// the death spit sets to be feets above the ground, but it would try to teleport itself
-			// to the surface within units of the ectra range.
+			// Given a case where the spitter jumps at a height greater than the trace length and dies,
+			// the death spit will set to be feets above the ground, but it would try to teleport itself
+			// to the surface within units of the extra range.
 			// 
-			// Then here comes a mystery, that is how it works as I didn't manage to find out,
-			// and it seems it's not using trace either.
+			// Then here comes a mystery, that is how it works like this as I didn't manage to find out,
+			// and it seems not utilizing trace either.
 			// Moreever, thanks to @nikita1824 letting me know that invisible death spit is still there,
-			// it really seems like the self-teleporting shares the same setup as the death spit traces,
+			// it really seems like the self-teleporting is kinda the same as the death spit traces,
 			// which means it doesn't go through Survivors, thus invisible death spit.
 			//
 			// So finally, I have to use `TeleportEntity` on the puddle to prevent this.
@@ -298,7 +302,7 @@ public Action CH_PassFilter(int touch, int pass, bool &result)
 		if (touch > MaxClients)
 		{
 			GetEdictClassname(touch, touch_cls, sizeof(touch_cls));
-			if (strcmp(touch_cls, "trigger_finale") != 0) // tend to be not detonate-able
+			if (!g_smNoDetonatable.ContainsKey(touch_cls))
 				return Plugin_Continue;
 		}
 		
