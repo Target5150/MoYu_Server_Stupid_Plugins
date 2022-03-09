@@ -8,7 +8,7 @@
 #include <sourcescramble>
 #include <collisionhook>
 
-#define PLUGIN_VERSION "1.3"
+#define PLUGIN_VERSION "1.4"
 
 public Plugin myinfo = 
 {
@@ -203,7 +203,7 @@ Action SDK_OnThink(int entity)
 			}
 			else // allow saferoom spread
 			{
-				if (g_iSaferoomSpread != 1 || nav.m_flow == 0.0) // every map OR start saferoom
+				if (g_iSaferoomSpread != 1 || nav.m_flow / L4D2Direct_GetMapMaxFlowDistance() < 0.2) // every map OR start saferoom
 				{
 					SetEntData(entity, m_fireSpread, 10, 4); // 10 -> spit spread (likely)
 				}
@@ -213,7 +213,7 @@ Action SDK_OnThink(int entity)
 	else
 	{
 		float vPos[3];
-		GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", vPos);
+		GetEntPropVector(owner, Prop_Send, "m_vecOrigin", vPos);
 		vPos[2] += 10.0;
 		
 		Handle tr = TR_TraceRayFilterEx(vPos, view_as<float>({90.0, 0.0, 0.0}), MASK_SHOT, RayType_Infinite, TraceRayFilter_NoPlayers, entity);
@@ -224,11 +224,37 @@ Action SDK_OnThink(int entity)
 			float vEnd[3];
 			TR_GetEndPosition(vEnd, tr);
 			
-			if (vPos[2] - vEnd[2] >= g_cvTraceHeight.FloatValue + 46.0) // seems like the max height a puddle can be forced to ground.
+			// NOTE:
+			//
+			// What is invisible death spit? As far as I know it's an issue where the game
+			// traces for solid surfaces within certain height, but regardless of the hitting result.
+			// If the trace misses, the death spit will have its origin set to the trace end.
+			// And if it's at a height over 46 units, it becomes invisible in the air.
+			// Or, if the trace hits Survivors, the death spit is on their head, still invisible.
+			//
+			// Let's say the float "46.0" is the extra range.
+			//
+			// Given a case where the spitter jumped at a height greater than the trace length and died,
+			// the death spit sets to be feets above the ground, but it would try to teleport itself
+			// to the surface within units of the ectra range.
+			// 
+			// Then here comes a mystery, that is how it works as I didn't manage to find out,
+			// and it seems it's not using trace either.
+			// Moreever, thanks to @nikita1824 letting me know that invisible death spit is still there,
+			// it really seems like the self-teleporting shares the same setup as the death spit traces,
+			// which means it doesn't go through Survivors, thus invisible death spit.
+			//
+			// So finally, I have to use `TeleportEntity` on the puddle to prevent this.
+			
+			if (vPos[2] - vEnd[2] >= g_cvTraceHeight.FloatValue + 46.0)
 			{
 				// TODO: remove entity to avoid confusion due to sound?
 				SetEntProp(entity, Prop_Send, "m_fireCount", 1);
 				L4D2Direct_SetInfernoMaxFlames(entity, 1);
+			}
+			else
+			{
+				TeleportEntity(entity, vEnd, NULL_VECTOR, NULL_VECTOR);
 			}
 		}
 		
@@ -281,11 +307,6 @@ public Action CH_PassFilter(int touch, int pass, bool &result)
 	}
 	
 	return Plugin_Continue;
-}
-
-stock int TerrorNavArea_GetSpawnAttributes(int nav)
-{
-	return LoadFromAddress(view_as<Address>(nav + g_iOffs_SpawnAttributes), NumberType_Int32);
 }
 
 stock int GetCurrentMapLower(char[] buffer, int maxlength)
