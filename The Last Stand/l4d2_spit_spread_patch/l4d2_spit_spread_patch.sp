@@ -8,7 +8,7 @@
 #include <sourcescramble>
 #include <collisionhook>
 
-#define PLUGIN_VERSION "1.7"
+#define PLUGIN_VERSION "1.8"
 
 public Plugin myinfo = 
 {
@@ -105,6 +105,17 @@ public void OnPluginStart()
 	if (!hDetour.Enable(Hook_Post, DTR_OnDetonate_Post))
 		SetFailState("Failed to post-detour \""...KEY_DETONATE..."\"");
 	
+	g_smNoDetonatable = new StringMap();
+	
+	char buffer[64];
+	for( int i = 1;
+		Format(buffer, sizeof(buffer), "SpitFilterClass%i", i)
+		&& GameConfGetKeyValue(conf, buffer, buffer, sizeof(buffer));
+		++i )
+	{
+		g_smNoDetonatable.SetValue(buffer, 0);
+	}
+	
 	delete conf;
 	
 	g_cvSaferoomSpread = CreateConVar(
@@ -128,10 +139,6 @@ public void OnPluginStart()
 	
 	g_smNoSpreadMaps = new StringMap();
 	RegServerCmd("spit_spread_saferoom_except", SetSaferoomSpitSpreadException);
-	
-	g_smNoDetonatable = new StringMap();
-	g_smNoDetonatable.SetValue("infected", 0);
-	g_smNoDetonatable.SetValue("trigger_finale", 0);
 	
 	g_aDetonatePuddles = new ArrayList();
 	
@@ -262,7 +269,7 @@ Action SDK_OnThink(int entity)
 			// So finally, I have to use `TeleportEntity` on the puddle to prevent this.
 			
 			float fDist = vPos[2] - vEnd[2];
-			if (fDist < 0.0 || fDist >= 46.0) // in case the spit detonates in a gap
+			if (fDist >= 46.0)
 			{
 				RemoveEntity(entity);
 			}
@@ -311,7 +318,8 @@ public Action CH_PassFilter(int touch, int pass, bool &result)
 		if (touch > MaxClients)
 		{
 			GetEdictClassname(touch, touch_cls, sizeof(touch_cls));
-			if (!g_smNoDetonatable.GetValue(touch_cls, touch))
+			if (!g_smNoDetonatable.GetValue(touch_cls, touch)
+				&& strncmp(touch_cls, "weapon_", 7) != 0)
 				return Plugin_Continue;
 		}
 		
