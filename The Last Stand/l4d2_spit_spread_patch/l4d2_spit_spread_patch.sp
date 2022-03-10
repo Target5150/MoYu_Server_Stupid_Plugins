@@ -8,7 +8,7 @@
 #include <sourcescramble>
 #include <collisionhook>
 
-#define PLUGIN_VERSION "1.5"
+#define PLUGIN_VERSION "1.6"
 
 public Plugin myinfo = 
 {
@@ -217,7 +217,7 @@ Action SDK_OnThink(int entity)
 	else
 	{
 		float vPos[3];
-		GetEntPropVector(owner, Prop_Send, "m_vecOrigin", vPos);
+		GetEntPropVector(entity, Prop_Send, "m_vecOrigin", vPos);
 		vPos[2] += 10.0;
 		
 		Handle tr = TR_TraceRayFilterEx(vPos, view_as<float>({90.0, 0.0, 0.0}), MASK_SHOT, RayType_Infinite, TraceRayFilter_NoPlayers, entity);
@@ -250,7 +250,8 @@ Action SDK_OnThink(int entity)
 			//
 			// So finally, I have to use `TeleportEntity` on the puddle to prevent this.
 			
-			if (vPos[2] - vEnd[2] >= g_cvTraceHeight.FloatValue + 46.0)
+			float fDist = vPos[2] - vEnd[2];
+			if (fDist < 0.0 || fDist >= 46.0) // in case the spit detonates in a gap
 			{
 				// TODO: remove entity to avoid confusion due to sound?
 				SetEntProp(entity, Prop_Send, "m_fireCount", 1);
