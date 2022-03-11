@@ -8,7 +8,7 @@
 #include <sourcescramble>
 #include <collisionhook>
 
-#define PLUGIN_VERSION "1.8"
+#define PLUGIN_VERSION "1.9"
 
 public Plugin myinfo = 
 {
@@ -276,6 +276,7 @@ Action SDK_OnThink(int entity)
 			else
 			{
 				TeleportEntity(entity, vEnd, NULL_VECTOR, NULL_VECTOR);
+				CreateTimer(0.2022, Timer_RemoveInvisibleSpit, EntIndexToEntRef(entity), TIMER_FLAG_NO_MAPCHANGE);
 			}
 		}
 		
@@ -284,6 +285,20 @@ Action SDK_OnThink(int entity)
 	
 	SDKUnhook(entity, SDKHook_Think, SDK_OnThink);
 	return Plugin_Continue;
+}
+
+Action Timer_RemoveInvisibleSpit(Handle timer, int entRef)
+{
+	int entity = EntRefToEntIndex(entRef);
+	if (entity != INVALID_ENT_REFERENCE)
+	{
+		if (GetEntProp(entity, Prop_Send, "m_fireCount") == 2)
+		{
+			SetEntProp(entity, Prop_Send, "m_fireCount", 1);
+			L4D2Direct_SetInfernoMaxFlames(entity, 1);
+		}
+	}
+	return Plugin_Stop;
 }
 
 bool TraceRayFilter_NoPlayers(int entity, int contentsMask, any self)
