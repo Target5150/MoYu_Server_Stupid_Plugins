@@ -31,7 +31,7 @@ public Plugin myinfo =
 MemoryBlock g_hAlloc_TraceHeight;
 
 ConVar g_cvSaferoomSpread, g_cvTraceHeight;
-StringMap g_smNoSpreadMaps, g_smFilterClasses;
+StringMap g_smNoSpreadMaps;
 int g_iSaferoomSpread;
 
 // TerrorNavArea
@@ -68,6 +68,13 @@ methodmap TerrorNavArea {
 
 int g_iDetonateObj = -1;
 ArrayList g_aDetonatePuddles;
+
+enum 
+{
+	FILTER_NO_DETONATE,
+	FILTER_NO_SPREAD
+}
+StringMap g_smFilterClasses;
 
 public void OnPluginStart()
 {
@@ -113,7 +120,7 @@ public void OnPluginStart()
 		&& GameConfGetKeyValue(conf, buffer, buffer, sizeof(buffer));
 		++i )
 	{
-		g_smFilterClasses.SetValue(buffer, 0);
+		g_smFilterClasses.SetValue(buffer, FILTER_NO_DETONATE);
 	}
 	
 	for( int i = 1;
@@ -121,7 +128,7 @@ public void OnPluginStart()
 		&& GameConfGetKeyValue(conf, buffer, buffer, sizeof(buffer));
 		++i )
 	{
-		g_smFilterClasses.SetValue(buffer, 1);
+		g_smFilterClasses.SetValue(buffer, FILTER_NO_SPREAD);
 	}
 	
 	delete conf;
@@ -227,7 +234,7 @@ Action SDK_OnThink(int entity)
 			char cls[64];
 			if (parent != -1 && GetEdictClassname(parent, cls, sizeof(cls)))
 			{
-				if (g_smFilterClasses.GetValue(cls, parent) && parent == 1)
+				if (g_smFilterClasses.GetValue(cls, parent) && parent == FILTER_NO_SPREAD)
 				{
 					SDKUnhook(entity, SDKHook_Think, SDK_OnThink);
 					return Plugin_Continue;
@@ -353,7 +360,7 @@ public Action CH_PassFilter(int touch, int pass, bool &result)
 		if (touch > MaxClients)
 		{
 			GetEdictClassname(touch, touch_cls, sizeof(touch_cls));
-			if (!g_smFilterClasses.GetValue(touch_cls, touch) && touch == 0
+			if (!g_smFilterClasses.GetValue(touch_cls, touch) && touch == FILTER_NO_DETONATE
 				&& strncmp(touch_cls, "weapon_", 7) != 0)
 				return Plugin_Continue;
 		}
