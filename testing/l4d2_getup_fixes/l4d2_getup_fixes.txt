@@ -15,7 +15,7 @@
 			 * 2. See the "mov" instruction below the highlighted "call".
 			 */
 			
-			"CTerrorPlayerAnimState::m_hAnimState"
+			"CTerrorPlayer::m_hAnimState"
 			{
 				"linux"		"10512"
 				"windows"	"10524"
@@ -25,6 +25,12 @@
 			{
 				"linux"		"0"
 				"windows"	"0"
+			}
+			
+			"CTerrorPlayerAnimState::ResetMainActivity"
+			{
+				"linux"		"5"
+				"windows"	"5"
 			}
 			
 			"CTerrorPlayerAnimState::RestartMainSequence"
