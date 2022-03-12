@@ -8,7 +8,7 @@
 #include <sourcescramble>
 #include <collisionhook>
 
-#define PLUGIN_VERSION "1.9"
+#define PLUGIN_VERSION "1.10"
 
 public Plugin myinfo = 
 {
@@ -31,7 +31,7 @@ public Plugin myinfo =
 MemoryBlock g_hAlloc_TraceHeight;
 
 ConVar g_cvSaferoomSpread, g_cvTraceHeight;
-StringMap g_smNoSpreadMaps, g_smNoDetonatable;
+StringMap g_smNoSpreadMaps, g_smFilterClasses;
 int g_iSaferoomSpread;
 
 // TerrorNavArea
@@ -105,7 +105,7 @@ public void OnPluginStart()
 	if (!hDetour.Enable(Hook_Post, DTR_OnDetonate_Post))
 		SetFailState("Failed to post-detour \""...KEY_DETONATE..."\"");
 	
-	g_smNoDetonatable = new StringMap();
+	g_smFilterClasses = new StringMap();
 	
 	char buffer[64];
 	for( int i = 1;
@@ -113,7 +113,15 @@ public void OnPluginStart()
 		&& GameConfGetKeyValue(conf, buffer, buffer, sizeof(buffer));
 		++i )
 	{
-		g_smNoDetonatable.SetValue(buffer, 0);
+		g_smFilterClasses.SetValue(buffer, 0);
+	}
+	
+	for( int i = 1;
+		Format(buffer, sizeof(buffer), "SpreadFilterClass%i", i)
+		&& GameConfGetKeyValue(conf, buffer, buffer, sizeof(buffer));
+		++i )
+	{
+		g_smFilterClasses.SetValue(buffer, 1);
 	}
 	
 	delete conf;
@@ -214,6 +222,18 @@ Action SDK_OnThink(int entity)
 		g_aDetonatePuddles.Erase(index);
 		if (L4D2Direct_GetInfernoMaxFlames(entity) == 2)
 		{
+			// check if spread forbidden
+			int parent = GetEntPropEnt(entity, Prop_Data, "m_pParent");
+			char cls[64];
+			if (parent != -1 && GetEdictClassname(parent, cls, sizeof(cls)))
+			{
+				if (g_smFilterClasses.GetValue(cls, parent) && parent == 1)
+				{
+					SDKUnhook(entity, SDKHook_Think, SDK_OnThink);
+					return Plugin_Continue;
+				}
+			}
+			
 			float vPos[3];
 			GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", vPos);
 			
@@ -290,7 +310,7 @@ Action SDK_OnThink(int entity)
 Action Timer_RemoveInvisibleSpit(Handle timer, int entRef)
 {
 	int entity = EntRefToEntIndex(entRef);
-	if (entity != INVALID_ENT_REFERENCE)
+	if (IsValidEdict(entity))
 	{
 		if (GetEntProp(entity, Prop_Send, "m_fireCount") == 2)
 		{
@@ -333,7 +353,7 @@ public Action CH_PassFilter(int touch, int pass, bool &result)
 		if (touch > MaxClients)
 		{
 			GetEdictClassname(touch, touch_cls, sizeof(touch_cls));
-			if (!g_smNoDetonatable.GetValue(touch_cls, touch)
+			if (!g_smFilterClasses.GetValue(touch_cls, touch) && touch == 0
 				&& strncmp(touch_cls, "weapon_", 7) != 0)
 				return Plugin_Continue;
 		}
