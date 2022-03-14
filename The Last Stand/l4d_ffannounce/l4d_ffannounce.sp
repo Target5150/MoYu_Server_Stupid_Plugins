@@ -5,7 +5,7 @@
 #include <sdkhooks> // DMG_BUCKSHOT
 #include <colors>
 
-#define PLUGIN_VERSION "4.0"
+#define PLUGIN_VERSION "4.1"
 
 public Plugin myinfo = 
 {
@@ -191,7 +191,7 @@ Action AnnounceFF(Handle timer, DataPack dp)
 	
 	FFTimer[attacker] = null;
 	
-	if (attacker != GetClientOfUserId(attackerid))
+	if (attacker != GetClientOfUserId(attackerid) || !IsClientInGame(attacker))
 		return Plugin_Stop;
 	
 	int total = 0;
