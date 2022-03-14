@@ -4,7 +4,7 @@
 #include <sourcemod>
 #include <sourcescramble>
 
-#define PLUGIN_VERSION "2.0"
+#define PLUGIN_VERSION "2.1"
 
 public Plugin myinfo =
 {
@@ -16,6 +16,7 @@ public Plugin myinfo =
 }
 
 #define GAMEDATA_FILE "l4d_tongue_bend_fix"
+#define GAMEDATA_TEMP "l4d_tongue_bend_fix_temp"
 #define KEY_FUNCTION "CTongue::OnUpdateAttachedToTargetState"
 #define PATCH_SURFIX "__UpdateBend_jump_patch"
 
@@ -37,51 +38,59 @@ public void OnPluginStart()
 		SetFailState("Failed to enable patch \""...KEY_FUNCTION...PATCH_SURFIX..."\"");
 	}
 	
+	offs = GameConfGetOffset(conf, KEY_FUNCTION...PATCH_SURFIX);
+	if (offs == -1)
+		SetFailState("Missing offset \""...KEY_FUNCTION...PATCH_SURFIX..."\"");
+	
 	g_pAddr = GameConfGetAddress(conf, "TongueState_StrFind");
 	if (g_pAddr == Address_Null)
 		SetFailState("Missing address \"TongueState_StrFind\"");
 	
 	delete conf;
 	
+	char buffer[20], sBytes[32];
+	FormatEx(buffer, sizeof(buffer), "%X", g_pAddr);
+	ReverseAddress(buffer, sBytes);
+	
 	char sPath[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sPath, sizeof(sPath), "gamedata/"...GAMEDATA_FILE...".txt");
+	BuildPath(Path_SM, sPath, sizeof(sPath), "gamedata/"...GAMEDATA_TEMP...".txt");
 	
-	File f = OpenFile(sPath, "rw");
+	File hFile = OpenFile(sPath, "w", false);
 	
-	char buffer[64];
-	while (f.ReadLine(buffer, sizeof(buffer)) && StrContains(buffer, "\"tongueStateInfo\"") == -1) {}
-	if (f.EndOfFile())
-		SetFailState("Missing signature frame \"tongueStateInfo\"");
+	hFile.WriteLine("\"Games\"");
+	hFile.WriteLine("{");
+	hFile.WriteLine("	\"#default\"");
+	hFile.WriteLine("	{");
+	hFile.WriteLine("		\"Addresses\"");
+	hFile.WriteLine("		{");
+	hFile.WriteLine("			\"CTongue::OnUpdateAttachedToTargetState\"");
+	hFile.WriteLine("			{");
+	hFile.WriteLine("				\"windows\"");
+	hFile.WriteLine("				{");
+	hFile.WriteLine("					\"signature\"	\"tongueStateInfo\"");
+	hFile.WriteLine("					\"read\"		\"56\"");
+	hFile.WriteLine("				}");
+	hFile.WriteLine("			}");
+	hFile.WriteLine("		}");
+	hFile.WriteLine("		\"Signatures\"");
+	hFile.WriteLine("		{");
+	hFile.WriteLine("			\"tongueStateInfo\"");
+	hFile.WriteLine("			{");
+	hFile.WriteLine("				\"library\"		\"server\"");
+	hFile.WriteLine("				\"windows\"		\"%s\"", sBytes);
+	hFile.WriteLine("			}");
+	hFile.WriteLine("		}");
+	hFile.WriteLine("	}");
+	hFile.WriteLine("}");
 	
-	f.ReadLine(buffer, sizeof(buffer)); // "{"
-	f.ReadLine(buffer, sizeof(buffer)); // "library" "server"
+	FlushFile(hFile);
+	delete hFile;
 	
-	int pos = f.Position;
-	f.ReadLine(buffer, sizeof(buffer)); // "windows" ""
-	if (StrContains(buffer, "\"windows\"") == -1)
-		SetFailState("Incorrect formatted signature frame \"tongueStateInfo\"");
-	
-	f.Seek(pos, SEEK_SET);
-	
-	FormatEx(buffer, sizeof(buffer), "\x%X", view_as<int>(g_pAddr) & 0xFF);
-	for (int i = 1; i < 4; ++i)
-	{
-		Format(buffer, sizeof(buffer), "%s\x%X", buffer, view_as<int>(g_pAddr) & (0xFF << (8*i)));
-	}
-	f.WriteLine("				\"windows\"		\"%s\"", buffer);
-	
-	f.Flush();
-	delete f;
-	
-	conf = LoadGameConfigFile(GAMEDATA_FILE);
+	conf = LoadGameConfigFile(GAMEDATA_TEMP);
 	
 	g_pAddr = GameConfGetAddress(conf, KEY_FUNCTION);
-	if (g_pAddr == Address_Null || (g_pAddr = LoadFromAddress(g_pAddr, NumberType_Int32)) == Address_Null)
+	if (g_pAddr == Address_Null)
 		SetFailState("Failed to generate address of \""...KEY_FUNCTION..."\"");
-	
-	offs = GameConfGetOffset(conf, KEY_FUNCTION...PATCH_SURFIX);
-	if (offs == -1)
-		SetFailState("Missing offset \""...KEY_FUNCTION...PATCH_SURFIX..."\"");
 	
 	g_pAddr += view_as<Address>(offs);
 	
@@ -110,5 +119,21 @@ void ApplyPatch(bool patch)
 	{
 		StoreToAddress(g_pAddr, 0x0F, NumberType_Int8);
 		StoreToAddress(g_pAddr + view_as<Address>(1), 0x84, NumberType_Int8);
+	}
+}
+
+// From left4dhooks, credit to Silvers.
+void ReverseAddress(const char[] sBytes, char sReturn[32])
+{
+	sReturn[0] = 0;
+	char sByte[3];
+	for( int i = strlen(sBytes) - 2; i >= -1 ; i -= 2 )
+	{
+		strcopy(sByte, i >= 1 ? 3 : i + 3, sBytes[i >= 0 ? i : 0]);
+
+		StrCat(sReturn, sizeof(sReturn), "\\x");
+		if( strlen(sByte) == 1 )
+			StrCat(sReturn, sizeof(sReturn), "0");
+		StrCat(sReturn, sizeof(sReturn), sByte);
 	}
 }

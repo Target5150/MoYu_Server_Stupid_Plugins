@@ -20,15 +20,6 @@
 					"signature"	"TongueState_StrFind"
 				}
 			}
-			
-			"CTongue::OnUpdateAttachedToTargetState"
-			{
-				"windows"
-				{
-					"signature"	"tongueStateInfo"
-					"read"		"56"
-				}
-			}
 		}
 		
 		"Signatures"
@@ -43,13 +34,6 @@
 			{
 				"library"		"server"
 				"linux"			"@_ZN7CTongue29OnUpdateAttachedToTargetStateEv"
-			}
-			
-			// DO NOT TOUCH THIS! Used for auto-generating signature.
-			"tongueStateInfo"
-			{
-				"library"		"server"
-				"windows"		""
 			}
 		}
 	}
