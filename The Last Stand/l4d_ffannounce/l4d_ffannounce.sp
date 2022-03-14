@@ -2,34 +2,29 @@
 #pragma newdecls required
 
 #include <sourcemod>
+#include <sdkhooks> // DMG_BUCKSHOT
 #include <colors>
 
-#define PLUGIN_VERSION "3.3"
+#define PLUGIN_VERSION "4.0"
 
 public Plugin myinfo = 
 {
-	name = "Survivor FF Announce",
+	name = "[L4D & 2] Survivor FF Announce",
 	author = "AiMee, Forgetest",
 	description = "Friendly Fire Announcements",
 	version = PLUGIN_VERSION,
-	url = "",
+	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins",
 }
 
-#define L4D2Team_None 0
+#define TRANSLATION_FILE "l4d_ffannounce.phrases"
+
 #define L4D2Team_Spectator 1
 #define L4D2Team_Survivor 2
-#define L4D2Team_Infected 3
 
-ConVar	AnnounceEnable;
-ConVar	AbnormalLog;
-ConVar	AbnormalLogPath;
-
-int		iAnnounceEnable;
-int		iAbnormalLog;
-char	sAbnormalLogPath[PLATFORM_MAX_PATH];
-
-Handle	FFTimer[MAXPLAYERS+1]; 
-int		DamageCache[MAXPLAYERS+1][MAXPLAYERS+1];
+ConVar AnnounceEnable;
+bool g_bBuckShot[MAXPLAYERS+1];
+int DamageCache[MAXPLAYERS+1][MAXPLAYERS+1];
+Handle FFTimer[MAXPLAYERS+1];
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
@@ -39,76 +34,155 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 		{
 			return APLRes_Success;
 		}
-		default:
-		{
-			strcopy(error, err_max, "Plugin supports only L4D & L4D2!");
-			return APLRes_SilentFailure;
-		}
 	}
+	strcopy(error, err_max, "Plugin supports only L4D & L4D2!");
+	return APLRes_SilentFailure;
+}
+
+void LoadPluginTranslations()
+{
+	char sPath[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sPath, sizeof(sPath), "translations/" ... TRANSLATION_FILE ... ".txt");
+	if (!FileExists(sPath))
+	{
+		SetFailState("Missing translation file \"" ... TRANSLATION_FILE ... ".txt\"");
+	}
+	LoadTranslations(TRANSLATION_FILE);
 }
 
 public void OnPluginStart()
 {
-	(	AnnounceEnable 	= CreateConVar("l4d_ff_announce_enable", 	"1", "Enable Announcing Friendly Fire (0 - Disabled, 1 - Announce in private, 2 - Announce to Activators and Spectators).", FCVAR_SPONLY, true, 0.0, true, 2.0)).AddChangeHook(OnConVarChanged);
-	(	AbnormalLog 	= CreateConVar("l4d_ff_announce_log",		"0", "Friendly fire amount over this value will be logged to file (Found in sourcemod/logs/abnormalff.log), 0 to disable.", FCVAR_SPONLY, true, 0.0, true, 1.0)).AddChangeHook(OnConVarChanged);
-	(	AbnormalLogPath = CreateConVar("l4d_ff_announce_log_path",	"logs/abnormalff.log", "File path to log friendly fire", FCVAR_SPONLY)).AddChangeHook(OnConVarChanged);
+	LoadPluginTranslations();
 	
-	GetCvars();
-	
-	HookEvent("player_hurt_concise", Event_HurtConcise);
+	AnnounceEnable = CreateConVar("l4d_ff_announce_enable", "1", "Enable announcing friendly-fire.\n(0 = Disabled, 1 = Announce in private, 2 = 1 + Announce to spectators).", FCVAR_SPONLY, true, 0.0, true, 2.0);
+	AnnounceEnable.AddChangeHook(OnConVarChanged);
+	OnConVarChanged(AnnounceEnable, "", "");
 }
 
-void GetCvars()
+void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	iAnnounceEnable = AnnounceEnable.IntValue;
-	iAbnormalLog = AbnormalLog.IntValue;
-	AbnormalLogPath.GetString(sAbnormalLogPath, sizeof sAbnormalLogPath);
-	BuildPath(Path_SM, sAbnormalLogPath, sizeof sAbnormalLogPath, sAbnormalLogPath);
+	ToggleEvents(AnnounceEnable.BoolValue);
 }
 
-public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+void ToggleEvents(bool hook)
 {
-	GetCvars();
+	static bool hooked = false;
+	if (hook && !hooked)
+	{
+		hooked = true;
+		HookEvent("player_hurt_concise", Event_HurtConcise);
+		HookEvent("player_bot_replace", Event_BotReplacePlayer);
+		HookEvent("bot_player_replace", Event_PlayerReplaceBot);
+	}
+	else if (!hook && hooked)
+	{
+		hooked = false;
+		UnhookEvent("player_hurt_concise", Event_HurtConcise);
+		UnhookEvent("player_bot_replace", Event_BotReplacePlayer);
+		UnhookEvent("bot_player_replace", Event_PlayerReplaceBot);
+	}
 }
 
-public void Event_HurtConcise(Event event, const char[] name, bool dontBroadcast)
+void Event_BotReplacePlayer(Event event, const char[] name, bool dontBroadcast)
 {
-	if (!iAnnounceEnable) return;
+	HandlePlayerReplace(GetClientOfUserId(event.GetInt("bot")), GetClientOfUserId(event.GetInt("player")));
+}
+
+void Event_PlayerReplaceBot(Event event, const char[] name, bool dontBroadcast)
+{
+	HandlePlayerReplace(GetClientOfUserId(event.GetInt("player")), GetClientOfUserId(event.GetInt("bot")));
+}
+
+void HandlePlayerReplace(int replacer, int replacee)
+{
+	if (FFTimer[replacee] != null)
+	{
+		for (int i = 1; i <= MaxClients; ++i)
+		{
+			DamageCache[replacer][i] = DamageCache[replacee][i];
+		}
+		delete FFTimer[replacee];
+		StartAnnounceTimer(replacer, 1.5);
+	}
 	
-	int attacker 	= event.GetInt("attackerentid");
-	int victim 		= GetClientOfUserId(event.GetInt("userid"));
+	for (int i = 1; i <= MaxClients; ++i)
+	{
+		if (DamageCache[i][replacee])
+		{
+			DamageCache[i][replacer] = DamageCache[i][replacee];
+			DamageCache[i][replacee] = 0;
+		}
+	}
+}
+
+public void OnClientDisconnect(int client)
+{
+	g_bBuckShot[client] = false;
+}
+
+public void OnMapEnd()
+{
+	for (int i = 1; i <= MaxClients; ++i)
+	{
+		FFTimer[i] = null;
+	}
+}
+
+void OnNextFrame_Unmark(int userid)
+{
+	g_bBuckShot[GetClientOfUserId(userid)] = false;
+}
+
+void Event_HurtConcise(Event event, const char[] name, bool dontBroadcast)
+{
+	int attacker	= event.GetInt("attackerentid");
+	int victim		= GetClientOfUserId(event.GetInt("userid"));
 	
-	if (!IsValidClient(attacker) || !IsValidClient(victim)) return;
+	if (!attacker || !victim) return;
 	if (GetClientTeam(attacker) != L4D2Team_Survivor || IsFakeClient(attacker)) return;
 	if (GetClientTeam(victim)	!= L4D2Team_Survivor) return;
 	
 	if (attacker == victim) return;
 	
+	// Shotgun deals damage per pellet, which means the event can be called multiple times for one shot.
+	// Prevent unnecessary freeing timers that might impact performance.
+	if (event.GetInt("type") & DMG_BUCKSHOT && !g_bBuckShot[attacker])
+	{
+		RequestFrame(OnNextFrame_Unmark, GetClientUserId(attacker));
+		g_bBuckShot[attacker] = true;
+	}
+	
 	int damage = event.GetInt("dmg_health");
 	if (FFTimer[attacker] != null)
 	{
 		DamageCache[attacker][victim] += damage;
-		delete FFTimer[attacker];
+		DamageCache[attacker][0] += damage;
 		
-		DataPack dp;
-		FFTimer[attacker] = CreateDataTimer(1.5, AnnounceFF, dp);
-		dp.WriteCell(attacker);
-		dp.WriteCell(GetClientUserId(attacker));
+		if (!g_bBuckShot[attacker])
+		{
+			delete FFTimer[attacker];
+			StartAnnounceTimer(attacker, 1.5);
+		}
 	}
 	else 
 	{
-		for (int i = 1; i <= MaxClients; i++) DamageCache[attacker][i] = 0;
+		for (int i = 1; i <= MaxClients; ++i) DamageCache[attacker][i] = 0;
 		
 		DamageCache[attacker][victim] = damage;
-		
-		DataPack dp;
-		FFTimer[attacker] = CreateDataTimer(1.5, AnnounceFF, dp);
-		dp.WriteCell(attacker);
-		dp.WriteCell(GetClientUserId(attacker));
+		DamageCache[attacker][0] = damage;
+		StartAnnounceTimer(attacker, 1.5);
 	}
 }
 
-public Action AnnounceFF(Handle timer, DataPack dp) 
+void StartAnnounceTimer(int client, float interval)
+{
+	DataPack dp;
+	FFTimer[client] = CreateDataTimer(interval, AnnounceFF, dp, TIMER_FLAG_NO_MAPCHANGE);
+	dp.WriteCell(client);
+	dp.WriteCell(GetClientUserId(client));
+}
+
+Action AnnounceFF(Handle timer, DataPack dp) 
 {
 	dp.Reset();
 	
@@ -117,49 +191,60 @@ public Action AnnounceFF(Handle timer, DataPack dp)
 	
 	FFTimer[attacker] = null;
 	
-	if (attacker != GetClientOfUserId(attackerid)) return Plugin_Handled;
+	if (attacker != GetClientOfUserId(attackerid))
+		return Plugin_Stop;
 	
-	char text[512];
+	int total = 0;
+	int[] clients = new int[MaxClients];
+	
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (!IsClientInGame(i)) continue;
+		if (!DamageCache[attacker][i]) continue;
 		
-		if (DamageCache[attacker][i] > 0)
+		clients[total++] = i;
+		
+		if (!IsFakeClient(i))
 		{
-			if (strlen(text) == 0) {
-				FormatEx(text, sizeof(text), "* {green}You {default}did {blue}FF {default}to {olive}%N {default}@ {olive}%d {default}HP", i, DamageCache[attacker][i]);
-			} else {
-				Format(text, sizeof(text), "%s, {olive}%N {default}@ {olive}%d {default}HP", text, i, DamageCache[attacker][i]);
-			}
-			if (!IsFakeClient(i)) CPrintToChat(i, "* {olive}%N {default}did {blue}FF {default}to {green}you {default}@ {olive}%d {default}HP", attacker, DamageCache[attacker][i]);
-			
-			if (iAbnormalLog && DamageCache[attacker][i] > iAbnormalLog)
-			{
-				File file = OpenFile(sAbnormalLogPath, "r+");
-				if (file != null)
-				{
-					char auth[64], sTime[64];
-					GetClientAuthId(attacker, AuthId_Steam2, auth, sizeof(auth));
-					FormatTime(sTime, sizeof(sTime), "%Y-%m-%d %X");
-					file.WriteLine("[FF] [%s]  %N (%s) did %d friendly fire damage to %N", sTime, attacker, auth, DamageCache[attacker][i], i);
-				}
-			}
+			CPrintToChat(i, "%t", "FFAnnounceToVictim", i, DamageCache[attacker][i]);
 		}
 	}
-	if (strlen(text) > 0)
+	
+	if (total > 0)
 	{
-		CPrintToChat(attacker, text);
+		static char text[400], msg[400];
 		
-		if (iAnnounceEnable > 1)
+		static char transStr[64];
+		FormatEx(transStr, sizeof(transStr), "FFAnnounceToGuilty%i", total);
+		FormatEx(text, sizeof(text), "%T", transStr, attacker);
+		
+		static char buffer[64];
+		for (int i = 0; i < total; ++i)
 		{
-			char buffer[MAX_NAME_LENGTH+9];
-			FormatEx(buffer, sizeof(buffer), "* {olive}%N", attacker);
-			ReplaceString(text, sizeof(text), "* {green}You", buffer, true);
+			FormatEx(transStr, sizeof(transStr), "{VICTIM%i_NAME}", i+1);
+			GetClientName(clients[i], buffer, sizeof(buffer));
+			ReplaceString(text, sizeof(text), transStr, buffer);
+			FormatEx(transStr, sizeof(transStr), "{VICTIM%i_DMG}", i+1);
+			IntToString(DamageCache[attacker][clients[i]], buffer, sizeof(buffer));
+			ReplaceString(text, sizeof(text), transStr, buffer);
+		}
+		
+		strcopy(msg, sizeof(msg), text);
+		FormatEx(buffer, sizeof(buffer), "%T", "You", attacker);
+		ReplaceString(msg, sizeof(msg), "{GUILTY}", buffer);
+		
+		CPrintToChat(attacker, msg);
+		CPrintToChat(attacker, "%t", "FFAnnounceToGuiltyTotal", DamageCache[attacker][0]);
+		
+		if (AnnounceEnable.IntValue > 1)
+		{
+			GetClientName(attacker, buffer, sizeof(buffer));
+			ReplaceString(text, sizeof(text), "{GUILTY}", buffer);
 			CPrintToSpectators(text);
 		}
 	}
 	
-	return Plugin_Handled;
+	return Plugin_Stop;
 }
 
 void CPrintToSpectators(const char[] msg)
@@ -171,9 +256,4 @@ void CPrintToSpectators(const char[] msg)
 			CPrintToChat(i, msg);
 		}
 	}
-}
-
-stock bool IsValidClient(int client)
-{
-	return client > 0 && client <= MaxClients && IsClientInGame(client);
 }
