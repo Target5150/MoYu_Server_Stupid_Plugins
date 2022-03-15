@@ -4,7 +4,7 @@
 #include <sourcemod>
 #include <sourcescramble>
 
-#define PLUGIN_VERSION "2.1"
+#define PLUGIN_VERSION "2.2"
 
 public Plugin myinfo =
 {
@@ -113,12 +113,16 @@ void ApplyPatch(bool patch)
 			SetFailState("Failed to validate patch \""...KEY_FUNCTION...PATCH_SURFIX..."\"");
 		
 		StoreToAddress(g_pAddr, 0x90, NumberType_Int8);
-		StoreToAddress(g_pAddr + view_as<Address>(1), 0xEB, NumberType_Int8);
+		StoreToAddress(g_pAddr + view_as<Address>(1), 0xE9, NumberType_Int8);
+		
+		patched = true;
 	}
 	else if (!patch && patched)
 	{
 		StoreToAddress(g_pAddr, 0x0F, NumberType_Int8);
 		StoreToAddress(g_pAddr + view_as<Address>(1), 0x84, NumberType_Int8);
+		
+		patched = false;
 	}
 }
 
