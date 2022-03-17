@@ -95,7 +95,7 @@
 			"CTankClaw::SweepFist"
 			{
 				"library"		"server"
-				"linux"			"@_ZN9CTankClaw9SweepFistERK6VectorS2_"
+				"linux"			"@_ZN9CTankClaw9SweepFistERK6VectorS2_.constprop.246"
 				"windows"		"\x2A\x2A\x2A\x2A\x2A\x2A\x55\x56\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x8B\x2A\x85\x2A\x0F\x84\x2A\x2A\x2A\x2A\x8B\x2A\x2A\x2A\x2A\x2A\xD9\x2A\x8B"
 								/* ? ? ? ? ? ? 55 56 8B ? E8 ? ? ? ? 8B ? 85 ? 0F 84 ? ? ? ? 8B ? ? ? ? ? D9 ? 8B */
 			}
