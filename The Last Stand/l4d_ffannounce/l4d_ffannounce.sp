@@ -5,7 +5,7 @@
 #include <sdkhooks> // DMG_BUCKSHOT
 #include <colors>
 
-#define PLUGIN_VERSION "4.1"
+#define PLUGIN_VERSION "4.2"
 
 public Plugin myinfo = 
 {
@@ -138,7 +138,7 @@ void Event_HurtConcise(Event event, const char[] name, bool dontBroadcast)
 	int attacker	= event.GetInt("attackerentid");
 	int victim		= GetClientOfUserId(event.GetInt("userid"));
 	
-	if (!attacker || !victim) return;
+	if (!attacker || attacker > MaxClients || !IsClientInGame(attacker) || !victim) return;
 	if (GetClientTeam(attacker) != L4D2Team_Survivor || IsFakeClient(attacker)) return;
 	if (GetClientTeam(victim)	!= L4D2Team_Survivor) return;
 	
