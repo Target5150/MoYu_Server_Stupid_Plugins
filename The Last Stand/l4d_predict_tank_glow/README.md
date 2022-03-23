@@ -1,7 +1,15 @@
-# [L4D & 2] Spit Spread Patch
+# [L4D & 2] Predict Tank Glow
 
 ### Introduction
 - Predicts flow tank positions and fakes models with glow (mimic "Dark Carnival: Remix").
+> ![(VLWV3@V%RZW3(9%5TK2QT2](https://user-images.githubusercontent.com/33988868/159748514-d219b237-0693-4341-b345-913d0cf02db1.png)
+
+<hr>
+
+### ConVars
+- `l4d_predict_glow_tp`: Teleports tank to glow position for consistency.
+  - `0` = Disable, `1` = Enable
+> Because the game picks spawn random spots on a nav area.
 
 <hr>
 
