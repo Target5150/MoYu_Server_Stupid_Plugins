@@ -1,0 +1,13 @@
+"Phrases"
+{
+	"Announce_PlayerControlled"
+	{
+		"#format"	"{1:N}"
+		"en"		"{red}[{default}!{red}] {olive}Tank {default}({red}{1}{default}) has spawned!"
+	}
+	
+	"Announce_AI"
+	{
+		"en"		"{red}[{default}!{red}] {olive}Tank {default}has spawned!"
+	}
+}
