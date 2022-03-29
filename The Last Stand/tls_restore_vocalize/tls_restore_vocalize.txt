@@ -14,6 +14,7 @@
 			
 			/**
 			 * Credit to cravenge
+			 * https://forums.alliedmods.net/showthread.php?p=2768109
 			 */
 			"CTerrorPlayer::ModifyOrAppendCriteria"
 			{
@@ -43,6 +44,7 @@
 			
 			/**
 			 * Credit to cravenge
+			 * https://forums.alliedmods.net/showthread.php?p=2768109
 			 */
 			"CTerrorPlayer::ModifyOrAppendCriteria"
 			{
