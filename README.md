@@ -36,5 +36,9 @@ If you find a bug or something strange when using this project, any report is ap
 - Paanchan
 - SirPlease
 - lunatixxx
-- vikingo12
 - Tobu (Kain)
+- nikita1824
+- umlka
+- Cyber-Samurai-997
+- vikingo12
+- CanadianJeff
