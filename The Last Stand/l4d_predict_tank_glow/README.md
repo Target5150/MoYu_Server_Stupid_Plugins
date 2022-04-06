@@ -25,4 +25,6 @@
 <hr>
 
 ### Changelog
+(v1.1 2022/4/6 UTC+8) Address tank warps since TLS.
+
 (v1.0 2022/3/24 UTC+8) Initial release.
