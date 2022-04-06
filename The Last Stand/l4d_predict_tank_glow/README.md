@@ -9,7 +9,7 @@
 ### ConVars
 - `l4d_predict_glow_tp`: Teleports tank to glow position for consistency.
   - `0` = Disable, `1` = Enable
-> Because the game picks spawn random spots on a nav area.
+> Because the game picks random spawn spots on nav areas.
 
 <hr>
 
