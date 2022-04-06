@@ -8,7 +8,7 @@
 #include <l4d_boss_vote>
 #define REQUIRE_PLUGIN
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo = 
 {
@@ -90,6 +90,7 @@ public void OnUpdateBosses(int iTankFlow, int iWitchFlow)
 	{
 		Event_RoundStart(null, "", false);
 		Timer_DelayProcess(null);
+		Timer_AccessTankWarp(null, false); // lazy, let it go regardless of running or not.
 	}
 }
 
@@ -119,6 +120,9 @@ void EntO_OnGameplayStart(const char[] output, int caller, int activator, float 
 {
 	// Need to delay a bit, seems crashing otherwise.
 	CreateTimer(1.0, Timer_DelayProcess, .flags = TIMER_FLAG_NO_MAPCHANGE);
+	
+	// TODO: Is there a hook?
+	CreateTimer(15.0, Timer_AccessTankWarp, false, TIMER_FLAG_NO_MAPCHANGE);
 }
 
 Action Timer_DelayProcess(Handle timer)
@@ -128,6 +132,64 @@ Action Timer_DelayProcess(Handle timer)
 	g_iPredictModel = ProcessPredictModel(g_vModelPos, g_vModelAng);
 	if (g_iPredictModel != -1)
 		g_iPredictModel = EntIndexToEntRef(g_iPredictModel);
+	
+	return Plugin_Stop;
+}
+
+Action Timer_AccessTankWarp(Handle timer, bool isRetry)
+{
+	if (!L4D_IsVersusMode()) return Plugin_Stop;
+	
+	if (g_bLeft4Dead2 && g_iPredictModel != INVALID_ENT_REFERENCE)
+	{
+		char buffer[256];
+		
+		L4D2_GetVScriptOutput("ret <- ( \"anv_tankwarps\" in getroottable() );<RETURN>ret</RETURN>", buffer, sizeof(buffer));
+		if (strcmp(buffer, "1") != 0)
+		{
+			// retry or seeu
+			if (!isRetry) CreateTimer(5.0, Timer_AccessTankWarp, true, TIMER_FLAG_NO_MAPCHANGE);
+			return Plugin_Stop;
+		}
+		
+		/**
+		 *	if ( "anv_tankwarps" in getroottable() )
+		 *	{
+		 *		anv_tankwarps.OnGameEvent_tank_spawn(
+		 *		{
+		 *			userid = 0,
+		 *			tankid = %d
+		 *		} );
+		 *		anv_tankwarps.iTankCount--;
+		 *	}
+		 */
+		FormatEx(
+			buffer, sizeof(buffer),
+			"::anv_tankwarps.OnGameEvent_tank_spawn(\
+			{\
+				userid = 0,\
+				tankid = %d\
+			} );\
+			::anv_tankwarps.iTankCount--;",
+			EntRefToEntIndex(g_iPredictModel)
+		);
+		
+		/**
+		 *	Code for re-organized community update. Commented for afterward use.
+		 *
+		 *	---------------------------------------------
+		 *
+		 *	if ( "CommunityUpdate" in getroottable() )
+		 *	{
+		 *		CommunityUpdate().OnGameEvent_tank_spawn(
+		 *		{
+		 *			userid = 0,
+		 *			tankid = %d
+		 *		} );
+		 *		CommunityUpdate().m_iTankCount--;
+		 *	}
+		 */
+	}
 	
 	return Plugin_Stop;
 }
