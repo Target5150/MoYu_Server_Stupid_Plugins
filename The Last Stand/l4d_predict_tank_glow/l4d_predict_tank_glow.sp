@@ -8,7 +8,7 @@
 #include <l4d_boss_vote>
 #define REQUIRE_PLUGIN
 
-#define PLUGIN_VERSION "1.1"
+#define PLUGIN_VERSION "1.2"
 
 public Plugin myinfo = 
 {
@@ -28,6 +28,7 @@ bool g_bLeft4Dead2;
 
 CZombieManager ZombieManager;
 
+// order is foreign referred in `PickTankVariant()`
 static const char g_sTankModels[][] = {
 	"models/infected/hulk.mdl",
 	"models/infected/hulk_dlc3.mdl",
@@ -98,9 +99,10 @@ public void OnUpdateBosses(int iTankFlow, int iWitchFlow)
 
 void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {
+	g_iPredictModel = INVALID_ENT_REFERENCE;
+	
 	if (!L4D_IsVersusMode()) return;
 	
-	g_iPredictModel = INVALID_ENT_REFERENCE;
 	if (!GameRules_GetProp("m_bInSecondHalfOfRound", 1))
 	{
 		g_vModelPos = NULL_VECTOR;
@@ -140,7 +142,7 @@ Action Timer_AccessTankWarp(Handle timer, bool isRetry)
 {
 	if (!L4D_IsVersusMode()) return Plugin_Stop;
 	
-	if (g_bLeft4Dead2 && g_iPredictModel != INVALID_ENT_REFERENCE)
+	if (g_bLeft4Dead2 && IsValidEdict(g_iPredictModel))
 	{
 		char buffer[256];
 		
@@ -155,16 +157,15 @@ Action Timer_AccessTankWarp(Handle timer, bool isRetry)
 		/**
 		 *	if ( "anv_tankwarps" in getroottable() )
 		 *	{
-		 *		anv_tankwarps.OnGameEvent_tank_spawn(
+		 *		::anv_tankwarps.OnGameEvent_tank_spawn(
 		 *		{
 		 *			userid = 0,
 		 *			tankid = %d
 		 *		} );
-		 *		anv_tankwarps.iTankCount--;
+		 *		::anv_tankwarps.iTankCount--;
 		 *	}
 		 */
-		FormatEx(
-			buffer, sizeof(buffer),
+		FormatEx(buffer, sizeof(buffer),
 			"::anv_tankwarps.OnGameEvent_tank_spawn(\
 			{\
 				userid = 0,\
@@ -205,16 +206,14 @@ void Event_TankSpawn(Event event, const char[] name, bool dontBroadcast)
 	if (!client)
 		return;
 	
-	if (IsFakeClient(client) && IsTankOffering())
+	if (IsFakeClient(client))
 	{
 		if (g_cvTeleport.BoolValue)
 			TeleportEntity(client, g_vModelPos, g_vModelAng, NULL_VECTOR);
 	}
-	else
-	{
-		RemoveEntity(g_iPredictModel);
-		g_iPredictModel = INVALID_ENT_REFERENCE;
-	}
+	
+	RemoveEntity(g_iPredictModel);
+	g_iPredictModel = INVALID_ENT_REFERENCE;
 }
 
 //=========================================================================================================
@@ -231,6 +230,7 @@ int ProcessPredictModel(float vPos[3], float vAng[3])
 			if (nav != NULL_NAV_AREA)
 			{
 				L4D_FindRandomSpot(view_as<int>(nav), vPos);
+				vPos[2] -= 8.0; // less floating off ground
 				
 				vAng[0] = 0.0;
 				vAng[1] = GetRandomFloat(0.0, 360.0);
@@ -295,20 +295,16 @@ int CreateTankGlowModel(const float vPos[3], const float vAng[3])
 
 //=========================================================================================================
 
-bool IsTankOffering()
-{
-	return GetEntProp(L4D_GetResourceEntity(), Prop_Send, "m_pendingTankPlayerIndex") > 0;
-}
-
 int PickTankVariant()
 {
 	if (!g_bLeft4Dead2 || L4D2_GetSurvivorSetMod() == 2)
 		return 0;
 	
-	/*char sCurrentMap[64];
+	// in case some characteristic configs enables flow tank
+	char sCurrentMap[64];
 	GetCurrentMap(sCurrentMap, 6);
-	if (strncmp(sCurrentMap, "c7m1_", 5) == 2)
-		return 1;*/
+	if (strcmp(sCurrentMap, "c7m1_docks") == 0)
+		return 1;
 	
 	return 2;
 }
