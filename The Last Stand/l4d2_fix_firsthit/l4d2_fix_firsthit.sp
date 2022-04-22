@@ -3,33 +3,40 @@
 
 #include <sourcemod>
 #include <sdktools_gamerules>
-#include <sdkhooks>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "1.3"
+#define PLUGIN_VERSION "2.0"
 
 public Plugin myinfo =
 {
-	name = "[L4D2] Fix Scavenge First-Hit",
+	name = "[L4D2] Fix First-Hit",
 	author = "Forgetest",
-	description = "Fix first hit classes varying between halves and staying the same for rounds.",
+	description = "Fix first hit classes varying between halves and in scavenge staying the same for rounds.",
 	version = PLUGIN_VERSION,
 	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 }
 
-#define GAMEDATA_FILE "l4d2_fix_scvng_firsthit"
-#define OFFS_FIRSTCLS "CDirector::m_nFirstClassIndex"
-
-int m_nFirstClassIndex;
+int g_iOffs_FirstClassIndex;
 ConVar g_cvAllow;
 
+methodmap CDirector
+{
+	property int m_nFirstClassIndex {
+		public get() { return LoadFromAddress(L4D_GetPointer(POINTER_DIRECTOR) + view_as<Address>(g_iOffs_FirstClassIndex), NumberType_Int32); }
+		public set(int index) { StoreToAddress(L4D_GetPointer(POINTER_DIRECTOR) + view_as<Address>(g_iOffs_FirstClassIndex), index, NumberType_Int32); }
+	}
+}
+CDirector TheDirector;
+
+#define GAMEDATA_FILE "l4d2_fix_firsthit"
+#define OFFS_FIRSTCLS "CDirector::m_nFirstClassIndex"
 void LoadSDK()
 {
 	Handle conf = LoadGameConfigFile(GAMEDATA_FILE);
 	if (!conf) SetFailState("Missing gamedata \""...GAMEDATA_FILE..."\"");
 	
-	m_nFirstClassIndex = GameConfGetOffset(conf, OFFS_FIRSTCLS);
-	if (m_nFirstClassIndex == -1) SetFailState("Missing offset \""...OFFS_FIRSTCLS..."\"");
+	g_iOffs_FirstClassIndex = GameConfGetOffset(conf, OFFS_FIRSTCLS);
+	if (g_iOffs_FirstClassIndex == -1) SetFailState("Missing offset \""...OFFS_FIRSTCLS..."\"");
 	
 	delete conf;
 }
@@ -38,78 +45,69 @@ public void OnPluginStart()
 {
 	LoadSDK();
 	
-	g_cvAllow = CreateConVar("l4d2_scvng_firsthit_shuffle", "0", "Shuffle first hit classes.\nValue: 1 = Shuffle every round, 2 = Shuffle every match, 0 = Disable.", FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 2.0);
+	g_cvAllow = CreateConVar("l4d2_scvng_firsthit_shuffle",
+							"0",
+							"Shuffle first hit classes. Affects only Scavenge mode.\n"
+						...	"Value: 1 = Shuffle every round, 2 = Shuffle every match, 0 = Disable.",
+							FCVAR_NOTIFY|FCVAR_SPONLY,
+							true, 0.0, true, 2.0);
 	
 	HookEvent("player_team", Event_PlayerTeam);
-	HookEvent("round_start_pre_entity", Event_RoundStartPreEntity, EventHookMode_PostNoCopy);
 	HookEvent("player_transitioned", Event_PlayerTransitioned);
+	HookEvent("scavenge_round_finished", Event_ScavengeRoundFinished, EventHookMode_PostNoCopy);
+	HookEvent("scavenge_match_finished", Event_ScavengeNatchFinished, EventHookMode_PostNoCopy);
 }
 
 void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
 {
-	if (!L4D2_IsScavengeMode()) return;
-	
 	int client = GetClientOfUserId(event.GetInt("userid"));
-	if (client && event.GetInt("oldteam") == 3)
+	if (client)
 	{
-		ResetClassSpawnSystem(client);
-	}
-}
-
-void Event_RoundStartPreEntity(Event event, const char[] name, bool dontBroadcast)
-{
-	if (!L4D2_IsScavengeMode()) return;
-	
-	for (int i = 1; i <= MaxClients; ++i)
-	{
-		if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) != 1)
+		int team = event.GetInt("team");
+		if (team == 3 && team != event.GetInt("oldteam"))
 		{
-			SDKHook(i, SDKHook_Spawn, SDK_OnSpawn);
+			ResetClassSpawnSystem(client);
 		}
 	}
-	
-	if (g_cvAllow.IntValue == 1 && !GameRules_GetProp("m_bInSecondHalfOfRound", 1))
-	{
-		SetRandomSeed(GetTime());
-		CDirector_SetFirstClassIndex(GetRandomInt(1, 6));
-	}
-}
-
-Action SDK_OnSpawn(int entity)
-{
-	ResetClassSpawnSystem(entity);
-	SDKUnhook(entity, SDKHook_Spawn, SDK_OnSpawn);
-	
-	return Plugin_Continue;
 }
 
 void Event_PlayerTransitioned(Event event, const char[] name, bool dontBroadcast)
 {
-	if (!L4D2_IsScavengeMode()) return;
-	
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	if (client) ResetClassSpawnSystem(client);
 }
 
-public void OnConfigsExecuted()
+void Event_ScavengeRoundFinished(Event event, const char[] name, bool dontBroadcast)
 {
-	if (!L4D2_IsScavengeMode()) return;
-	
+	if (g_cvAllow.IntValue == 1 && GameRules_GetProp("m_bInSecondHalfOfRound", 1))
+	{
+		SetRandomSeed(GetTime());
+		TheDirector.m_nFirstClassIndex = GetRandomInt(1, 6);
+	}
+}
+
+void Event_ScavengeNatchFinished(Event event, const char[] name, bool dontBroadcast)
+{
 	if (g_cvAllow.IntValue == 2)
 	{
 		SetRandomSeed(GetTime());
-		CDirector_SetFirstClassIndex(GetRandomInt(1, 6));
+		TheDirector.m_nFirstClassIndex = GetRandomInt(1, 6);
 	}
 }
 
 void ResetClassSpawnSystem(int client)
 {
-	for (int i = 1; i <= 8; ++i)
-		SetEntProp(client, Prop_Send, "m_classSpawnCount", 0, _, i);
-}
-
-void CDirector_SetFirstClassIndex(int index)
-{
-	if (index >= 1 && index <= 6)
-		StoreToAddress(L4D_GetPointer(POINTER_DIRECTOR) + view_as<Address>(m_nFirstClassIndex), index, NumberType_Int32);
+	static int s_iOffs_Time = -1, s_iOffs_Count = -1;
+	if (s_iOffs_Count == -1)
+	{
+		s_iOffs_Count = FindSendPropInfo("CTerrorPlayer", "m_classSpawnCount");
+		s_iOffs_Time = s_iOffs_Count - 9 * 4;
+	}
+	
+	float fNow = GetGameTime();
+	for (int i = 0; i <= 8; ++i)
+	{
+		SetEntData(client, s_iOffs_Count + i*4, 0, 4);
+		SetEntDataFloat(client, s_iOffs_Time + i*4, fNow);
+	}
 }
