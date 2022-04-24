@@ -5,7 +5,7 @@
 #include <sdktools_gamerules>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "2.0"
+#define PLUGIN_VERSION "2.1"
 
 public Plugin myinfo =
 {
@@ -88,7 +88,7 @@ void Event_ScavengeRoundFinished(Event event, const char[] name, bool dontBroadc
 
 void Event_ScavengeNatchFinished(Event event, const char[] name, bool dontBroadcast)
 {
-	if (g_cvAllow.IntValue == 2)
+	if (g_cvAllow.IntValue > 0)
 	{
 		SetRandomSeed(GetTime());
 		TheDirector.m_nFirstClassIndex = GetRandomInt(1, 6);
