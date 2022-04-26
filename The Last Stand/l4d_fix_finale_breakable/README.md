@@ -1,0 +1,20 @@
+# [L4D & 2] Fix Finale Breakable
+
+### Introduction
+- Fix an game issue described [here](https://github.com/SirPlease/L4D2-Competitive-Rework/issues/223).
+
+<hr>
+
+### Special Thanks
+- Direct hint provided [here](https://github.com/SirPlease/L4D2-Competitive-Rework/issues/223#issuecomment-925980942) so thanks to **@MartLegion** and **Psyk0tik**.
+
+<hr>
+
+### Installation
+1. Put the **l4d_fix_finale_breakable.smx** to your _plugins_ folder.
+2. Put the **l4d_fix_finale_breakable.txt** to your _gamedata_ folder.
+
+<hr>
+
+### Changelog
+(v1.0 2022/4/26 UTC+8) Initial release.
