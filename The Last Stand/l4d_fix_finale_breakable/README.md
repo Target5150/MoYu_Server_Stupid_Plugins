@@ -17,4 +17,6 @@
 <hr>
 
 ### Changelog
+(v1.1 2022/4/28 UTC+8) Fix functionality on some finales.
+
 (v1.0 2022/4/26 UTC+8) Initial release.
