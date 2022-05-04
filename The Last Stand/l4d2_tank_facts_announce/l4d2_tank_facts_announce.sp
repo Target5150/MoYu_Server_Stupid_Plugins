@@ -7,7 +7,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.6a"
+#define PLUGIN_VERSION "1.7"
 
 public Plugin myinfo = 
 {
@@ -18,7 +18,10 @@ public Plugin myinfo =
 	url = "?"
 };
 
-enum struct ITankAttack
+// TODO:
+// Use ArrayList to keep individual attacks since Tank won't create massive data.
+// In this way more flexible info is allowed.
+enum struct TankAttack_s
 {
 	int Punch;
 	int Rock;
@@ -28,9 +31,9 @@ enum struct ITankAttack
 		this.Punch = this.Rock = this.Hittable = 0;
 	}
 }
-static ITankAttack		g_eTankAttack;
+static TankAttack_s g_TankAttack;
 
-enum struct IAttackResult
+enum struct AttackResult_s
 {
 	int Incap;
 	int Death;
@@ -40,22 +43,24 @@ enum struct IAttackResult
 		this.Incap = this.Death = this.TotalDamage = 0;
 	}
 }
-static IAttackResult	g_eTankResult;
+static AttackResult_s g_TankResult;
 
 
 static int			g_iTankClient						= 0;
-static int			g_iPlayerLastHealth[MAXPLAYERS+1]	= 0;
+static int			g_iPlayerLastHealth[MAXPLAYERS+1]	= {0, ...};
 static bool			g_bAnnounceTankFacts				= false;
 static bool			g_bTankInPlay						= false;
 static float		g_fTankSpawnTime					= 0.0;
-static char			g_sLastHumanTankName[MAX_NAME_LENGTH];
+static char			g_sLastHumanTankName[MAX_NAME_LENGTH] = "";
 
-static bool			bLateLoad;
+static bool			g_bLateLoad							= false;
+
+static ConVar		director_tank_lottery_selection_time = null;
 
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_Max)
 {
-	bLateLoad = late;
+	g_bLateLoad = late;
 	return APLRes_Success;
 }
 
@@ -69,19 +74,21 @@ public void OnPluginStart()
 	HookEvent("player_incapacitated_start", Event_PlayerIncapStart);
 	HookEvent("player_death", Event_PlayerKilled);
 	
-	if (bLateLoad)
+	director_tank_lottery_selection_time = FindConVar("director_tank_lottery_selection_time");
+	
+	if (g_bLateLoad)
 	{
 		for (int i = 1; i <= MaxClients; i++)
 			if (IsClientInGame(i)) OnClientPutInServer(i);
 	}
 }
 
-public void Event_OnRoundStart(Event event, const char[] name, bool dontBroadcast)
+void Event_OnRoundStart(Event event, const char[] name, bool dontBroadcast)
 {
 	ClearStuff();
 }
 
-public void Event_OnRoundEnd(Event event, const char[] name, bool dontBroadcast)
+void Event_OnRoundEnd(Event event, const char[] name, bool dontBroadcast)
 {
 	if (g_bAnnounceTankFacts) PrintTankSkill();
 	ClearStuff();
@@ -102,7 +109,7 @@ public void OnClientDisconnect(int client)
 	}
 }
 
-public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
 	if (!g_bTankInPlay) return Plugin_Continue;
 	
@@ -128,84 +135,87 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
 	return Plugin_Continue;
 }
 
-public void Event_OnTankSpawn(Event event, const char[] name, bool dontBroadcast)
+// TODO: Support for multiple tanks
+void Event_OnTankSpawn(Event event, const char[] name, bool dontBroadcast)
 {
-	int client = GetClientOfUserId(GetEventInt(event, "userid"));
+	int client = GetClientOfUserId(event.GetInt("userid"));
 	g_iTankClient = client;
+	
+	// In case the tank control becomes AI, keep his name first.
 	if (!IsFakeClient(client)) GetClientName(client, g_sLastHumanTankName, sizeof(g_sLastHumanTankName));
 	
 	if (g_bTankInPlay) return;
 	
 	g_bTankInPlay = true;
 	g_bAnnounceTankFacts = true;
-	g_fTankSpawnTime = GetGameTime() + FindConVar("director_tank_lottery_selection_time").FloatValue;
+	g_fTankSpawnTime = GetGameTime() + director_tank_lottery_selection_time.FloatValue;
 }
 
-public void Event_OnPlayerHurt(Event event, const char[] name, bool dontBroadcast)
+void Event_OnPlayerHurt(Event event, const char[] name, bool dontBroadcast)
 {
 	if (!g_bTankInPlay) return;
 	
-	int victim = GetClientOfUserId(GetEventInt(event, "userid"));
+	int victim = GetClientOfUserId(event.GetInt("userid"));
 	if (!victim || !IsSurvivor(victim) || IsIncapacitated(victim)) return;
 	
-	int attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
+	int attacker = GetClientOfUserId(event.GetInt("attacker"));
 	
 	char weapon[64];
-	GetEventString(event, "weapon", weapon, sizeof(weapon));
+	event.GetString("weapon", weapon, sizeof(weapon));
 	
 	if (attacker != g_iTankClient) return;
 	
-	int dmg = GetEventInt(event, "dmg_health");
+	int dmg = event.GetInt("dmg_health");
 	if (dmg > 0)
 	{
 		if (StrEqual(weapon, "tank_claw")) {
-			g_eTankAttack.Punch++;
+			g_TankAttack.Punch++;
 		} else if (StrEqual(weapon, "tank_rock")) {
-			g_eTankAttack.Rock++;
+			g_TankAttack.Rock++;
 		//} else if (IsTankHittable(weapon)) {
-		} else { // alternation due to l4d2_hittable_control setting 'inflictor' as hittable to 0
-			g_eTankAttack.Hittable++;
+		} else { // workaround due to "l4d2_hittable_control" setting 'inflictor' to 0 for hittables
+			g_TankAttack.Hittable++;
 		}
 		
-		g_eTankResult.TotalDamage += dmg;
+		g_TankResult.TotalDamage += dmg;
 	}
 }
 
-public void Event_PlayerIncapStart(Event event, const char[] name, bool dontBroadcast)
+void Event_PlayerIncapStart(Event event, const char[] name, bool dontBroadcast)
 {
 	if (!g_bTankInPlay) return;
 	
-	int victim = GetClientOfUserId(GetEventInt(event, "userid"));
+	int victim = GetClientOfUserId(event.GetInt("userid"));
 	if (!victim || !IsSurvivor(victim)) return;
 	
-	int attacker = GetClientOfUserId(GetEventInt(event, "attacker"));
+	int attacker = GetClientOfUserId(event.GetInt("attacker"));
 	
 	char weapon[64];
-	GetEventString(event, "weapon", weapon, sizeof(weapon));
+	event.GetString("weapon", weapon, sizeof(weapon));
 	
 	if (StrEqual(weapon, "tank_claw")) {
-		g_eTankAttack.Punch++;
+		g_TankAttack.Punch++;
 	} else if (StrEqual(weapon, "tank_rock")) {
-		g_eTankAttack.Rock++;
+		g_TankAttack.Rock++;
 	//} else if (IsTankHittable(weapon)) {
-	} else if (attacker == g_iTankClient) { // alternation due to l4d2_hittable_control setting 'inflictor' as hittable to 0
-		g_eTankAttack.Hittable++;
+	} else if (attacker == g_iTankClient) { // workaround due to "l4d2_hittable_control" setting 'inflictor' to 0 for hittables
+		g_TankAttack.Hittable++;
 	}
 	
-	g_eTankResult.Incap++;
-	if (attacker == g_iTankClient) g_eTankResult.TotalDamage += g_iPlayerLastHealth[victim];
+	g_TankResult.Incap++;
+	if (attacker == g_iTankClient) g_TankResult.TotalDamage += g_iPlayerLastHealth[victim];
 }
 
-public void Event_PlayerKilled(Event event, const char[] name, bool dontBroadcast)
+void Event_PlayerKilled(Event event, const char[] name, bool dontBroadcast)
 {
 	if (!g_bTankInPlay) return;
 	
-	int victim = GetClientOfUserId(GetEventInt(event, "userid"));
+	int victim = GetClientOfUserId(event.GetInt("userid"));
 	if (!victim) return;
 	
 	if (IsSurvivor(victim))
 	{
-		g_eTankResult.Death++;
+		g_TankResult.Death++;
 	}
 	else if (victim == g_iTankClient)
 	{
@@ -213,28 +223,30 @@ public void Event_PlayerKilled(Event event, const char[] name, bool dontBroadcas
 	}
 }
 
-public Action Timer_CheckTank(Handle timer, int oldtankclient)
+Action Timer_CheckTank(Handle timer, int oldtankclient)
 {
-	if (g_iTankClient != oldtankclient) return; // Tank passed
+	if (g_iTankClient != oldtankclient) return Plugin_Stop; // Tank passed
 
 	int tankclient = FindTankClient(-1);
 	if (tankclient && tankclient != oldtankclient)
 	{
 		g_iTankClient = tankclient;
-		return;
+		return Plugin_Stop;
 	}
 
 	if (g_bAnnounceTankFacts) PrintTankSkill();
 	
 	ClearStuff();
+	
+	return Plugin_Stop;
 }
 
-public void PrintTankSkill()
+void PrintTankSkill()
 {
 	int tankclient = GetTankClient();
 	if (!tankclient) return;
 	
-	char name[MAX_NAME_LENGTH], buffer[16], info[128];
+	char name[MAX_NAME_LENGTH], buffer[16];
 	if (IsFakeClient(tankclient))
 	{
 		if (g_sLastHumanTankName[0] != '\0')
@@ -254,45 +266,48 @@ public void PrintTankSkill()
 	}
 	
 	DataPack dp;
-	CreateDataTimer(3.0, Timer_PrintToChat, dp);
+	CreateDataTimer(3.0, Timer_PrintToChat, dp, TIMER_FLAG_NO_MAPCHANGE);
+	
+	dp.WriteString(name);
+	dp.WriteString(buffer); // duration
+	dp.WriteCellArray(g_TankAttack, sizeof(g_TankAttack));
+	dp.WriteCellArray(g_TankResult, sizeof(g_TankResult));
+}
+
+Action Timer_PrintToChat(Handle timer, DataPack dp)
+{
+	dp.Reset();
+	
+	// CSayText appears to be async or via text stream?, whatever it costs random amount of time.
+	// For unknown reason stacking color tags can slow certain processing of message.
+	// To print messages in a proper order, extra tags should be added in front.
+	
+	char name[MAX_NAME_LENGTH], buffer[16];
+	dp.ReadString(name, sizeof(name));
+	dp.ReadString(buffer, sizeof(buffer));
+	
+	TankAttack_s attack;
+	AttackResult_s result;
+	dp.ReadCellArray(attack, 3);
+	dp.ReadCellArray(result, 3);
 	
 	// [!] Facts of the Tank (AI)
 	// > Punch: 4 / Rock: 2 / Hittable: 0
 	// > Incap: 1 / Death: 0 from Survivors
 	// > Duration: 1min 7s / Total Damage: 144
 	
-	FormatEx(info, sizeof(info), "[{green}!{default}] {blue}Facts {default}of the {blue}Tank {default}({olive}%s{default})", name);
-	dp.WriteString(info);
-	FormatEx(info, sizeof(info), "{green}> {default}Punch: {red}%i {green}/ {default}Rock: {red}%i {green}/ {default}Hittable: {red}%i", g_eTankAttack.Punch, g_eTankAttack.Rock, g_eTankAttack.Hittable);
-	dp.WriteString(info);
-	FormatEx(info, sizeof(info), "{green}> {default}Incap: {olive}%i {green}/ {default}Death: {olive}%i {default}from {blue}Survivors", g_eTankResult.Incap, g_eTankResult.Death);
-	dp.WriteString(info);
-	FormatEx(info, sizeof(info), "{green}> {default}Duration: {lightgreen}%s {green}/ {default}Total damage: {lightgreen}%i", buffer, g_eTankResult.TotalDamage);
-	dp.WriteString(info);
-}
-
-public Action Timer_PrintToChat(Handle timer, DataPack dp)
-{
-	dp.Reset();
-	
-	// Processing teamcolor tags requires a few more time than doing non-teamcolor ones
-	// To print messages in a proper order, extra tags are added to slow processing of certain messages down
-	
-	char info[128];
-	dp.ReadString(info, sizeof(info));
-	CPrintToChatAll(info);
-	dp.ReadString(info, sizeof(info));
-	CPrintToChatAll("{red}%s", info);
-	dp.ReadString(info, sizeof(info));
-	CPrintToChatAll("{blue}{blue}%s", info);
-	dp.ReadString(info, sizeof(info));
-	CPrintToChatAll("{lightgreen}{lightgreen}{lightgreen}%s", info);
+	CPrintToChatAll("%t", "Announce_Title", name);
+	CPrintToChatAll("%t", "Announce_TankAttack", attack.Punch, attack.Rock, attack.Hittable);
+	CPrintToChatAll("%t", "Announce_AttackResult", result.Incap, result.Death);
+	CPrintToChatAll("%t", "Announce_Summary", buffer, result.TotalDamage);
 	
 	// Since the DataTimer would auto-close handles passed,
 	// here we've just done.
+	
+	return Plugin_Stop;
 }
 
-public void ClearStuff()
+void ClearStuff()
 {
 	g_iTankClient = 0;
 	g_bTankInPlay = false;
@@ -300,8 +315,8 @@ public void ClearStuff()
 	g_fTankSpawnTime = 0.0;
 	strcopy(g_sLastHumanTankName, sizeof(g_sLastHumanTankName), "");
 	
-	g_eTankAttack.Init();
-	g_eTankResult.Init();
+	g_TankAttack.Init();
+	g_TankResult.Init();
 	
 	for (int i = 1; i <= MaxClients; i++)
 	{
