@@ -64,8 +64,22 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_Max
 	return APLRes_Success;
 }
 
+#define TRANSLATION_FILE "l4d2_tank_facts_announce.phrases"
+void LoadPluginTranslations()
+{
+	char sPath[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sPath, sizeof(sPath), "translations/"...TRANSLATION_FILE...".txt");
+	if (!FileExists(sPath))
+	{
+		SetFailState("Missing translation \""...TRANSLATION_FILE..."\"");
+	}
+	LoadTranslations(TRANSLATION_FILE);
+}
+
 public void OnPluginStart()
 {
+	LoadPluginTranslations();
+	
 	HookEvent("round_start", Event_OnRoundStart, EventHookMode_PostNoCopy);
 	HookEvent("round_end", Event_OnRoundEnd, EventHookMode_PostNoCopy);
 	
