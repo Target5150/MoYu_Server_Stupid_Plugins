@@ -5,7 +5,7 @@
 #include <sdkhooks> // DMG_BUCKSHOT
 #include <colors>
 
-#define PLUGIN_VERSION "4.2"
+#define PLUGIN_VERSION "4.3"
 
 public Plugin myinfo = 
 {
@@ -206,7 +206,7 @@ Action AnnounceFF(Handle timer, DataPack dp)
 		
 		if (!IsFakeClient(i))
 		{
-			CPrintToChat(i, "%t", "FFAnnounceToVictim", i, DamageCache[attacker][i]);
+			CPrintToChat(i, "%t", "FFAnnounceToVictim", attacker, DamageCache[attacker][i]);
 		}
 	}
 	
