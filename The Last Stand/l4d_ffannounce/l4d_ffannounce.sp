@@ -5,7 +5,7 @@
 #include <sdkhooks> // DMG_BUCKSHOT
 #include <colors>
 
-#define PLUGIN_VERSION "4.5"
+#define PLUGIN_VERSION "4.6"
 
 public Plugin myinfo = 
 {
@@ -144,14 +144,6 @@ void Event_HurtConcise(Event event, const char[] name, bool dontBroadcast)
 	
 	if (attacker == victim) return;
 	
-	// Shotgun deals damage per pellet, which means the event can be called multiple times for one shot.
-	// Prevent unnecessary freeing timers that might impact performance.
-	if (event.GetInt("type") & DMG_BUCKSHOT && !g_bBuckShot[attacker])
-	{
-		RequestFrame(OnNextFrame_Unmark, GetClientUserId(attacker));
-		g_bBuckShot[attacker] = true;
-	}
-	
 	int damage = event.GetInt("dmg_health");
 	if (FFTimer[attacker] != null)
 	{
@@ -171,6 +163,14 @@ void Event_HurtConcise(Event event, const char[] name, bool dontBroadcast)
 		DamageCache[attacker][victim] = damage;
 		DamageCache[attacker][0] = damage;
 		StartAnnounceTimer(attacker, 1.5);
+	}
+	
+	// Shotgun deals damage per pellet, which means the event can be called multiple times for one shot.
+	// Prevent unnecessary freeing timers that might impact performance.
+	if (event.GetInt("type") & DMG_BUCKSHOT && !g_bBuckShot[attacker])
+	{
+		RequestFrame(OnNextFrame_Unmark, GetClientUserId(attacker));
+		g_bBuckShot[attacker] = true;
 	}
 }
 
@@ -238,7 +238,7 @@ Action AnnounceFF(Handle timer, DataPack dp)
 				
 				static char transStr[64];
 				FormatEx(transStr, sizeof(transStr), "FFAnnounceToGuilty%i", iTotalVictims);
-				FormatEx(text, sizeof(text), "%T", transStr, curLang);
+				FormatEx(text, sizeof(text), "%T", transStr, client);
 				
 				for (int j = 0; j < iTotalVictims; ++j)
 				{
