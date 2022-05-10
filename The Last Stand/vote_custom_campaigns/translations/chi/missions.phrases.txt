@@ -212,4 +212,68 @@
 	{
 		"chi" "闪电突袭2"
 	}
+	"AcerDkPsh"
+	{
+		"chi" "黑暗教区"
+	}
+	"behind"
+	{
+		"chi" "别被丢下"
+	}
+	"bts"
+	{
+		"chi" "返校"
+	}
+	"darkblood2"
+	{
+		"chi" "暗血2"
+	}
+	"DayBreak"
+	{
+		"chi" "黎明"
+	}
+	"deathSentence"
+	{
+		"chi" "死刑"
+	}
+	"FatalFreight"
+	{
+		"chi" "致命货运站"
+	}
+	"heavencanwait2"
+	{
+		"chi" "天堂可待2"
+	}
+	"jsarena2"
+	{
+		"chi" "死亡竞技场2"
+	}
+	"One4Nine"
+	{
+		"chi" "149"
+	}
+	"ParishOverGrowth"
+	{
+		"chi" "教区: 蔓延"
+	}
+	"tot"
+	{
+		"chi" "恐怖之旅"
+	}
+	"urbanflight"
+	{
+		"chi" "城市航班"
+	}
+	"warcelona"
+	{
+		"chi" "巴塞罗那"
+	}
+	"CityOfTheDead"
+	{
+		"chi" "死城"
+	}
+	"DeadbeatEscape"
+	{
+		"chi" "无缝逃离"
+	}
 }

@@ -216,4 +216,68 @@
 	{
 		"en" "Suicide Blitz 2"
 	}
+	"AcerDkPsh"
+	{
+		"en" "Dark Parish"
+	}
+	"behind"
+	{
+		"en" "Left Behind"
+	}
+	"bts"
+	{
+		"en" "Back To School"
+	}
+	"darkblood2"
+	{
+		"en" "Dark Blood 2"
+	}
+	"DayBreak"
+	{
+		"en" "Day Break"
+	}
+	"deathSentence"
+	{
+		"en" "Death Sentence"
+	}
+	"FatalFreight"
+	{
+		"en" "Fatal Freight"
+	}
+	"heavencanwait2"
+	{
+		"en" "Heaven Can Wait 2"
+	}
+	"jsarena2"
+	{
+		"en" "Arena of the Dead 2"
+	}
+	"One4Nine"
+	{
+		"en" "One 4 Nine"
+	}
+	"ParishOverGrowth"
+	{
+		"en" "Parish: OverGrowth"
+	}
+	"tot"
+	{
+		"en" "Tour Of Terror"
+	}
+	"urbanflight"
+	{
+		"en" "Urban Flight"
+	}
+	"warcelona"
+	{
+		"en" "Warcelona"
+	}
+	"CityOfTheDead"
+	{
+		"en" "City Of The Dead"
+	}
+	"DeadbeatEscape"
+	{
+		"en" "Deadbeat Escape"
+	}
 }
