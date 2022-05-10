@@ -5,7 +5,7 @@
 #include <sdkhooks> // DMG_BUCKSHOT
 #include <colors>
 
-#define PLUGIN_VERSION "4.3"
+#define PLUGIN_VERSION "4.5"
 
 public Plugin myinfo = 
 {
@@ -194,15 +194,26 @@ Action AnnounceFF(Handle timer, DataPack dp)
 	if (attacker != GetClientOfUserId(attackerid) || !IsClientInGame(attacker))
 		return Plugin_Stop;
 	
-	int total = 0;
+	int iTotalVictims = 0;
+	int iTotalClients = 0;
+	int[] victims = new int[MaxClients];
 	int[] clients = new int[MaxClients];
+	
+	clients[iTotalClients++] = attacker;
 	
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (!IsClientInGame(i)) continue;
+		
+		if (AnnounceEnable.IntValue == 2)
+		{
+			if (!IsFakeClient(i) && GetClientTeam(i) == 1)
+				clients[iTotalClients++] = i;
+		}
+		
 		if (!DamageCache[attacker][i]) continue;
 		
-		clients[total++] = i;
+		victims[iTotalVictims++] = i;
 		
 		if (!IsFakeClient(i))
 		{
@@ -210,17 +221,13 @@ Action AnnounceFF(Handle timer, DataPack dp)
 		}
 	}
 	
-	if (total > 0)
+	if (iTotalVictims > 0)
 	{
 		int lastLang = -1;
 		
-		for (
-			int client = (AnnounceEnable.IntValue == 2 ? 1 : attacker);
-			client <= (AnnounceEnable.IntValue == 2 ? MaxClients : attacker);
-			++client
-		) {
-			if (!IsClientInGame(client) || IsFakeClient(client))
-				continue;
+		for (int i = 0; i < iTotalClients; ++i)
+		{
+			int client = clients[i];
 			
 			static char text[400], msg[400], buffer[64];
 			
@@ -230,16 +237,16 @@ Action AnnounceFF(Handle timer, DataPack dp)
 				curLang = lastLang;
 				
 				static char transStr[64];
-				FormatEx(transStr, sizeof(transStr), "FFAnnounceToGuilty%i", total);
+				FormatEx(transStr, sizeof(transStr), "FFAnnounceToGuilty%i", iTotalVictims);
 				FormatEx(text, sizeof(text), "%T", transStr, curLang);
 				
-				for (int i = 0; i < total; ++i)
+				for (int j = 0; j < iTotalVictims; ++j)
 				{
-					FormatEx(transStr, sizeof(transStr), "{VICTIM%i_NAME}", i+1);
-					GetClientName(clients[i], buffer, sizeof(buffer));
+					FormatEx(transStr, sizeof(transStr), "{VICTIM%i_NAME}", j+1);
+					GetClientName(victims[j], buffer, sizeof(buffer));
 					ReplaceString(text, sizeof(text), transStr, buffer);
-					FormatEx(transStr, sizeof(transStr), "{VICTIM%i_DMG}", i+1);
-					IntToString(DamageCache[attacker][clients[i]], buffer, sizeof(buffer));
+					FormatEx(transStr, sizeof(transStr), "{VICTIM%i_DMG}", j+1);
+					IntToString(DamageCache[attacker][victims[j]], buffer, sizeof(buffer));
 					ReplaceString(text, sizeof(text), transStr, buffer);
 				}
 			}
