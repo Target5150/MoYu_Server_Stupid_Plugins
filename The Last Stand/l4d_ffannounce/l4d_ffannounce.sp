@@ -5,7 +5,7 @@
 #include <sdkhooks> // DMG_BUCKSHOT
 #include <colors>
 
-#define PLUGIN_VERSION "4.3"
+#define PLUGIN_VERSION "4.6"
 
 public Plugin myinfo = 
 {
@@ -144,14 +144,6 @@ void Event_HurtConcise(Event event, const char[] name, bool dontBroadcast)
 	
 	if (attacker == victim) return;
 	
-	// Shotgun deals damage per pellet, which means the event can be called multiple times for one shot.
-	// Prevent unnecessary freeing timers that might impact performance.
-	if (event.GetInt("type") & DMG_BUCKSHOT && !g_bBuckShot[attacker])
-	{
-		RequestFrame(OnNextFrame_Unmark, GetClientUserId(attacker));
-		g_bBuckShot[attacker] = true;
-	}
-	
 	int damage = event.GetInt("dmg_health");
 	if (FFTimer[attacker] != null)
 	{
@@ -171,6 +163,14 @@ void Event_HurtConcise(Event event, const char[] name, bool dontBroadcast)
 		DamageCache[attacker][victim] = damage;
 		DamageCache[attacker][0] = damage;
 		StartAnnounceTimer(attacker, 1.5);
+	}
+	
+	// Shotgun deals damage per pellet, which means the event can be called multiple times for one shot.
+	// Prevent unnecessary freeing timers that might impact performance.
+	if (event.GetInt("type") & DMG_BUCKSHOT && !g_bBuckShot[attacker])
+	{
+		RequestFrame(OnNextFrame_Unmark, GetClientUserId(attacker));
+		g_bBuckShot[attacker] = true;
 	}
 }
 
@@ -194,15 +194,26 @@ Action AnnounceFF(Handle timer, DataPack dp)
 	if (attacker != GetClientOfUserId(attackerid) || !IsClientInGame(attacker))
 		return Plugin_Stop;
 	
-	int total = 0;
+	int iTotalVictims = 0;
+	int iTotalClients = 0;
+	int[] victims = new int[MaxClients];
 	int[] clients = new int[MaxClients];
+	
+	clients[iTotalClients++] = attacker;
 	
 	for (int i = 1; i <= MaxClients; i++)
 	{
 		if (!IsClientInGame(i)) continue;
+		
+		if (AnnounceEnable.IntValue == 2)
+		{
+			if (!IsFakeClient(i) && GetClientTeam(i) == 1)
+				clients[iTotalClients++] = i;
+		}
+		
 		if (!DamageCache[attacker][i]) continue;
 		
-		clients[total++] = i;
+		victims[iTotalVictims++] = i;
 		
 		if (!IsFakeClient(i))
 		{
@@ -210,50 +221,52 @@ Action AnnounceFF(Handle timer, DataPack dp)
 		}
 	}
 	
-	if (total > 0)
+	if (iTotalVictims > 0)
 	{
-		static char text[400], msg[400];
+		int lastLang = -1;
 		
-		static char transStr[64];
-		FormatEx(transStr, sizeof(transStr), "FFAnnounceToGuilty%i", total);
-		FormatEx(text, sizeof(text), "%T", transStr, attacker);
-		
-		static char buffer[64];
-		for (int i = 0; i < total; ++i)
+		for (int i = 0; i < iTotalClients; ++i)
 		{
-			FormatEx(transStr, sizeof(transStr), "{VICTIM%i_NAME}", i+1);
-			GetClientName(clients[i], buffer, sizeof(buffer));
-			ReplaceString(text, sizeof(text), transStr, buffer);
-			FormatEx(transStr, sizeof(transStr), "{VICTIM%i_DMG}", i+1);
-			IntToString(DamageCache[attacker][clients[i]], buffer, sizeof(buffer));
-			ReplaceString(text, sizeof(text), transStr, buffer);
-		}
-		
-		strcopy(msg, sizeof(msg), text);
-		FormatEx(buffer, sizeof(buffer), "%T", "You", attacker);
-		ReplaceString(msg, sizeof(msg), "{GUILTY}", buffer);
-		
-		CPrintToChat(attacker, msg);
-		CPrintToChat(attacker, "%t", "FFAnnounceToGuiltyTotal", DamageCache[attacker][0]);
-		
-		if (AnnounceEnable.IntValue > 1)
-		{
-			GetClientName(attacker, buffer, sizeof(buffer));
-			ReplaceString(text, sizeof(text), "{GUILTY}", buffer);
-			CPrintToSpectators(text);
+			int client = clients[i];
+			
+			static char text[400], msg[400], buffer[64];
+			
+			int curLang = GetClientLanguage(client);
+			if (curLang != lastLang)
+			{
+				curLang = lastLang;
+				
+				static char transStr[64];
+				FormatEx(transStr, sizeof(transStr), "FFAnnounceToGuilty%i", iTotalVictims);
+				FormatEx(text, sizeof(text), "%T", transStr, client);
+				
+				for (int j = 0; j < iTotalVictims; ++j)
+				{
+					FormatEx(transStr, sizeof(transStr), "{VICTIM%i_NAME}", j+1);
+					GetClientName(victims[j], buffer, sizeof(buffer));
+					ReplaceString(text, sizeof(text), transStr, buffer);
+					FormatEx(transStr, sizeof(transStr), "{VICTIM%i_DMG}", j+1);
+					IntToString(DamageCache[attacker][victims[j]], buffer, sizeof(buffer));
+					ReplaceString(text, sizeof(text), transStr, buffer);
+				}
+			}
+			
+			strcopy(msg, sizeof(msg), text);
+			if (client == attacker)
+			{
+				FormatEx(buffer, sizeof(buffer), "%T", "You", attacker);
+				ReplaceString(msg, sizeof(msg), "{GUILTY}", buffer);
+			}
+			else
+			{
+				GetClientName(attacker, buffer, sizeof(buffer));
+				ReplaceString(msg, sizeof(msg), "{GUILTY}", buffer);
+			}
+			
+			CPrintToChat(client, msg);
+			CPrintToChat(client, "%t", "FFAnnounceToGuiltyTotal", DamageCache[attacker][0]);
 		}
 	}
 	
 	return Plugin_Stop;
-}
-
-void CPrintToSpectators(const char[] msg)
-{
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) == L4D2Team_Spectator)
-		{
-			CPrintToChat(i, msg);
-		}
-	}
 }
