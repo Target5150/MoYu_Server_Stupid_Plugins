@@ -39,6 +39,41 @@
 				"windows"	"14"
 			}
 			
+			"CTerrorPlayerAnimState::m_bCharged"
+			{
+				"linux"		"344"
+			}
+			
+			"CTerrorPlayerAnimState::m_bPummeled"
+			{
+				"linux"		"345"
+			}
+			
+			"CTerrorPlayerAnimState::m_bWallSlammed"
+			{
+				"linux"		"346"
+			}
+			
+			"CTerrorPlayerAnimState::m_bGroundSlammed"
+			{
+				"linux"		"347"
+			}
+			
+			"CTerrorPlayerAnimState::m_bIsPounded"
+			{
+				"linux"		"349"
+			}
+			
+			"CTerrorPlayerAnimState::m_bTankPunched"
+			{
+				"linux"		"351"
+			}
+			
+			"CTerrorPlayerAnimState::m_bRiddenByJockey"
+			{
+				"linux"		"358"
+			}
+			
 			/* @A1m`:
 			 * It cannot be simply found using sourcemod, 
 			 * now there is a problem with this plugin, it can break after every update. 
