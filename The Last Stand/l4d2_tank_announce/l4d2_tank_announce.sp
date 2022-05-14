@@ -53,7 +53,7 @@ public void OnMapStart()
 
 public void L4D_OnSpawnTank_Post(int client, const float vecPos[3], const float vecAng[3])
 {
-	if (!client || !IsClientInGame(client))
+	if (client <= 0 || !IsClientInGame(client))
 		return;
 	
 	EmitSoundToAll(g_sSound);
