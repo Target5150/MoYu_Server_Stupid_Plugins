@@ -9,7 +9,7 @@
 #undef REQUIRE_PLUGIN
 #include <caster_system>
 
-#define PLUGIN_VERSION "9.3.13"
+#define PLUGIN_VERSION "9.3.14"
 
 public Plugin myinfo =
 {
@@ -320,6 +320,7 @@ public void ServerCvarChanged(ConVar convar, const char[] oldValue, const char[]
 void EntO_OnGameplayStart(const char[] output, int caller, int activator, float delay)
 {
 	g_bTransitioning = false;
+	Timer_RestartCountdowns(null, false);
 }
 
 public void OnConfigsExecuted()
