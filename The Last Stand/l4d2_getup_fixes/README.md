@@ -5,6 +5,11 @@
 
 <hr>
 
+### Requirement
+- [Left 4 DHooks Direct](https://forums.alliedmods.net/showthread.php?p=2684862) (1.90 or higher)
+
+<hr>
+
 ### Installation
 - To install this, make sure you have removed:
   - `l4d2_getupfix`
