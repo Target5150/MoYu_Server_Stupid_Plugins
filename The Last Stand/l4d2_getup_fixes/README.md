@@ -1,4 +1,4 @@
-# [L4D2 Only] Fix First-Hit
+# [L4D2 Only] Get-up Fixes
 
 ### Introduction
 - Fix all double/missing get-up cases for competitive scene.
