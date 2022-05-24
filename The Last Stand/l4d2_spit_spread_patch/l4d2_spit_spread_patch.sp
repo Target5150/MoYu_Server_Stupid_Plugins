@@ -8,7 +8,7 @@
 #include <sourcescramble>
 #include <collisionhook>
 
-#define PLUGIN_VERSION "1.13"
+#define PLUGIN_VERSION "1.14"
 
 public Plugin myinfo = 
 {
@@ -400,7 +400,7 @@ public Action CH_PassFilter(int touch, int pass, bool &result)
 	// 3. (pass = insect_swarm): spit spread
 	
 	if( pass == g_iDetonateObj
-		|| (pass <= MaxClients && !IsPlayerAlive(pass) && GetClientTeam(pass) == 3 && GetEntProp(pass, Prop_Send, "m_zombieClass") == 4)
+		|| (pass <= MaxClients && IsClientInGame(pass) && !IsPlayerAlive(pass) && GetClientTeam(pass) == 3 && GetEntProp(pass, Prop_Send, "m_zombieClass") == 4)
 		|| (GetEdictClassname(pass, cls, sizeof(cls)) && strcmp(cls, "insect_swarm") == 0) )
 	{
 		if (touch > MaxClients)
