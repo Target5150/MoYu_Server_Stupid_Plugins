@@ -5,7 +5,7 @@
 #include <dhooks>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "2.0"
+#define PLUGIN_VERSION "2.1"
 
 public Plugin myinfo = 
 {
@@ -49,7 +49,27 @@ public void OnPluginStart()
 	g_smVocalize.SetValue("PlayerTaunt", true);
 	g_smVocalize.SetValue("Playerdeath", true);
 	
-	AddCommandListener(CmdLis_OnVocalize, "vocalize");
+	L4D_OnGameModeChange(L4D_GetGameModeType());
+}
+
+public void L4D_OnGameModeChange(int gamemode)
+{
+	ToggleCommandListeners(gamemode == GAMEMODE_VERSUS);
+}
+
+void ToggleCommandListeners(bool enable)
+{
+	static bool enabled = false;
+	if (enable && !enabled)
+	{
+		AddCommandListener(CmdLis_OnVocalize, "vocalize");
+		enabled = true;
+	}
+	else if (!enable && enabled)
+	{
+		RemoveCommandListener(CmdLis_OnVocalize, "vocalize");
+		enabled = false;
+	}
 }
 
 int g_iActor = -1;
@@ -62,22 +82,30 @@ Action CmdLis_OnVocalize(int client, const char[] command, int argc)
 		return Plugin_Continue;
 	
 	static char sVocalize[64];
-	if (GetCmdArg(1, sVocalize, sizeof(sVocalize)) && g_smVocalize.ContainsKey(sVocalize))
+	if (GetCmdArg(1, sVocalize, sizeof(sVocalize)) && g_smVocalize.GetValue(sVocalize, argc))
 	{
 		g_iActor = client;
-		RequestFrame(OnNextFrame_ResetActor, GetClientUserId(client));
+		
+		DataPack dp = new DataPack();
+		dp.WriteCell(client);
+		dp.WriteCell(GetClientUserId(client));
+		RequestFrame(OnNextFrame_ResetActor, dp);
 	}
 	
 	return Plugin_Continue;
 }
 
-void OnNextFrame_ResetActor(int userid)
+void OnNextFrame_ResetActor(DataPack dp)
 {
-	int client = GetClientOfUserId(userid);
-	if (!client || client == g_iActor)
+	dp.Reset();
+	
+	int client = dp.ReadCell();
+	if (client == g_iActor && client == GetClientOfUserId(dp.ReadCell()))
 	{
 		g_iActor = -1;
 	}
+	
+	delete dp;
 }
 
 bool bShouldOverride = false;
