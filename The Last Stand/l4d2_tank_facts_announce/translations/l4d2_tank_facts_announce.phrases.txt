@@ -22,9 +22,15 @@
 		"en"		"{blue}{blue}{green}> {default}Incap: {olive}{1} {green}/ {default}Death: {olive}{2} {default}from {blue}Survivors"
 	}
 	
-	"Announce_Summary"
+	"Announce_Summary_WithMinute"
 	{
-		"#format"	"{1:s},{2:d}"
-		"en"		"{lightgreen}{lightgreen}{lightgreen}{green}> {default}Duration: {lightgreen}{1} {green}/ {default}Total damage: {lightgreen}{2}"
+		"#format"	"{1:d},{2:d},{3:d}"
+		"en"		"{lightgreen}{lightgreen}{lightgreen}{green}> {default}Duration: {lightgreen}{1}min {2}s {green}/ {default}Total damage: {lightgreen}{3}"
+	}
+	
+	"Announce_Summary_WithoutMinute"
+	{
+		"#format"	"{1:d},{2:d}"
+		"en"		"{lightgreen}{lightgreen}{lightgreen}{green}> {default}Duration: {lightgreen}{2}s {green}/ {default}Total damage: {lightgreen}{2}"
 	}
 }

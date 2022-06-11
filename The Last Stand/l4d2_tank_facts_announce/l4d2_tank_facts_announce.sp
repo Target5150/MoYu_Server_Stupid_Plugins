@@ -7,7 +7,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.7"
+#define PLUGIN_VERSION "1.8"
 
 public Plugin myinfo = 
 {
@@ -15,7 +15,7 @@ public Plugin myinfo =
 	author = "Forgetest (credit to Griffin and Blade)",
 	description = "Announce damage dealt to survivors by tank",
 	version = PLUGIN_VERSION,
-	url = "?"
+	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 };
 
 // TODO:
@@ -260,7 +260,7 @@ void PrintTankSkill()
 	int tankclient = GetTankClient();
 	if (!tankclient) return;
 	
-	char name[MAX_NAME_LENGTH], buffer[16];
+	char name[MAX_NAME_LENGTH];
 	if (IsFakeClient(tankclient))
 	{
 		if (g_sLastHumanTankName[0] != '\0')
@@ -270,20 +270,13 @@ void PrintTankSkill()
 	else GetClientName(tankclient, name, sizeof(name));
 	
 	int duration = RoundToFloor(GetGameTime() - g_fTankSpawnTime);
-	if (duration > 60)
-	{
-		Format(buffer, sizeof(buffer), "%dmin %ds", duration / 60, duration % 60);
-	}
-	else
-	{
-		Format(buffer, sizeof(buffer), "%ds", duration > 0 ? duration : 0);
-	}
 	
 	DataPack dp;
 	CreateDataTimer(3.0, Timer_PrintToChat, dp, TIMER_FLAG_NO_MAPCHANGE);
 	
 	dp.WriteString(name);
-	dp.WriteString(buffer); // duration
+	dp.WriteCell(duration / 60);
+	dp.WriteCell(duration % 60);
 	dp.WriteCellArray(g_TankAttack, sizeof(g_TankAttack));
 	dp.WriteCellArray(g_TankResult, sizeof(g_TankResult));
 }
@@ -296,9 +289,11 @@ Action Timer_PrintToChat(Handle timer, DataPack dp)
 	// For unknown reason stacking color tags can slow certain processing of message.
 	// To print messages in a proper order, extra tags should be added in front.
 	
-	char name[MAX_NAME_LENGTH], buffer[16];
+	char name[MAX_NAME_LENGTH];
 	dp.ReadString(name, sizeof(name));
-	dp.ReadString(buffer, sizeof(buffer));
+	
+	int minutes = dp.ReadCell();
+	int seconds = dp.ReadCell();
 	
 	TankAttack_s attack;
 	AttackResult_s result;
@@ -313,7 +308,10 @@ Action Timer_PrintToChat(Handle timer, DataPack dp)
 	CPrintToChatAll("%t", "Announce_Title", name);
 	CPrintToChatAll("%t", "Announce_TankAttack", attack.Punch, attack.Rock, attack.Hittable);
 	CPrintToChatAll("%t", "Announce_AttackResult", result.Incap, result.Death);
-	CPrintToChatAll("%t", "Announce_Summary", buffer, result.TotalDamage);
+	if (minutes > 0)
+		CPrintToChatAll("%t", "Announce_Summary_WithMinute", minutes, seconds, result.TotalDamage);
+	else
+		CPrintToChatAll("%t", "Announce_Summary_WithoutMinute", seconds, result.TotalDamage);
 	
 	// Since the DataTimer would auto-close handles passed,
 	// here we've just done.
