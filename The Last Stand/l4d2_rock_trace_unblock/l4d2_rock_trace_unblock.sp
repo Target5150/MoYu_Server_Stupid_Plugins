@@ -7,13 +7,13 @@
 #include <dhooks>
 #include <sourcescramble>
 
-#define PLUGIN_VERSION "1.2"
+#define PLUGIN_VERSION "1.3"
 
 public Plugin myinfo = 
 {
 	name = "[L4D2] Rock Trace Unblock",
 	author = "Forgetest",
-	description = "Prevent pouncing hunter/leaping jockey from blocking the rock radius check.",
+	description = "Prevent hunter/jockey/coinciding survivor from blocking the rock radius check.",
 	version = PLUGIN_VERSION,
 	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 };
@@ -116,7 +116,7 @@ void GetCvars()
 		
 		char buffer[16];
 		z_difficulty.GetString(buffer, sizeof(buffer));
-		if (strcmp(buffer, "Easy") == 0)
+		if (strcmp(buffer, "Easy", false) == 0)
 			g_fRockRadiusSquared *= 0.75;
 	}
 }
@@ -154,8 +154,9 @@ Action SDK_OnThink(int entity)
 	static Handle tr;
 	static DataPack dp;
 	
+	// Serves as a List for ignored entities in traces
 	dp = new DataPack();
-	dp.WriteCell(entity);
+	dp.WriteCell(entity); // always self-ignored
 	DataPackPos pos = dp.Position;
 	
 	for (int i = 1; i <= MaxClients; ++i)
@@ -172,12 +173,16 @@ Action SDK_OnThink(int entity)
 		{
 			dp.Position = pos;
 			dp.WriteCell(i);
+			
+			// See if there's any obstracle in the way
 			tr = TR_TraceRayFilterEx(vOrigin, vPos, MASK_SOLID, RayType_EndPoint, ProximityThink_TraceFilterList, dp);
 			
 			if (!TR_DidHit(tr) && TR_GetFraction(tr) >= 1.0)
 			{
+				// Maybe "TeleportEntity" does the same, let it be.
 				SetAbsOrigin(entity, vOrigin);
 				
+				// For consistency with game, hunters on them are killed first.
 				int hunter = GetEntPropEnt(i, Prop_Send, "m_pounceAttacker");
 				if (hunter != -1)
 				{
@@ -185,6 +190,8 @@ Action SDK_OnThink(int entity)
 				}
 				BounceTouch(entity, i);
 				
+				// Radius check succeeded in landing someone, exit the loop.
+				delete tr;
 				break;
 			}
 			
@@ -192,14 +199,13 @@ Action SDK_OnThink(int entity)
 		}
 	}
 	
-	delete tr;
 	delete dp;
 	
 	return Plugin_Continue;
 }
 
 /**
- * @brief Valve's built-in function to get closest points to potential rock victims.
+ * @brief Valve's built-in function to get the closest point to potential rock victims.
  *
  * @param vLastPos		Last recorded position of moving object.
  * @param vPos			Current position of moving object.
@@ -245,8 +251,18 @@ bool ProximityThink_TraceFilterList(int entity, int contentsMask, DataPack dp)
 	if (entity == dp.ReadCell() || entity == dp.ReadCell())
 		return false;
 	
-	if (entity > 0 && entity <= MaxClients && GetClientTeam(entity) == 3)
+	if (entity > 0 && entity <= MaxClients)
 	{
+		// This should not be possible. Radius check runs every think
+		// and survivor in between must be the first victim.
+		// The only exception is that multiple survivors are coinciding
+		// (like at a corner), and this trace will end up with an "obstracle".
+		// Treated as a bug here, no options.
+		if (GetClientTeam(entity) == 2)
+		{
+			return false;
+		}
+		
 		switch (GetEntProp(entity, Prop_Send, "m_zombieClass"))
 		{
 			case 3:
