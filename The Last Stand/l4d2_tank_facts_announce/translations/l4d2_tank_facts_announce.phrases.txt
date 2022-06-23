@@ -31,6 +31,6 @@
 	"Announce_Summary_WithoutMinute"
 	{
 		"#format"	"{1:d},{2:d}"
-		"en"		"{lightgreen}{lightgreen}{lightgreen}{green}> {default}Duration: {lightgreen}{2}s {green}/ {default}Total damage: {lightgreen}{2}"
+		"en"		"{lightgreen}{lightgreen}{lightgreen}{green}> {default}Duration: {lightgreen}{1}s {green}/ {default}Total damage: {lightgreen}{2}"
 	}
 }
