@@ -7,7 +7,7 @@
 #include <dhooks>
 #include <sourcescramble>
 
-#define PLUGIN_VERSION "1.3"
+#define PLUGIN_VERSION "1.4"
 
 public Plugin myinfo = 
 {
@@ -117,7 +117,7 @@ void GetCvars()
 		char buffer[16];
 		z_difficulty.GetString(buffer, sizeof(buffer));
 		if (strcmp(buffer, "Easy", false) == 0)
-			g_fRockRadiusSquared *= 0.75;
+			g_fRockRadiusSquared *= 0.5625; // 0.75 ^ 2
 	}
 }
 
