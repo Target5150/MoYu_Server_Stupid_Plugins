@@ -50,7 +50,7 @@
 #include <left4dhooks>
 #include <godframecontrol>
 
-#define PLUGIN_VERSION "4.7"
+#define PLUGIN_VERSION "4.8"
 
 public Plugin myinfo = 
 {
@@ -459,7 +459,7 @@ Action SDK_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
  */
 public void L4D_TankClaw_OnPlayerHit_Post(int tank, int claw, int player)
 {
-	if (GetClientTeam(player) == 2)
+	if (GetClientTeam(player) == 2 && !L4D_IsPlayerIncapacitated(player))
 	{
 		if (GetEntPropEnt(player, Prop_Send, "m_pummelAttacker") != -1)
 		{
