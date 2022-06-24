@@ -26,7 +26,7 @@
 #undef REQUIRE_PLUGIN
 #include <readyup>
 
-#define PLUGIN_VERSION "3.0"
+#define PLUGIN_VERSION "3.1"
 
 public Plugin myinfo =
 {
@@ -53,6 +53,7 @@ ArrayList g_aAlarmArray;
 ConVar g_cvStartDisabled;
 
 bool g_bRoundIsLive;
+bool g_bIsSecondHalf;
 
 static const int g_iOffColors[] =
 {
@@ -95,6 +96,8 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 
 Action Timer_RoundStartDelay(Handle timer)
 {
+	g_bIsSecondHalf = !!GameRules_GetProp("m_bInSecondHalfOfRound");
+	
 	char sKey[64], sName[128];
 	
 	int ent = MaxClients+1;
@@ -103,7 +106,7 @@ Action Timer_RoundStartDelay(Handle timer)
 		GetEntityName(ent, sName, sizeof(sName));
 		if (ExtractCarName(sName, "caralarm_car1", sKey, sizeof(sKey)) != 0)
 		{
-			if (!GameRules_GetProp("m_bInSecondHalfOfRound"))
+			if (!g_bIsSecondHalf)
 			{
 				int entry = g_aAlarmArray.Length;
 				g_smCarNameMap.SetValue(sKey, entry);
@@ -143,7 +146,7 @@ Action Timer_RoundStartDelay(Handle timer)
 									ent,
 									type ? ENTRY_RELAY_ON : ENTRY_RELAY_OFF);
 				
-				if (!GameRules_GetProp("m_bInSecondHalfOfRound"))
+				if (!g_bIsSecondHalf)
 				{
 					HookSingleEntityOutput(ent,
 											"OnTrigger",
@@ -172,13 +175,16 @@ void EntO_AlarmRelayOnTriggered(const char[] output, int caller, int activator, 
 	g_aAlarmArray.Set(entry, true, ENTRY_START_STATE);
 	
 	int alarmCar = EntRefToEntIndex(g_aAlarmArray.Get(entry, ENTRY_ALARM_CAR));
-	g_aAlarmArray.Set(entry, GetEntityRenderColorEx(alarmCar), ENTRY_COLOR);
+	int color = GetEntityRenderColorEx(alarmCar);
+	g_aAlarmArray.Set(entry, color, ENTRY_COLOR);
 	
 	if (g_cvStartDisabled.BoolValue)
 	{
 		int relayOff = g_aAlarmArray.Get(entry, ENTRY_RELAY_OFF);
+		
 		bIsStartDisabled = true;
 		AcceptEntityInput(relayOff, "Trigger");
+		SetEntityRenderColorEx(alarmCar, color); // Prevent overriding color
 		bIsStartDisabled = false;
 	}
 }
@@ -241,6 +247,7 @@ void EntO_AlarmRelayOffTriggered_PostLive(const char[] output, int caller, int a
 public void OnRoundIsLive()
 {
 	g_bRoundIsLive = true;
+	UnhookRelays();
 	EnableCars();
 }
 
@@ -249,7 +256,23 @@ void Event_PlayerLeftStartArea(Event event, const char[] name, bool dontBroadcas
 	if (!g_bRoundIsLive)
 	{
 		g_bRoundIsLive = true;
+		UnhookRelays();
 		EnableCars();
+	}
+}
+
+void UnhookRelays()
+{
+	if (g_bIsSecondHalf)
+		return;
+	
+	for (int i = 0; i < g_aAlarmArray.Length; ++i)
+	{
+		int relayOn = g_aAlarmArray.Get(i, ENTRY_RELAY_ON);
+		int relayOff = g_aAlarmArray.Get(i, ENTRY_RELAY_OFF);
+		
+		UnhookSingleEntityOutput(relayOn, "OnTrigger", EntO_AlarmRelayOnTriggered);
+		UnhookSingleEntityOutput(relayOff, "OnTrigger", EntO_AlarmRelayOffTriggered);
 	}
 }
 
