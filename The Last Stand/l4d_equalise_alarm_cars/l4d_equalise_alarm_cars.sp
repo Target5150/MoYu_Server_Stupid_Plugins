@@ -26,7 +26,7 @@
 #undef REQUIRE_PLUGIN
 #include <readyup>
 
-#define PLUGIN_VERSION "3.2"
+#define PLUGIN_VERSION "3.3"
 
 public Plugin myinfo =
 {
@@ -178,7 +178,7 @@ void EntO_AlarmRelayOnTriggered(const char[] output, int caller, int activator, 
 	
 	if (IsValidEntity(activator))
 	{
-		SetEntityRenderColorEx(alarmCar, g_aAlarmArray.Get(entry, ENTRY_COLOR)); // Prevent overriding color
+		RequestFrame(ResetCarColor, entry); 
 		return;
 	}
 	
@@ -210,9 +210,9 @@ void EntO_AlarmRelayOffTriggered(const char[] output, int caller, int activator,
 	// If a car is turned off because of a tank punch or because it was
 	// triggered the activator is the car itself. When the cars get
 	// randomised the activator is the player who entered the trigger area.
-	if (IsValidEntity(activator))
+	if (IsValidEntity(activator) && (!activator || activator == alarmCar))
 	{
-		SetEntityRenderColorEx(alarmCar, g_aAlarmArray.Get(entry, ENTRY_COLOR)); // Prevent overriding color
+		RequestFrame(ResetCarColor, entry); // Prevent overriding color
 		return;
 	}
 	
@@ -220,9 +220,8 @@ void EntO_AlarmRelayOffTriggered(const char[] output, int caller, int activator,
 	{
 		g_aAlarmArray.Set(entry, false, ENTRY_START_STATE);
 		
-		int color = GetRandomOffColor();
-		SetEntityRenderColorEx(alarmCar, color);
-		g_aAlarmArray.Set(entry, color, ENTRY_COLOR);
+		g_aAlarmArray.Set(entry, GetRandomOffColor(), ENTRY_COLOR);
+		RequestFrame(ResetCarColor, entry);
 	}
 	else if (g_aAlarmArray.Get(entry, ENTRY_START_STATE))
 	{
@@ -276,6 +275,12 @@ stock void DisableCars()
 			SetEntityRenderColorEx(alarmCar, g_aAlarmArray.Get(i, ENTRY_COLOR));
 		}
 	}
+}
+
+void ResetCarColor(int entry)
+{
+	int alarmCar = EntRefToEntIndex(g_aAlarmArray.Get(entry, ENTRY_ALARM_CAR));
+	SetEntityRenderColorEx(alarmCar, g_aAlarmArray.Get(entry, ENTRY_COLOR));
 }
 
 int ExtractCarName(const char[] sName, const char[] sCompare, char[] sBuffer, int iSize)
