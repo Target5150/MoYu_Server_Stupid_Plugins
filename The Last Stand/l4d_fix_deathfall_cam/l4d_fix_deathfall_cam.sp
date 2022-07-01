@@ -2,9 +2,10 @@
 #pragma newdecls required
 
 #include <sourcemod>
+#include <sdktools_engine>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "1.3"
+#define PLUGIN_VERSION "1.4"
 
 public Plugin myinfo = 
 {
@@ -26,31 +27,10 @@ public any Ntv_ReleaseFromViewControl(Handle plugin, int numParams)
 	return ReleaseFromViewControl(_, GetNativeCell(1));
 }
 
-#define GAMEDATA_FILE "l4d_fix_deathfall_cam"
-
 ArrayList g_aDeathFallClients;
-Handle g_hSDKCall_SetViewEntity;
-
-void LoadSDK()
-{
-	Handle conf = LoadGameConfigFile(GAMEDATA_FILE);
-	if (!conf) SetFailState("Missing gamedata \""...GAMEDATA_FILE..."\"");
-	
-	StartPrepSDKCall(SDKCall_Player);
-	if (!PrepSDKCall_SetFromConf(conf, SDKConf_Signature, "CBasePlayer::SetViewEntity"))
-		SetFailState("Missing signature \"CBasePlayer::SetViewEntity\"");
-	PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer, VDECODE_FLAG_ALLOWNULL);
-	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
-	if ((g_hSDKCall_SetViewEntity = EndPrepSDKCall()) == null)
-		SetFailState("Failed to finish SDkCall \"CBasePlayer::SetViewEntity\"");
-	
-	delete conf;
-}
 
 public void OnPluginStart()
 {
-	LoadSDK();
-	
 	CreateConVar("l4d2_fix_deathfall_cam_version", PLUGIN_VERSION, "Fix Deathfall Camera Version", FCVAR_DONTRECORD|FCVAR_NOTIFY|FCVAR_REPLICATED|FCVAR_SPONLY);
 	
 	g_aDeathFallClients = new ArrayList();
@@ -63,23 +43,19 @@ public void OnPluginStart()
 
 void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {
-	if (L4D_IsMissionFinalMap()
-		&& (FindEntityByClassname(MaxClients+1, "point_viewcontrol*") != INVALID_ENT_REFERENCE
-			|| FindEntityByClassname(MaxClients+1, "point_deathfall_camera") != INVALID_ENT_REFERENCE))
+	if (FindEntityByClassname(MaxClients+1, "point_viewcontrol*") != INVALID_ENT_REFERENCE
+		|| FindEntityByClassname(MaxClients+1, "point_deathfall_camera") != INVALID_ENT_REFERENCE)
 	{
-		for (int i = 1; i <= MaxClients; ++i)
-			if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) != 2)
-				ReleaseFromViewControl(_, i);
+		UTIL_ReleaseAllExceptSurv();
 	}
 	
 	g_aDeathFallClients.Clear();
 }
 
+// Fix intro cameras locking view on L4D1
 void Event_NoDraw(Event event, const char[] name, bool dontBroadcast)
 {
-	for (int i = 1; i <= MaxClients; ++i)
-		if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) != 2)
-			ReleaseFromViewControl(_, i);
+	UTIL_ReleaseAllExceptSurv();
 }
 
 void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
@@ -93,14 +69,11 @@ void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
 	if (!g_aDeathFallClients.Length) return;
 	
-	int userid = event.GetInt("userid");
-	if (g_aDeathFallClients.FindValue(userid) == -1)
-		return;
-	
-	CreateTimer(6.0, Timer_ReleaseView, userid, TIMER_FLAG_NO_MAPCHANGE);
+	// view locked for approximately 6.0s when survivors die
+	CreateTimer(6.0, Timer_ReleaseView, event.GetInt("userid"), TIMER_FLAG_NO_MAPCHANGE);
 }
 
-Action Timer_ReleaseView(Handle tiemr, any userid)
+Action Timer_ReleaseView(Handle timer, any userid)
 {
 	int index = g_aDeathFallClients.FindValue(userid);
 	if (index == -1)
@@ -116,6 +89,7 @@ public Action L4D_OnFatalFalling(int client, int camera)
 {
 	if (GetClientTeam(client) == 2 && !IsFakeClient(client) && IsPlayerAlive(client))
 	{
+		// keep deathcam for a period until the player dies
 		int userid = GetClientUserId(client);
 		if (g_aDeathFallClients.FindValue(userid) == -1)
 			g_aDeathFallClients.Push(userid);
@@ -128,7 +102,8 @@ public Action L4D_OnFatalFalling(int client, int camera)
 
 void SetViewEntity(int client, int view)
 {
-	SDKCall(g_hSDKCall_SetViewEntity, client, view);
+	SetEntPropEnt(client, Prop_Send, "m_hViewEntity", view);
+	SetClientViewEntity(client, IsValidEdict(view) ? view : client);
 }
 
 // Hud Element hiding flags
@@ -149,8 +124,7 @@ stock void ReleaseFromViewControl(int userid = 0, int client = 0)
 	if (userid) client = GetClientOfUserId(userid);
 	if (!client) return;
 	
-	int flags = GetEntityFlags(client);
-	SetEntityFlags(client, flags & ~FL_FROZEN);
+	SetEntityFlags(client, GetEntityFlags(client) & ~FL_FROZEN);
 	SetEntProp(client, Prop_Send, "m_bDrawViewmodel", 1, 1);
 	SetViewEntity(client, -1);
 	
@@ -160,7 +134,16 @@ stock void ReleaseFromViewControl(int userid = 0, int client = 0)
 		SetEntProp(client, Prop_Send, "m_iHideHUD", HIDEHUD_BONUS_PROGRESS);
 			
 	SetEntPropEnt(client, Prop_Send, "m_hZoomOwner", -1);
+	
+	// Fix for custom FOV setting
 	SetEntProp(client, Prop_Send, "m_iFOV", 0);
 	SetEntProp(client, Prop_Send, "m_iFOVStart", 0);
 	SetEntPropFloat(client, Prop_Send, "m_flFOVRate", 0.0);
+}
+
+void UTIL_ReleaseAllExceptSurv()
+{
+	for (int i = 1; i <= MaxClients; ++i)
+		if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) != 2)
+			ReleaseFromViewControl(_, i);
 }
