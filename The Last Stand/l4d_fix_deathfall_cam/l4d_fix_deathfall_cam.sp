@@ -158,7 +158,7 @@ bool AllowDamage()
 		god = FindConVar("god");
 	
 	if (god.BoolValue)
-		return true;
+		return false;
 	
-	return false;
+	return true;
 }
