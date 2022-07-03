@@ -2,10 +2,9 @@
 #pragma newdecls required
 
 #include <sourcemod>
-#include <dhooks>
+#include <sdkhooks>
 
-#define DEBUG 0
-#define PLUGIN_VERSION "1.2d"
+#define PLUGIN_VERSION "2.0"
 
 public Plugin myinfo =
 {
@@ -16,119 +15,119 @@ public Plugin myinfo =
 	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 };
 
-#define GAMEDATA_FILE "l4d2_si_ability"
-#define KEY_ONTOUCH "CBaseAbility::OnTouch"
-#define KEY_BLOCKWALLKICK "CLunge->m_bBlockWallKick"
-
-Handle hCLunge_OnTouch;
-int iCLunge_BlockWallKick;
-
 public void OnPluginStart()
 {
-	Handle conf = LoadGameConfigFile(GAMEDATA_FILE);
-	if (conf == null)
-		SetFailState("Missing gamedata \"" ... GAMEDATA_FILE ... "\"");
-	
-	int iCLungeOnTouch = GameConfGetOffset(conf, KEY_ONTOUCH);
-	if (iCLungeOnTouch == -1)
-		SetFailState("Failed to get offset \"" ... KEY_ONTOUCH ... "\"");
-	
-	hCLunge_OnTouch = DHookCreate(iCLungeOnTouch, HookType_Entity, ReturnType_Void, ThisPointer_CBaseEntity, CLunge_OnTouch);
-	if (hCLunge_OnTouch == null)
-		SetFailState("Failed to create dynamic hook on \"" ... KEY_ONTOUCH ... "\"");
-	
-	DHookAddParam(hCLunge_OnTouch, HookParamType_CBaseEntity);
-	
-	iCLunge_BlockWallKick = GameConfGetOffset(conf, KEY_BLOCKWALLKICK);
-	if (iCLunge_BlockWallKick == -1)
-		SetFailState("Failed to get offset \"" ... KEY_BLOCKWALLKICK ... "\"");
-	
-	delete conf;
-	
 	HookEvent("player_spawn", Event_PlayerSpawn);
+	HookEvent("player_team", Event_PlayerTeam);
+	HookEvent("player_death", Event_PlayerDeath);
+	HookEvent("player_bot_replace", Event_PlayerBotReplace);
+	HookEvent("bot_player_replace", Event_BotPlayerReplace);
 }
 
-public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
+void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	if (!client || GetClientTeam(client) != 3 || GetEntProp(client, Prop_Send, "m_zombieClass") != 3)
 		return;
-		
-	int ability = GetEntPropEnt(client, Prop_Send, "m_customAbility");
-	if (ability != -1)
-	{
-		DHookEntity(hCLunge_OnTouch, false, ability);
-	}
+	
+	SDKHook(client, SDKHook_TouchPost, SDK_OnTouch_Post);
 }
 
-public MRESReturn CLunge_OnTouch(int pThis, Handle hParams)
+void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
 {
-	int other = DHookGetParam(hParams, 1);
-	if (other <= 0) return MRES_Ignored;
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	if (!client)
+		return;
 	
-	int hunter = GetEntPropEnt(pThis, Prop_Send, "m_owner");
-	if (hunter == -1) return MRES_Ignored;
+	int oldteam = event.GetInt("oldteam");
+	if (oldteam != 3 || oldteam == event.GetInt("team"))
+		return;
 	
-#if DEBUG
-	static int iLast = -1;
-	if (other != iLast)
+	SDKUnhook(client, SDKHook_TouchPost, SDK_OnTouch_Post);
+}
+
+void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
+{
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	if (!client || GetClientTeam(client) != 3 || GetEntProp(client, Prop_Send, "m_zombieClass") != 3)
+		return;
+	
+	SDKUnhook(client, SDKHook_TouchPost, SDK_OnTouch_Post);
+}
+
+void Event_PlayerBotReplace(Event event, const char[] name, bool dontBroadcast)
+{
+	HandlePlayerReplace(event.GetInt("bot"), event.GetInt("player"));
+}
+
+void Event_BotPlayerReplace(Event event, const char[] name, bool dontBroadcast)
+{
+	HandlePlayerReplace(event.GetInt("player"), event.GetInt("bot"));
+}
+
+void HandlePlayerReplace(int replacer, int replacee)
+{
+	replacer = GetClientOfUserId(replacer);
+	if (!replacer || GetClientTeam(replacer) != 3 || GetEntProp(replacer, Prop_Send, "m_zombieClass") != 3)
+		return;
+	
+	replacee = GetClientOfUserId(replacee);
+	if (!replacee || !IsClientInGame(replacee))
+		return;
+	
+	SDKUnhook(replacee, SDKHook_TouchPost, SDK_OnTouch_Post);
+}
+
+void SDK_OnTouch_Post(int entity, int other)
+{
+	// the moment player is disconnecting
+	if (!IsClientInGame(entity))
+		return;
+	
+	// mysterious questionable secret that Valve gifts, jk
+	int ability = GetEntPropEnt(entity, Prop_Send, "m_customAbility");
+	if (ability == -1)
 	{
-		static char cls[64];
-		GetEntityClassname(other, cls, 64);
-		PrintToChat(hunter, "other: %s (%i), solid: %i", cls, other, Entity_IsSolid(other));
-		iLast = other;
+		SDKUnhook(entity, SDKHook_TouchPost, SDK_OnTouch_Post);
+		return;
 	}
-#endif
 	
-	// NOTE:
-	//
-	// Weapons (guns, melees, etc) are solid as well, so they'd be blocked.
-	//
-	// Should've performed stricter check here, by comparing the classname,
-	// instead of just checking for property "m_weaponID", because
-	// weapons that are not spawners don't have such property.
-	//
-	// For the sake that this function is pretty of high density, and there
-	// can be incredibly limited chance that a hunter pounces right off
-	// a dropped weapon, as well as my belief in that single `HasEntProp`
-	// has better efficiency,
-	// I decided to make a spawner-only check here.
+	// not even materialized
+	if (GetEntProp(entity, Prop_Send, "m_isGhost"))
+		return;
 	
-	//static char clsname[64];
-	//if (!GetEdictClassname(other, clsname, sizeof clsname)) return MRES_Ignored;
+	// not bouncing
+	if (GetEntPropEnt(entity, Prop_Send, "m_hGroundEntity") != -1)
+		return;
 	
-	if (/*strncmp(clsname, "weapon", 6) == 0*/
-		HasEntProp(other, Prop_Send, "m_weaponID") || GetEntPropEnt(hunter, Prop_Send, "m_hGroundEntity") != -1
-	) {
-		if (other <= MaxClients)
-		{
-			SetEntData(pThis, iCLunge_BlockWallKick, 1, 1);
-		}
-	}
-	else if (!GetEntData(pThis, iCLunge_BlockWallKick, 1))
-	{
-		if (Entity_IsSolid(other))
-		{
-			float now = GetGameTime();
-			
-			float duration = GetEntPropFloat(pThis, Prop_Send, "m_lungeAgainTimer", 0);
-			float timestamp = GetEntPropFloat(pThis, Prop_Send, "m_lungeAgainTimer", 1);
-			
-			if (duration != 0.5)
-			{
-				// Supposed to be a CountdownTimer::NetworkStateChanged(void *)
-				// Empty function, so just skip it.
-				SetEntPropFloat(pThis, Prop_Send, "m_lungeAgainTimer", 0.5, 0);
-			}
-			if (timestamp != now + 0.5)
-			{
-				// Supposed to be a CountdownTimer::NetworkStateChanged(void *)
-				// Empty function, so just skip it.
-				SetEntPropFloat(pThis, Prop_Send, "m_lungeAgainTimer", now + 0.5, 1);
-			}
-		}
-	}
-	return MRES_Supercede;
+	// not valid touch
+	if (!IsValidEdict(other))
+		return;
+	
+	// impossible to pounce off players
+	if (other <= MaxClients)
+		return;
+	
+	// not solid entity, not bounceable
+	if (!Entity_IsSolid(other))
+		return;
+	
+	// except weapon entities
+	static char clsname[64];
+	if (!GetEdictClassname(other, clsname, sizeof(clsname)) || strncmp(clsname, "weapon_", 7) == 0)
+		return;
+	
+	static int iOffs_BlockBounce = -1;
+	if (iOffs_BlockBounce == -1)
+		iOffs_BlockBounce = FindSendPropInfo("CLunge", "m_isLunging") + 16;
+	
+	// touched survivors before and therefore unable to bounce
+	if (GetEntData(ability, iOffs_BlockBounce, 1))
+		return;
+	
+	// confirm a bounce recharge
+	SetEntPropFloat(ability, Prop_Send, "m_lungeAgainTimer", 0.5, 0);
+	SetEntPropFloat(ability, Prop_Send, "m_lungeAgainTimer", GetGameTime() + 0.5, 1);
 }
 
 // https://forums.alliedmods.net/showthread.php?t=147732
