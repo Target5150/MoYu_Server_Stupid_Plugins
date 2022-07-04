@@ -6,7 +6,7 @@
 		{
 			"HandleActivity_PunchedByTank__ignore_buttons"
 			{
-				"signature"		"CTerrorPlayerAnimState::HandleActivity_PunchedByTank"
+				"signature"		"CTerrorPlayer::UpdateSurvivorMainActivity"
 				"linux"
 				{
 					"offset"	"3BDh"
@@ -23,7 +23,7 @@
 			
 			"HandleActivity_PunchedByTank__early_exit_percent"
 			{
-				"signature"		"CTerrorPlayerAnimState::HandleActivity_PunchedByTank"
+				"signature"		"CTerrorPlayer::UpdateSurvivorMainActivity"
 				"linux"
 				{
 					"offset"	"396h"
