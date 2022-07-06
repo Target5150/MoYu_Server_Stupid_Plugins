@@ -7,7 +7,7 @@
 #include <dhooks>
 #include <sourcescramble>
 
-#define PLUGIN_VERSION "1.5"
+#define PLUGIN_VERSION "1.6"
 
 public Plugin myinfo = 
 {
@@ -347,19 +347,31 @@ void HurtCappers(int rock, int client)
 	if (flag & 1) // hunter
 	{
 		int hunter = GetEntPropEnt(client, Prop_Send, "m_pounceAttacker");
-		if (hunter != -1) BounceTouch(rock, hunter);
+		if (hunter != -1)
+		{
+			BounceTouch(rock, hunter);
+			return;
+		}
 	}
 	
 	if (flag & 2) // jockey
 	{
 		int jockey = GetEntPropEnt(client, Prop_Send, "m_jockeyAttacker");
-		if (jockey != -1) BounceTouch(rock, jockey);
+		if (jockey != -1)
+		{
+			BounceTouch(rock, jockey);
+			return;
+		}
 	}
 	
 	if (flag & 4) // charger
 	{
 		int charger = GetEntPropEnt(client, Prop_Send, "m_pummelAttacker");
-		if (charger != -1) BounceTouch(rock, charger);
+		if (charger != -1)
+		{
+			BounceTouch(rock, charger);
+			return;
+		}
 	}
 }
 
