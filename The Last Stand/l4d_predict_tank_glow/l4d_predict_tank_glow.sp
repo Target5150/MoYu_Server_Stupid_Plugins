@@ -8,7 +8,9 @@
 #include <l4d_boss_vote>
 #define REQUIRE_PLUGIN
 
-#define PLUGIN_VERSION "1.2"
+#tryinclude <l4d_info_editor>
+
+#define PLUGIN_VERSION "1.3"
 
 public Plugin myinfo = 
 {
@@ -29,10 +31,13 @@ bool g_bLeft4Dead2;
 CZombieManager ZombieManager;
 
 // order is foreign referred in `PickTankVariant()`
-static const char g_sTankModels[][] = {
+#define TANK_VARIANT_SLOT (sizeof(g_sTankModels)-1)
+#define TANK_MODEL_STRLEN 128
+static const char g_sTankModels[][TANK_MODEL_STRLEN] = {
 	"models/infected/hulk.mdl",
 	"models/infected/hulk_dlc3.mdl",
-	"models/infected/hulk_l4d1.mdl"
+	"models/infected/hulk_l4d1.mdl",
+	"N/A" // TankVariant slot
 };
 
 int g_iPredictModel = INVALID_ENT_REFERENCE;
@@ -54,6 +59,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 			return APLRes_SilentFailure;
 		}
 	}
+	
+	MarkNativeAsOptional("InfoEditor_GetString");
 	return APLRes_Success;
 }
 
@@ -116,6 +123,11 @@ public void OnMapStart()
 		PrecacheModel(g_sTankModels[i]);
 	
 	HookEntityOutput("info_director", "OnGameplayStart", EntO_OnGameplayStart);
+}
+
+public void OnMapEnd()
+{
+	strcopy(g_sTankModels[TANK_VARIANT_SLOT], TANK_MODEL_STRLEN, "N/A");
 }
 
 void EntO_OnGameplayStart(const char[] output, int caller, int activator, float delay)
@@ -224,17 +236,20 @@ int ProcessPredictModel(float vPos[3], float vAng[3])
 	{
 		if (L4D2Direct_GetVSTankToSpawnThisRound(0))
 		{
-			float percent = L4D2Direct_GetVSTankFlowPercent(0);
-			
-			TerrorNavArea nav = GetBossSpawnAreaForFlow(percent);
-			if (nav != NULL_NAV_AREA)
+			for (float p = L4D2Direct_GetVSTankFlowPercent(0); p < 1.0; p += 0.01)
 			{
-				L4D_FindRandomSpot(view_as<int>(nav), vPos);
-				vPos[2] -= 8.0; // less floating off ground
-				
-				vAng[0] = 0.0;
-				vAng[1] = GetRandomFloat(0.0, 360.0);
-				vAng[2] = 0.0;
+				TerrorNavArea nav = GetBossSpawnAreaForFlow(p);
+				if (nav != NULL_NAV_AREA)
+				{
+					L4D_FindRandomSpot(view_as<int>(nav), vPos);
+					vPos[2] -= 8.0; // less floating off ground
+					
+					vAng[0] = 0.0;
+					vAng[1] = GetRandomFloat(0.0, 360.0);
+					vAng[2] = 0.0;
+					
+					break;
+				}
 			}
 		}
 	}
@@ -295,8 +310,21 @@ int CreateTankGlowModel(const float vPos[3], const float vAng[3])
 
 //=========================================================================================================
 
+public void OnGetMissionInfo(int pThis)
+{
+	if (strcmp(g_sTankModels[TANK_VARIANT_SLOT], "N/A") != 0)
+	{
+		static char buffer[64];
+		FormatEx(buffer, sizeof(buffer), "modes/versus/%i/TankVariant", L4D_GetCurrentChapter());
+		InfoEditor_GetString(pThis, buffer, g_sTankModels[TANK_VARIANT_SLOT], TANK_MODEL_STRLEN);
+	}
+}
+
 int PickTankVariant()
 {
+	if (strcmp(g_sTankModels[TANK_VARIANT_SLOT], "N/A") != 0)
+		return TANK_VARIANT_SLOT;
+	
 	if (!g_bLeft4Dead2 || L4D2_GetSurvivorSetMod() == 2)
 		return 0;
 	
