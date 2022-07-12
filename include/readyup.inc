@@ -24,6 +24,16 @@
 #define _readyup_included_
 
 /**
+ * Called when a player marks ready.
+ */
+forward void OnPlayerReady(int client);
+
+/**
+ * Called when a player marks unready.
+ */
+forward void OnPlayerUnready(int client);
+
+/**
  * Called before ready up is initiated
  */
 forward void OnReadyUpInitiatePre();
@@ -42,6 +52,14 @@ forward void OnRoundLiveCountdownPre();
  * Called when the live countdown starts
  */
 forward void OnRoundLiveCountdown();
+
+/**
+ * Called when the live countdown is cancelled
+ *
+ * @param client		Player cancelled the countdown
+ * @param reason		The reason for cancel
+ */
+forward void OnReadyCountdownCancelled(int client, const char[] reason);
 
 /**
  * Called before the live countdown ends and the round goes live
