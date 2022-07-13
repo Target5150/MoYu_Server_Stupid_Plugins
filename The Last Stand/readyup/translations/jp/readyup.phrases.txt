@@ -92,7 +92,8 @@
 	
 	"AutoStartCountdown"
 	{
-		"jp"		"ゲーム開始まで: %i"
+		"#format"	"{1:d}"
+		"jp"		"ゲーム開始まで: {1}"
 	}
 	
 	"AutoStartWaiting"

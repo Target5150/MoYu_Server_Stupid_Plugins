@@ -15,7 +15,7 @@ void RestartCountdowns(bool startOn)
 		return;
 	}
 	
-	if (IsScavenge())
+	if (L4D2_IsScavengeMode())
 	{
 		RestartScvngSetupCountdown(startOn);
 		ResetAccumulatedTime();
@@ -124,9 +124,4 @@ void ClearSurvivorProgress()
 void SetAllowSpawns(bool allow)
 {
 	director_no_specials.BoolValue = allow;
-}
-
-bool IsScavenge()
-{
-	return L4D2_IsScavengeMode();
 }

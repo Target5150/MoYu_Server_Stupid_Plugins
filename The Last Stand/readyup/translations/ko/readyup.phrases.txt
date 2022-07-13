@@ -92,7 +92,8 @@
 	
 	"AutoStartCountdown"
 	{
-		"ko"		"%i 초 후 게임시작"
+		"#format"	"{1:d}"
+		"ko"		"{1} 초 후 게임시작"
 	}
 	
 	"AutoStartWaiting"

@@ -5,6 +5,18 @@
 
 #include "player.inc"
 
+int GetMaxAllowedPlayers()
+{
+	int survLimit = survivor_limit.IntValue;
+	
+	if (L4D_GetGameModeType() & (GAMEMODE_VERSUS|GAMEMODE_SCAVENGE))
+	{
+		return survLimit + z_max_player_zombies.IntValue;
+	}
+	
+	return survLimit;
+}
+
 bool IsTeamReady(int team)
 {
 	for (int i = 1; i <= MaxClients; ++i)

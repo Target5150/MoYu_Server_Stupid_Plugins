@@ -127,10 +127,11 @@ static Action ReadyCountdownDelay_Timer(Handle timer)
 
 static Action Timer_AutoStartHelper(Handle timer)
 {
-	if (GetSeriousClientCount(true) == 0)
+	if (GetSeriousClientCount(true) <= GetMaxAllowedPlayers() * l4d_ready_autostart_min.FloatValue)
 	{
-		// no player in game
+		// not enough players in game
 		s_expireTime = l4d_ready_autostart_wait.IntValue;
+		PrintHintTextToAll("%t", "AutoStartNotEnoughPlayers");
 		return Plugin_Continue;
 	}
 	

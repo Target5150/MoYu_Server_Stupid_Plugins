@@ -9,7 +9,7 @@
 #undef REQUIRE_PLUGIN
 #include <caster_system>
 
-#define PLUGIN_VERSION "10.0"
+#define PLUGIN_VERSION "10.1"
 
 public Plugin myinfo =
 {
@@ -72,16 +72,15 @@ ConVar
 	sv_infinite_primary_ammo;
 
 // Plugin Cvars
-ConVar
-	l4d_ready_enabled,
+ConVar 
+	// basic
+	l4d_ready_enabled, l4d_ready_cfg_name, l4d_ready_server_cvar, l4d_ready_max_players,
+	// game
 	l4d_ready_disable_spawns, l4d_ready_survivor_freeze,
-	l4d_ready_cfg_name, l4d_ready_server_cvar, 
-	l4d_ready_max_players,
-	l4d_ready_delay, l4d_ready_force_extra, l4d_ready_autostart_delay, l4d_ready_autostart_wait,
-	l4d_ready_enable_sound, l4d_ready_chuckle, l4d_ready_notify_sound, l4d_ready_countdown_sound, l4d_ready_live_sound, l4d_ready_autostart_sound,
-	l4d_ready_secret,
-	l4d_ready_unbalanced_start,
-	l4d_ready_unbalanced_min;
+	// sound
+	l4d_ready_enable_sound, l4d_ready_notify_sound, l4d_ready_countdown_sound, l4d_ready_live_sound, l4d_ready_autostart_sound, l4d_ready_chuckle, l4d_ready_secret,
+	// action
+	l4d_ready_delay, l4d_ready_force_extra, l4d_ready_autostart_delay, l4d_ready_autostart_wait, l4d_ready_autostart_min, l4d_ready_unbalanced_start, l4d_ready_unbalanced_min;
 
 // Server Name
 ConVar
@@ -330,7 +329,7 @@ public void OnMapEnd()
 
 public void OnClientPostAdminCheck(int client)
 {
-	if (inReadyUp && IsScavenge() && !IsFakeClient(client))
+	if (inReadyUp && L4D2_IsScavengeMode() && !IsFakeClient(client))
 	{
 		ToggleCountdownPanel(false, client);
 	}
