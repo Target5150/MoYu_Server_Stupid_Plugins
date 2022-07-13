@@ -18,7 +18,6 @@ public Plugin myinfo =
 
 #define GAMEDATA_FILE "l4d_tongue_bend_fix"
 #define KEY_UPDATEBEND "CTongue::UpdateBend"
-#define KEY_EXCEPTION "BendExceptionClass"
 
 enum
 {
