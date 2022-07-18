@@ -7,7 +7,7 @@
 #include <dhooks>
 #include <sourcescramble>
 
-#define PLUGIN_VERSION "1.6"
+#define PLUGIN_VERSION "1.7"
 
 public Plugin myinfo = 
 {
@@ -267,7 +267,7 @@ bool ProximityThink_TraceFilterList(int entity, int contentsMask, DataPack dp)
 	if (entity == dp.ReadCell() || entity == dp.ReadCell())
 		return false;
 	
-	if (entity > 0 && entity <= MaxClients)
+	if (entity > 0 && entity <= MaxClients && IsClientInGame(entity))
 	{
 		/**
 		 * NOTE:

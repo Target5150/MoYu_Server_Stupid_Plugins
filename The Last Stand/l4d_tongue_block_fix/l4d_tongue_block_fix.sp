@@ -6,7 +6,7 @@
 #include <sourcescramble>
 #include <dhooks>
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo = 
 {
@@ -149,6 +149,9 @@ public Action CH_PassFilter(int touch, int pass, bool &result)
 	else
 	{
 		if (!pass || pass > MaxClients)
+			return Plugin_Continue;
+		
+		if (!IsClientInGame(pass))
 			return Plugin_Continue;
 		
 		if (GetClientTeam(pass) != 3 || GetEntProp(pass, Prop_Send, "m_zombieClass") != 1)

@@ -6,7 +6,7 @@
 #include <collisionhook>
 #include <left4dhooks_lux_library>
 
-#define PLUGIN_VERSION "1.1"
+#define PLUGIN_VERSION "1.2"
 
 public Plugin myinfo = 
 {
@@ -73,6 +73,9 @@ public Action CH_PassFilter(int touch, int pass, bool &result)
 {
 	// (pass == tank) && (touch == infected)
 	if (pass > MaxClients || touch <= MaxClients)
+		return Plugin_Continue;
+	
+	if (!IsClientInGame(pass))
 		return Plugin_Continue;
 	
 	if (GetClientTeam(pass) != 3 || GetEntProp(pass, Prop_Send, "m_zombieClass") != g_iTankClass)
