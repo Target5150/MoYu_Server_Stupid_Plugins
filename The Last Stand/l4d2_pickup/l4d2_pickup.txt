@@ -2,327 +2,161 @@
 {
 	"#default"
 	{
-		"Offsets"
-		{
-			"OS"
-			{
-				"linux"				"1"
-				"windows"			"0"
-			}
-		}
-		
 		"Functions"
 		{
-			"CTerrorGun_Use"
+			"CTerrorGun::EquipSecondWeapon"
 			{
-				"signature"		"CTerrorGun_Use"
+				"signature"		"CTerrorGun::EquipSecondWeapon"
 				"callconv"		"thiscall"
-				"return"		"void"
+				"return"		"int"
 				"this"			"entity"
-				"arguments"
-				{
-					"a1"
-					{
-						"type"	"cbaseentity"
-					}
-					"a2"
-					{
-						"type"	"int"
-					}
-					"a3"
-					{
-						"type"	"int"
-					}
-					"a4"
-					{
-						"type"	"int"
-					}
-				}
 			}
 			
-			"CWeaponSpawn::Use"
+			"CTerrorGun::RemoveSecondWeapon"
 			{
-				"signature"		"CWeaponSpawn::Use"
+				"signature"		"CTerrorGun::RemoveSecondWeapon"
 				"callconv"		"thiscall"
-				"return"		"void"
+				"return"		"int"
 				"this"			"entity"
 				"arguments"
 				{
-					"a1"
+					"force"
 					{
-						"type"	"cbaseentity"
-					}
-					"a2"
-					{
-						"type"	"int"
-					}
-					"a3"
-					{
-						"type"	"int"
-					}
-					"a4"
-					{
-						"type"	"int"
+						"type"	"bool"
 					}
 				}
 			}
 		}
 	}
 	
-    "left4dead"
-    {
-		"Functions"
+	"left4dead"
+	{
+		"MemPatches"
 		{
-			"CTerrorGun_Use_Windows"
+			"CTerrorGun::EquipSecondWeapon__SkipWeaponDeploy"
 			{
-				"signature"		"CTerrorGun_Use"
-				"callconv"		"thiscall"
-				"return"		"void"
-				"this"			"entity"
-				"arguments"
+				"signature"		"CTerrorGun::EquipSecondWeapon"
+				"linux"
 				{
-					"a1"
-					{
-						"type"	"int"
-					}
-					"a2"
-					{
-						"type"	"cbaseentity"
-					}
-					"a3"
-					{
-						"type"	"int"
-					}
-					"a4"
-					{
-						"type"	"int"
-					}
+					"offset"	"100h"
+					"verify"	"\x0F\x84"
+					"patch"		"\x90\xE9"
+				}
+				"windows"
+				{
+					"offset"	"16Bh"
+					"verify"	"\x75"
+					"patch"		"\x90\x90"
+				}
+			}
+		}
+		"Signatures"
+		{
+			/**
+			 * CTerrorGun::EquipSecondWeapon()
+			 *
+			 * How to find on Windows:
+			 * 1a. Search for the "Player.PickupWeapon" string.
+			 * 2a. One of the functions that references that string should be this function.
+			 *
+			 * 1b. Find the function's offsets with asherkin's VTable dump.
+			 * 2b. Use IDA to get the VTable dump for the "CTerrorGun" class on Windows.
+			 * 3b. Compare your dump's offsets with asherkin's dump's offsets to find the target function.
+			 * 4b. Look for the target function in the Windows binary.
+			 **/
+			"CTerrorGun::EquipSecondWeapon"
+			{
+				"library"		"server"
+				"linux"			"@_ZN10CTerrorGun17EquipSecondWeaponEv"
+				"windows"		"\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x80\xBE\x2A\x2A\x2A\x2A\x2A\x8D\x9E\x2A\x2A\x2A\x2A\x74\x2A\x5E"
+								/* ? ? ? ? ? ? ? 80 BE ? ? ? ? ? 8D 9E ? ? ? ? 74 ? 5E */
+			}
+			
+			/**
+			 * CTerrorGun::RemoveSecondWeapon()
+			 *
+			 * How to find on Windows:
+			 * 1a. Search for the "Player.PickupWeapon" string.
+			 * 2a. One of the functions that references that string should be this function.
+			 *
+			 * 1b. Find the function's offsets with asherkin's VTable dump.
+			 * 2b. Use IDA to get the VTable dump for the "CTerrorGun" class on Windows.
+			 * 3b. Compare your dump's offsets with asherkin's dump's offsets to find the target function.
+			 * 4b. Look for the target function in the Windows binary.
+			 **/
+			"CTerrorGun::RemoveSecondWeapon"
+			{
+				"library"		"server"
+				"linux"			"@_ZN10CTerrorGun18RemoveSecondWeaponEb"
+				"windows"		"\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x80\xBE\x2A\x2A\x2A\x2A\x2A\x8D\x9E\x2A\x2A\x2A\x2A\x74\x2A\x5E"
+								/* ? ? ? ? ? ? ? 80 BE ? ? ? ? ? 8D 9E ? ? ? ? 74 ? 5E */
+			}
+		}
+	}
+	
+	"left4dead2"
+	{
+		"MemPatches"
+		{
+			"CTerrorGun::EquipSecondWeapon__SkipWeaponDeploy"
+			{
+				"signature"		"CTerrorGun::EquipSecondWeapon"
+				"linux"
+				{
+					"offset"	"10Ch"
+					"verify"	"\x0F\x84"
+					"patch"		"\x90\xE9"
+				}
+				"windows"
+				{
+					"offset"	"14Bh"
+					"verify"	"\x75"
+					"patch"		"\x90\x90"
 				}
 			}
 		}
 		
-        "MemPatches"
-        {
-            "EquipSecondWeapon_StopHolster"
-            {
-                "signature"		"CTerrorGun_EquipSecondWeapon"
-                "linux"
-                {
-                    "offset"	"290"
-                    "verify"	"\x8B"
-                    "patch"		"\xE9\x0E\x00\x00\x00"
-                }
-                "windows"
-                {
-                    "offset"	"403"
-                    "verify"	"\x8B"
-                    "patch"		"\xE9\x09\x00\x00\x00"
-                }
-            }
-            "EquipSecondWeapon_SetActiveWeapon"
-            {
-                "signature"		"CTerrorGun_EquipSecondWeapon"
-                "linux"
-                {
-                    "offset"	"309"
-                    "verify"	"\x89"
-                    "patch"		"\xE9\x0B\x00\x00\x00"
-                }
-                "windows"
-                {
-                    "offset"	"417"
-                    "verify"	"\x56"
-                    "patch"		"\xE9\x03\x00\x00\x00"
-                }
-            }
-            "EquipSecondWeapon_Deploy"
-            {
-                "signature"		"CTerrorGun_EquipSecondWeapon"
-                "linux"
-                {
-                    "offset"	"325"
-                    "verify"	"\x8B"
-                    "patch"		"\xE9\x06\x00\x00\x00"
-                }
-                "windows"
-                {
-                    "offset"	"425"
-                    "verify"	"\x8B"
-                    "patch"		"\xE9\x07\x00\x00\x00"
-                }
-            }
-        }
-        "Signatures"
-        {
-            /**
-             * CTerrorGun::Use(CBaseEntity *, CBaseEntity *, USE_TYPE, float)
-             *
-             * How to find on Windows:
-             * 1. Find the function's offsets with asherkin's VTable dump.
-             * 2. Use IDA to get the VTable dump for the "CTerrorGun" class on Windows.
-             * 3. Compare your dump's offsets with asherkin's dump's offsets to find the target function.
-             * 4. Look for the target function in the Windows binary.
-             **/
-            "CTerrorGun_Use"
-            {
-                "library"		"server"
-                "linux"			"@_ZN10CTerrorGun3UseEP11CBaseEntityS1_8USE_TYPEf"
-                "windows"		"\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x85\x2A\x8B\x2A\x0F\x84\x2A\x2A\x2A\x2A\x8B\x2A\x8B\x90\x2A\x2A\x2A\x2A\x8B\x2A\xFF\x2A\x84\x2A\x0F\x84\x2A\x2A\x2A\x2A\x8B\x2A\x8B"
-						/* ? ? ? ? ? ? ? ? ? 85 ? 8B ? 0F 84 ? ? ? ? 8B ? 8B 90 ? ? ? ? 8B ? FF ? 84 ? 0F 84 ? ? ? ? 8B ? 8B */
-            }
-            /**
-             * CTerrorGun::EquipSecondWeapon()
-             *
-             * How to find on Windows:
-             * 1a. Search for the "Player.PickupWeapon" string.
-             * 2a. One of the functions that references that string should be this function.
-             *
-             * 1b. Find the function's offsets with asherkin's VTable dump.
-             * 2b. Use IDA to get the VTable dump for the "CTerrorGun" class on Windows.
-             * 3b. Compare your dump's offsets with asherkin's dump's offsets to find the target function.
-             * 4b. Look for the target function in the Windows binary.
-             **/
-            "CTerrorGun_EquipSecondWeapon"
-            {
-                "library"		"server"
-                "linux"			"@_ZN10CTerrorGun17EquipSecondWeaponEv"
-                "windows"		"\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x80\xBE\x2A\x2A\x2A\x2A\x2A\x8D\x9E\x2A\x2A\x2A\x2A\x74\x2A\x5E"
-						/* ? ? ? ? ? ? ? 80 BE ? ? ? ? ? 8D 9E ? ? ? ? 74 ? 5E */
-            }
-            /**
-             * CWeaponSpawn::Use(CBaseEntity *, CBaseEntity *, USE_TYPE, float)
-             *
-             * How to find on Windows:
-             * 1a. Search for the "spawner_give_item" string.
-             * 2a. The string can only be found in this function.
-             *
-             * 1b. Find the function's offsets with asherkin's VTable dump.
-             * 2b. In IDA Pro, go to the ".rdata" section of the Windows binary.
-             * 3b. Search for "CWeaponSpawn::`vftable'" to jump to the "CWeaponSpawn" vtable.
-             * 4b. Compare your dump's offsets with asherkin's dump's offsets to find the target function.
-             * 5b. Look for the target function in the Windows binary.
-             **/
-            "CWeaponSpawn::Use"
-            {
-                "library"		"server"
-                "linux"			"@_ZN12CWeaponSpawn3UseEP11CBaseEntityS1_8USE_TYPEf"
-                "windows"		"\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x85\x2A\x8B\x2A\x89\x2A\x2A\x2A\x0F\x84\x2A\x2A\x2A\x2A\x8B\x2A\x8B\x90\x2A\x2A\x2A\x2A\x8B\x2A\xFF\x2A\x84\x2A\x0F\x84\x2A\x2A\x2A\x2A\x8B"
-						/* ? ? ? ? ? ? ? ? ? 85 ? 8B ? 89 ? ? ? 0F 84 ? ? ? ? 8B ? 8B 90 ? ? ? ? 8B ? FF ? 84 ? 0F 84 ? ? ? ? 8B */
-            }
-        }
-    }
-    
-    "left4dead2"
-    {
-        "MemPatches"
-        {
-            "EquipSecondWeapon_StopHolster"
-            {
-                "signature"		"CTerrorGun_EquipSecondWeapon"
-                "linux"
-                {
-                    "offset"	"294"
-                    "verify"	"\x8B"
-                    "patch"		"\xE9\x0E\x00\x00\x00"
-                }
-                "windows"
-                {
-                    "offset"	"370"
-                    "verify"	"\x8B"
-                    "patch"		"\xE9\x09\x00\x00\x00"
-                }
-            }
-            "EquipSecondWeapon_SetActiveWeapon"
-            {
-                "signature"		"CTerrorGun_EquipSecondWeapon"
-                "linux"
-                {
-                    "offset"	"313"
-                    "verify"	"\x89"
-                    "patch"		"\xE9\x07\x00\x00\x00"
-                }
-                "windows"
-                {
-                    "offset"	"384"
-                    "verify"	"\x56"
-                    "patch"		"\xE9\x03\x00\x00\x00"
-                }
-            }
-            "EquipSecondWeapon_Deploy"
-            {
-                "signature"		"CTerrorGun_EquipSecondWeapon"
-                "linux"
-                {
-                    "offset"	"325"
-                    "verify"	"\x8B"
-                    "patch"		"\xE9\x06\x00\x00\x00"
-                }
-                "windows"
-                {
-                    "offset"	"392"
-                    "verify"	"\x8B"
-                    "patch"		"\xE9\x07\x00\x00\x00"
-                }
-            }
-        }
-        
-        "Signatures"
-        {
-            /**
-             * CTerrorGun::Use(CBaseEntity *, CBaseEntity *, USE_TYPE, float)
-             *
-             * How to find on Windows:
-             * 1. Find the function's offsets with asherkin's VTable dump.
-             * 2. Use IDA to get the VTable dump for the "CTerrorGun" class on Windows.
-             * 3. Compare your dump's offsets with asherkin's dump's offsets to find the target function.
-             * 4. Look for the target function in the Windows binary.
-             **/
-            "CTerrorGun_Use"
-            {
-                "library"		"server"
-                "linux"			"@_ZN10CTerrorGun3UseEP11CBaseEntityS1_8USE_TYPEf"
-                "windows"		"\x2A\x2A\x2A\x2A\x2A\x2A\x56\x57\x8B\x2A\x2A\x8B\x2A\x85\x2A\x0F\x84\x2A\x2A\x2A\x2A\x8B\x2A\x8B\x90\x2A\x2A\x2A\x2A\x8B\x2A\xFF\x2A\x84\x2A\x0F\x84\x2A\x2A\x2A\x2A\x8B\x2A\x8B"
-                        /* ? ? ? ? ? ? 56 57 8B ? ? 8B ? 85 ? 0F 84 ? ? ? ? 8B ? 8B 90 ? ? ? ? 8B ? FF ? 84 ? 0F 84 ? ? ? ? 8B ? 8B */
-            }
-            /**
-             * CTerrorGun::EquipSecondWeapon()
-             *
-             * How to find on Windows:
-             * 1a. Search for the "Player.PickupWeapon" string.
-             * 2a. One of the functions that references that string should be this function.
-             *
-             * 1b. Find the function's offsets with asherkin's VTable dump.
-             * 2b. Use IDA to get the VTable dump for the "CTerrorGun" class on Windows.
-             * 3b. Compare your dump's offsets with asherkin's dump's offsets to find the target function.
-             * 4b. Look for the target function in the Windows binary.
-             **/
-            "CTerrorGun_EquipSecondWeapon"
-            {
-                "library"		"server"
-                "linux"			"@_ZN10CTerrorGun17EquipSecondWeaponEv"
-                "windows"		"\x2A\x2A\x2A\x2A\x2A\x2A\x56\x8B\x2A\x80\xBE\x2A\x2A\x2A\x2A\x2A\x74\x2A\x32\x2A\x5E\x8B"
-						/* ? ? ? ? ? ? 56 8B ? 80 BE ? ? ? ? ? 74 ? 32 ? 5E 8B */
-            }
-            /**
-             * CWeaponSpawn::Use(CBaseEntity *, CBaseEntity *, USE_TYPE, float)
-             *
-             * How to find on Windows:
-             * 1a. Search for the "spawner_give_item" string.
-             * 2a. The string can only be found in this function.
-             *
-             * 1b. Find the function's offsets with asherkin's VTable dump.
-             * 2b. In IDA Pro, go to the ".rdata" section of the Windows binary.
-             * 3b. Search for "CWeaponSpawn::`vftable'" to jump to the "CWeaponSpawn" vtable.
-             * 4b. Compare your dump's offsets with asherkin's dump's offsets to find the target function.
-             * 5b. Look for the target function in the Windows binary.
-             **/
-            "CWeaponSpawn::Use"
-            {
-                "library"		"server"
-                "linux"			"@_ZN12CWeaponSpawn3UseEP11CBaseEntityS1_8USE_TYPEf"
-                "windows"		"\x2A\x2A\x2A\x2A\x2A\x2A\x53\x57\x8B\x2A\x2A\x8B\x2A\x85\x2A\x0F\x84\x2A\x2A\x2A\x2A\x8B\x2A\x8B\x90\x2A\x2A\x2A\x2A\x8B\x2A\xFF\x2A\x84\x2A\x0F\x84\x2A\x2A\x2A\x2A\x8B"
-						/* ? ? ? ? ? ? 53 57 8B ? ? 8B ? 85 ? 0F 84 ? ? ? ? 8B ? 8B 90 ? ? ? ? 8B ? FF ? 84 ? 0F 84 ? ? ? ? 8B */
-            }
-        }
-    }
+		"Signatures"
+		{
+			/**
+			 * CTerrorGun::EquipSecondWeapon()
+			 *
+			 * How to find on Windows:
+			 * 1a. Search for the "Player.PickupWeapon" string.
+			 * 2a. One of the functions that references that string should be this function.
+			 *
+			 * 1b. Find the function's offsets with asherkin's VTable dump.
+			 * 2b. Use IDA to get the VTable dump for the "CTerrorGun" class on Windows.
+			 * 3b. Compare your dump's offsets with asherkin's dump's offsets to find the target function.
+			 * 4b. Look for the target function in the Windows binary.
+			 **/
+			"CTerrorGun::EquipSecondWeapon"
+			{
+				"library"		"server"
+				"linux"			"@_ZN10CTerrorGun17EquipSecondWeaponEv"
+				"windows"		"\x2A\x2A\x2A\x2A\x2A\x2A\x56\x8B\x2A\x80\xBE\x2A\x2A\x2A\x2A\x2A\x74\x2A\x32\x2A\x5E\x8B"
+								/* ? ? ? ? ? ? 56 8B ? 80 BE ? ? ? ? ? 74 ? 32 ? 5E 8B */
+			}
+			
+			/**
+			 * CTerrorGun::RemoveSecondWeapon()
+			 *
+			 * How to find on Windows:
+			 * 1a. Search for the "Player.PickupWeapon" string.
+			 * 2a. One of the functions that references that string should be this function.
+			 *
+			 * 1b. Find the function's offsets with asherkin's VTable dump.
+			 * 2b. Use IDA to get the VTable dump for the "CTerrorGun" class on Windows.
+			 * 3b. Compare your dump's offsets with asherkin's dump's offsets to find the target function.
+			 * 4b. Look for the target function in the Windows binary.
+			 **/
+			"CTerrorGun::RemoveSecondWeapon"
+			{
+				"library"		"server"
+				"linux"			"@_ZN10CTerrorGun18RemoveSecondWeaponEb"
+				"windows"		"\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x80\xBE\x2A\x2A\x2A\x2A\x2A\x8D\x9E\x2A\x2A\x2A\x2A\x74\x2A\x5E"
+								/* ? ? ? ? ? ? ? 80 BE ? ? ? ? ? 8D 9E ? ? ? ? 74 ? 5E */
+			}
+		}
+	}
 }
