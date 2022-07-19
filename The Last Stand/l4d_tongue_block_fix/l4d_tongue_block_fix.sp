@@ -6,7 +6,7 @@
 #include <sourcescramble>
 #include <dhooks>
 
-#define PLUGIN_VERSION "1.1"
+#define PLUGIN_VERSION "1.2"
 
 public Plugin myinfo = 
 {
@@ -27,6 +27,26 @@ public Plugin myinfo =
 #define KEY_SETPASSENTITY "CTraceFilterSimple::SetPassEntity"
 
 DynamicDetour g_hDetour;
+
+int
+	g_iTankClass,
+	g_iTipFlag,
+	g_iFlyFlag;
+
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+	switch (GetEngineVersion())
+	{
+		case Engine_Left4Dead: { g_iTankClass = 5; }
+		case Engine_Left4Dead2: { g_iTankClass = 8; }
+		default:
+		{
+			strcopy(error, err_max, "Plugin supports Left 4 Dead & 2 only.");
+			return APLRes_SilentFailure;
+		}
+	}
+	return APLRes_Success;
+}
 
 public void OnPluginStart()
 {
@@ -80,16 +100,32 @@ public void OnPluginStart()
 	
 	ConVar cv = CreateConVar("tongue_tip_through_teammate",
 								"0",
-								"Whether smoker can shoot his tongue through his teammates",
+								"Whether smoker can shoot his tongue through his teammates.\n"
+							...	"1 = Through generic SIs, 2 = Through Tank, 3 = All, 0 = Disabled",
 								FCVAR_SPONLY,
-								true, 0.0, true, 1.0);
+								true, 0.0, true, 3.0);
 	CvarChg_TipThroughTeammate(cv, "", "");
 	cv.AddChangeHook(CvarChg_TipThroughTeammate);
+	
+	cv = CreateConVar("tongue_fly_through_teammate",
+								"1",
+								"Whether tongue can go through his teammates once shot.\n"
+							...	"1 = Through generic SIs, 2 = Through Tank, 3 = All, 0 = Disabled",
+								FCVAR_SPONLY,
+								true, 0.0, true, 3.0);
+	CvarChg_FlyThroughTeammate(cv, "", "");
+	cv.AddChangeHook(CvarChg_FlyThroughTeammate);
 }
 
 void CvarChg_TipThroughTeammate(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	ToggleDetour(convar.BoolValue);
+	g_iTipFlag = convar.IntValue;
+	ToggleDetour(g_iTipFlag > 0);
+}
+
+void CvarChg_FlyThroughTeammate(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	g_iFlyFlag = convar.IntValue;
 }
 
 void ToggleDetour(bool enable)
@@ -131,6 +167,9 @@ public Action CH_PassFilter(int touch, int pass, bool &result)
 	if (touch > MaxClients || !IsClientInGame(touch))
 		return Plugin_Continue;
 	
+	if (GetClientTeam(touch) != 3)
+		return Plugin_Continue;
+		
 	if (!g_bUpdateTongueTarget)
 	{
 		if (pass <= MaxClients)
@@ -145,6 +184,14 @@ public Action CH_PassFilter(int touch, int pass, bool &result)
 		
 		if (touch == GetEntPropEnt(pass, Prop_Send, "m_owner")) // probably won't happen
 			return Plugin_Continue;
+			
+		if (GetEntProp(touch, Prop_Send, "m_zombieClass") == g_iTankClass)
+		{
+			if (~g_iFlyFlag & 2)
+				return Plugin_Continue;
+		}
+		else if (~g_iFlyFlag & 1)
+			return Plugin_Continue;
 	}
 	else
 	{
@@ -156,10 +203,15 @@ public Action CH_PassFilter(int touch, int pass, bool &result)
 		
 		if (GetClientTeam(pass) != 3 || GetEntProp(pass, Prop_Send, "m_zombieClass") != 1)
 			return Plugin_Continue;
+			
+		if (GetEntProp(touch, Prop_Send, "m_zombieClass") == g_iTankClass)
+		{
+			if (~g_iTipFlag & 2)
+				return Plugin_Continue;
+		}
+		else if (~g_iTipFlag & 1)
+			return Plugin_Continue;
 	}
-	
-	if (GetClientTeam(touch) != 3)
-		return Plugin_Continue;
 	
 	result = false;
 	return Plugin_Handled;
