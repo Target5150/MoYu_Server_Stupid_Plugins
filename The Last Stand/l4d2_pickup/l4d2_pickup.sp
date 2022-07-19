@@ -76,6 +76,9 @@ int
 	SwitchFlags,
 	IncapFlags;
 
+bool
+	g_bLeft4Dead2;
+
 MemoryPatch
 	g_hPatch;
 
@@ -95,13 +98,15 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 {
 	switch (GetEngineVersion())
 	{
-		case Engine_Left4Dead, Engine_Left4Dead2: { bLateLoad = late; }
+		case Engine_Left4Dead: { g_bLeft4Dead2 = false; }
+		case Engine_Left4Dead2: { g_bLeft4Dead2 = true; }
 		default:
 		{
 			strcopy(error, err_max, "Plugin supports only Left 4 Dead & 2");
 			return APLRes_SilentFailure;
 		}
 	}
+	bLateLoad = late;
 	return APLRes_Success;
 }
 
@@ -143,9 +148,16 @@ void LoadSDK()
 	hDetour = DynamicDetour.FromConf(conf, KEY_FUNCTION_2);
 	if (!hDetour)
 		SetFailState("Missing detour setup \""...KEY_FUNCTION_2..."\"");
-	if (!hDetour.Enable(Hook_Pre, DTR_OnRemoveSecondWeapon))
-		SetFailState("Failed to pre-detour \""...KEY_FUNCTION_2..."\"");
-	
+	if (g_bLeft4Dead2)
+	{
+		if (!hDetour.Enable(Hook_Pre, DTR_OnRemoveSecondWeapon_Eb))
+			SetFailState("Failed to pre-detour \""...KEY_FUNCTION_2..."\"");
+	}
+	else
+	{
+		if (!hDetour.Enable(Hook_Pre, DTR_OnRemoveSecondWeapon_Ev))
+			SetFailState("Failed to pre-detour \""...KEY_FUNCTION_2..."\"");
+	}
 	g_hPatch = MemoryPatch.CreateFromConf(conf, KEY_FUNCTION...KEY_PATCH_SURFIX);
 	if (!g_hPatch.Validate())
 		SetFailState("Failed to validate memory patch \""...KEY_FUNCTION...KEY_PATCH_SURFIX..."\"");
@@ -420,12 +432,8 @@ MRESReturn DTR_OnEquipSecondWeapon_Post(int weapon, DHookReturn hReturn)
 }
 
 // prevent setting viewmodel and next attack time
-MRESReturn DTR_OnRemoveSecondWeapon(int weapon, DHookReturn hReturn, DHookParam hParams)
+MRESReturn DTR_OnRemoveSecondWeapon_Ev(int weapon, DHookReturn hReturn)
 {
-	bool force = hParams.Get(1);
-	if (!force)
-		return MRES_Ignored;
-	
 	if (!GetEntProp(weapon, Prop_Send, "m_hasDualWeapons"))
 		return MRES_Ignored;
 	
@@ -448,6 +456,15 @@ MRESReturn DTR_OnRemoveSecondWeapon(int weapon, DHookReturn hReturn, DHookParam 
 	
 	hReturn.Value = 1;
 	return MRES_Supercede;
+}
+
+MRESReturn DTR_OnRemoveSecondWeapon_Eb(int weapon, DHookReturn hReturn, DHookParam hParams)
+{
+	bool force = hParams.Get(1);
+	if (!force)
+		return MRES_Ignored;
+	
+	return DTR_OnRemoveSecondWeapon_Ev(weapon, hReturn);
 }
 
 
