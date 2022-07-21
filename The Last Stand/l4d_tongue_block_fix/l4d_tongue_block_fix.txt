@@ -75,8 +75,8 @@
 				"linux"
 				{
 					"offset"	"47Eh"
-					"verify"	"\xC7\x44\x24\x04"	// mov  dword ptr [esp+04h], 0
-					"patch"		"\x89\x5C\x24\x04\x90\x90\x90\x90"	// mov  [esp+04h], ebx ; this
+					"verify"	"\xC7\x44\x24\x04"					// mov  dword ptr [esp+04h], 0
+					"patch"		"\x89\x74\x24\x04\x90\x90\x90\x90"	// mov  [esp+04h], esi ; this
 				}
 				"windows"
 				{
