@@ -48,9 +48,11 @@
 #include <sdktools>
 #include <sdkhooks>
 #include <left4dhooks>
+#include <l4d2util_constants>
+#undef REQUIRE_PLUGIN
 #include <godframecontrol>
 
-#define PLUGIN_VERSION "4.9"
+#define PLUGIN_VERSION "4.10"
 
 public Plugin myinfo = 
 {
@@ -102,7 +104,8 @@ methodmap AnimState
 }
 
 bool
-	g_bLateLoad;
+	g_bLateLoad,
+	g_bGodframeControl;
 
 int
 	g_iChargeVictim[MAXPLAYERS+1] = {-1, ...},
@@ -152,7 +155,6 @@ public void OnPluginStart()
 {
 	LoadSDK();
 	
-	g_hChargeDuration = FindConVar("gfc_charger_duration");
 	g_hLongChargeDuration = CreateConVar("gfc_long_charger_duration", "2.2", "God frame duration for long charger getup animations");
 	
 	longerTankPunchGetup = CreateConVar("longer_tank_punch_getup", "0", "When a tank punches someone give them a slightly longer getup.", _, true, 0.0, true, 1.0);
@@ -178,6 +180,31 @@ public void OnPluginStart()
 		{
 			if (IsClientInGame(i)) OnClientPutInServer(i);
 		}
+	}
+}
+
+public void OnAllPluginsLoaded()
+{
+	g_bGodframeControl = LibraryExists("l4d2_godframes_control_merge");
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+	if (strcmp(name, "l4d2_godframes_control_merge") == 0)
+		g_bGodframeControl = true;
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+	if (strcmp(name, "l4d2_godframes_control_merge") == 0)
+		g_bGodframeControl = false;
+}
+
+public void OnConfigsExecuted()
+{
+	if (g_bGodframeControl)
+	{
+		g_hChargeDuration = FindConVar("gfc_charger_duration");
 	}
 }
 
@@ -387,15 +414,20 @@ void Event_ChargerKilled(Event event, const char[] name, bool dontBroadcast)
 					if ((hAnim.GetFlag(AnimState_GroundSlammed) && cvar_keepLongChargeLongGetUp.BoolValue)
 						|| (hAnim.GetFlag(AnimState_WallSlammed) && cvar_keepWallSlamLongGetUp.BoolValue))
 					{
-						GiveClientGodFrames(victim, g_hLongChargeDuration.FloatValue, 6);
+						SetInvulnerableForSlammed(victim, g_hLongChargeDuration.FloatValue);
 					}
 					else
 					{
 						if (hAnim.GetFlag(AnimState_GroundSlammed) || hAnim.GetFlag(AnimState_WallSlammed))
 						{
-							GiveClientGodFrames(victim, g_hChargeDuration.FloatValue, 6);
+							float duration = 2.0;
+							if (g_hChargeDuration != null)
+							{
+								duration = g_hChargeDuration.FloatValue;
+							}
+							SetInvulnerableForSlammed(victim, duration);
 						}
-						L4D2Direct_DoAnimationEvent(victim, 78);
+						L4D2Direct_DoAnimationEvent(victim, ANIM_CHARGER_GETUP);
 					}
 				}
 			}
@@ -525,6 +557,22 @@ public void L4D_OnKnockedDown_Post(int client, int reason)
 			
 			// Restart the get-up sequence if already playing
 			hAnim.ResetMainActivity();
+		}
+	}
+}
+
+void SetInvulnerableForSlammed(int client, float duration)
+{
+	if (g_bGodframeControl)
+	{
+		GiveClientGodFrames(client, duration, 6);
+	}
+	else
+	{
+		CountdownTimer timer = L4D2Direct_GetInvulnerabilityTimer(client);
+		if (timer != CTimer_Null)
+		{
+			CTimer_Start(timer, duration);
 		}
 	}
 }
