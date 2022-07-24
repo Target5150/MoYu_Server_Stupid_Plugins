@@ -117,7 +117,6 @@ float
 ConVar 
 	g_hChargeDuration,
 	g_hLongChargeDuration,
-	longerTankPunchGetup,
 	cvar_keepWallSlamLongGetUp,
 	cvar_keepLongChargeLongGetUp;
 
@@ -156,8 +155,6 @@ public void OnPluginStart()
 	LoadSDK();
 	
 	g_hLongChargeDuration = CreateConVar("gfc_long_charger_duration", "2.2", "God frame duration for long charger getup animations");
-	
-	longerTankPunchGetup = CreateConVar("longer_tank_punch_getup", "0", "When a tank punches someone give them a slightly longer getup.", _, true, 0.0, true, 1.0);
 	
 	cvar_keepWallSlamLongGetUp = CreateConVar("charger_keep_wall_charge_animation", "1", "Enable the long wall slam animation (with god frames)");
 	cvar_keepLongChargeLongGetUp = CreateConVar("charger_keep_far_charge_animation", "0", "Enable the long 'far' slam animation (with god frames)");
@@ -517,12 +514,13 @@ public void L4D_TankClaw_OnPlayerHit_Post(int tank, int claw, int player)
 			hAnim.SetFlag(AnimState_WallSlammed, false);
 			hAnim.SetFlag(AnimState_Pounded, false);
 			
-			if (longerTankPunchGetup.BoolValue)
-			{
-				// TODO: Does not extend the get-up.
+			//if (longerTankPunchGetup.BoolValue)
+			//{
+				// 2022/7/24: check out https://github.com/Target5150/MoYu_Server_Stupid_Plugins/tree/master/The%20Last%20Stand/l4d_static_punch_getup
+				// DONE: Does not extend the get-up.
 				// Fixable, though I'd wonder if it's actually needed.
 				//L4D2Direct_DoAnimationEvent(player, 57); // ANIM_SHOVED_BY_TEAMMATE
-			}
+			//}
 			hAnim.ResetMainActivity();
 		}
 	}
