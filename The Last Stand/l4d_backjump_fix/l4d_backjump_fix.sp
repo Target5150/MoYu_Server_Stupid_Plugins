@@ -4,7 +4,7 @@
 #include <sourcemod>
 #include <sdkhooks>
 
-#define PLUGIN_VERSION "2.0"
+#define PLUGIN_VERSION "2.1"
 
 public Plugin myinfo =
 {
@@ -21,16 +21,22 @@ public void OnPluginStart()
 	HookEvent("player_team", Event_PlayerTeam);
 	HookEvent("player_death", Event_PlayerDeath);
 	HookEvent("player_bot_replace", Event_PlayerBotReplace);
-	HookEvent("bot_player_replace", Event_BotPlayerReplace);
 }
 
 void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
-	if (!client || GetClientTeam(client) != 3 || GetEntProp(client, Prop_Send, "m_zombieClass") != 3)
+	if (!client || !IsClientInGame(client))
 		return;
 	
-	SDKHook(client, SDKHook_TouchPost, SDK_OnTouch_Post);
+	if (GetClientTeam(client) == 3 && GetEntProp(client, Prop_Send, "m_zombieClass") == 3)
+	{
+		SDKHook(client, SDKHook_TouchPost, SDK_OnTouch_Post);
+	}
+	else
+	{
+		SDKUnhook(client, SDKHook_TouchPost, SDK_OnTouch_Post);
+	}
 }
 
 void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
@@ -49,7 +55,10 @@ void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
 void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
-	if (!client || GetClientTeam(client) != 3 || GetEntProp(client, Prop_Send, "m_zombieClass") != 3)
+	if (!client || !IsClientInGame(client))
+		return;
+	
+	if (GetClientTeam(client) != 3 || GetEntProp(client, Prop_Send, "m_zombieClass") != 3)
 		return;
 	
 	SDKUnhook(client, SDKHook_TouchPost, SDK_OnTouch_Post);
@@ -57,25 +66,26 @@ void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 
 void Event_PlayerBotReplace(Event event, const char[] name, bool dontBroadcast)
 {
-	HandlePlayerReplace(event.GetInt("bot"), event.GetInt("player"));
-}
-
-void Event_BotPlayerReplace(Event event, const char[] name, bool dontBroadcast)
-{
-	HandlePlayerReplace(event.GetInt("player"), event.GetInt("bot"));
+	HandlePlayerReplace(GetClientOfUserId(event.GetInt("bot")), GetClientOfUserId(event.GetInt("player")));
 }
 
 void HandlePlayerReplace(int replacer, int replacee)
 {
-	replacer = GetClientOfUserId(replacer);
-	if (!replacer || GetClientTeam(replacer) != 3 || GetEntProp(replacer, Prop_Send, "m_zombieClass") != 3)
+	if (!replacer || !IsClientInGame(replacer))
 		return;
 	
-	replacee = GetClientOfUserId(replacee);
-	if (!replacee || !IsClientInGame(replacee))
+	if (GetClientTeam(replacer) != 3 || GetEntProp(replacer, Prop_Send, "m_zombieClass") != 3)
 		return;
 	
-	SDKUnhook(replacee, SDKHook_TouchPost, SDK_OnTouch_Post);
+	if (IsPlayerAlive(replacer))
+	{
+		SDKHook(replacer, SDKHook_TouchPost, SDK_OnTouch_Post);
+	}
+	
+	if (replacee && IsClientInGame(replacee))
+	{
+		SDKUnhook(replacee, SDKHook_TouchPost, SDK_OnTouch_Post);
+	}
 }
 
 void SDK_OnTouch_Post(int entity, int other)
@@ -91,10 +101,6 @@ void SDK_OnTouch_Post(int entity, int other)
 		SDKUnhook(entity, SDKHook_TouchPost, SDK_OnTouch_Post);
 		return;
 	}
-	
-	// not even materialized
-	if (GetEntProp(entity, Prop_Send, "m_isGhost"))
-		return;
 	
 	// not bouncing
 	if (GetEntPropEnt(entity, Prop_Send, "m_hGroundEntity") != -1)
