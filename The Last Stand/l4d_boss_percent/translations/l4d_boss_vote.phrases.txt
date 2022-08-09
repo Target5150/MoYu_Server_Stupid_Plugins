@@ -1,0 +1,103 @@
+"Phrases"
+{
+	"Disabled"
+	{
+		"en"		"Disabled"
+	}
+	
+	"VoteCheck_FirstHalfReadyUp"
+	{
+		"en"		"{blue}<{green}BossVote{blue}>{default} Boss voting is only available during the first round of ready up."
+	}
+	
+	"VoteCheck_NonPlayer"
+	{
+		"en"		"{blue}<{green}BossVote{blue}>{default} Boss voting is not available for spectators."
+	}
+	
+	"VoteCheck_VoteTimer"
+	{
+		"#format"	"{1:d}"
+		"en"		"{blue}<{green}BossVote{blue}>{default} Boss Vote cannot be called right now... ({olive}{1}{default}s)"
+	}
+	
+	"Usage_Format"
+	{
+		"en"		"{blue}<{green}BossVote{blue}>{default} Usage: !voteboss / !bossvote {olive}<{default}Tank{olive}> <{default}Witch{olive}>{default}."
+	}
+	
+	"Usage_Description"
+	{
+		"en"		"{blue}<{green}BossVote{blue}>{default} Use {default}\"{blue}0{default}\" for {olive}No Spawn{default}, \"{blue}-1{default}\" to {olive}ignore."
+	}
+	
+	"ValidatePercent_StaticTank"
+	{
+		"en"		"{blue}<{green}BossVote{blue}>{default} Tank spawn is static and can not be changed on this map."
+	}
+	
+	"ValidatePercent_StaticWitch"
+	{
+		"en"		"{blue}<{green}BossVote{blue}>{default} Witch spawn is static and can not be changed on this map."
+	}
+	
+	"ValidatePercent_BannedTank"
+	{
+		"en"		"{blue}<{green}BossVote{blue}>{default} Tank percentage is {blue}banned{default}."
+	}
+	
+	"ValidatePercent_BannedWitch"
+	{
+		"en"		"{blue}<{green}BossVote{blue}>{default} Witch percentage is {blue}banned{default}."
+	}
+	
+	"VoteTitle_Both"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"Set Tank to: {1} and Witch to: {2}?"
+	}
+	
+	"VoteTitle_Tank"
+	{
+		"#format"	"{1:s}"
+		"en"		"Set Tank to: {1}?"
+	}
+	
+	"VoteTitle_Witch"
+	{
+		"#format"	"{1:s}"
+		"en"		"Set Witch to: {1}?"
+	}
+	
+	"VoteResult_ReadyUp"
+	{
+		"en"		"{blue}<{green}BossVote{blue}>{default} Spawns can only be set during ready up."
+	}
+	
+	"VoteResult_SettingBoth"
+	{
+		"en"		"Setting Boss Spawns..."
+	}
+	
+	"VoteResult_SettingTank"
+	{
+		"en"		"Setting Tank Spawn..."
+	}
+	
+	"VoteResult_SettingWitch"
+	{
+		"en"		"Setting Witch Spawn..."
+	}
+	
+	"ForceTank_Announce"
+	{
+		"#format"	"{1:d},{2:N}"
+		"en"		"{blue}<{green}BossVote{blue}>{default} Tank spawn set to {olive}{1}%%{default} by Admin {blue}{2}{default}."
+	}
+	
+	"ForceWitch_Announce"
+	{
+		"#format"	"{1:d},{2:N}"
+		"en"		"{blue}<{green}BossVote{blue}>{default} Witch spawn set to {olive}{1}%%{default} by Admin {blue}{2}{default}."
+	}
+}
