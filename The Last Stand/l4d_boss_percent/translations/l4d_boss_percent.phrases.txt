@@ -1,0 +1,92 @@
+"Phrases"
+{
+	"Footer_TankPercent"
+	{
+		"#format"	"{1:d}"
+		"en"		"Tank: {1}%%"
+	}
+	
+	"Footer_TankDisabled"
+	{
+		"en"		"Tank: Disabled"
+	}
+	
+	"Footer_StaticTank"
+	{
+		"en"		"Tank: Static Spawn"
+	}
+	
+	"Footer_NoTank"
+	{
+		"en"		"Tank: None"
+	}
+	
+	"Footer_WitchPercent"
+	{
+		"#format"	"{1:d}"
+		"en"		"Witch: {1}%%"
+	}
+	
+	"Footer_WitchDisabled"
+	{
+		"en"		"Witch: Disabled"
+	}
+	
+	"Footer_StaticWitch"
+	{
+		"en"		"Witch: Static Spawn"
+	}
+	
+	"Footer_NoWitch"
+	{
+		"en"		"Witch: None"
+	}
+	
+	"Footer_Link"
+	{
+		"#format"	"{1:s},{2:s}"
+		"en"		"{1}, {2}"
+	}
+	
+	"Command_TankPercent"
+	{
+		"#format"	"{1:d}"
+		"en"		"<{olive}Tank{default}> {red}{1}%%"
+	}
+	
+	"Command_TankDisabled"
+	{
+		"en"		"<{olive}Tank{default}> {red}Disabled"
+	}
+	
+	"Command_StaticTank"
+	{
+		"en"		"<{olive}Tank{default}> {red}Static Spawn"
+	}
+	
+	"Command_NoTank"
+	{
+		"en"		"<{olive}Tank{default}> {red}None"
+	}
+	
+	"Command_WitchPercent"
+	{
+		"#format"	"{1:d}"
+		"en"		"<{olive}Witch{default}> {red}{1}%%"
+	}
+	
+	"Command_WitchDisabled"
+	{
+		"en"		"<{olive}Witch{default}> {red}Disabled"
+	}
+	
+	"Command_StaticWitch"
+	{
+		"en"		"<{olive}Witch{default}> {red}Static Spawn"
+	}
+	
+	"Command_NoWitch"
+	{
+		"en"		"<{olive}Witch{default}> {red}None"
+	}
+}
