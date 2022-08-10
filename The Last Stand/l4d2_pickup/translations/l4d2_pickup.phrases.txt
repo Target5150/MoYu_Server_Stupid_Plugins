@@ -1,0 +1,12 @@
+"Phrases"
+{
+	"Command_SwitchOff"
+	{
+		"en"		"{blue}[{default}ItemSwitch{blue}] {default}Switch to Weapon on pick-up: {blue}OFF"
+	}
+	
+	"Command_SwitchOn"
+	{
+		"en"		"{blue}[{default}ItemSwitch{blue}] {default}Switch to Weapon on pick-up: {blue}ON"
+	}
+}
