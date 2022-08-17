@@ -33,13 +33,18 @@
 // - Behave like a modern.
 //
 //-------------------------------------------------------------------------------------------------------------------
+// Version 4.1: Fix some L4D1 issues
+//-------------------------------------------------------------------------------------------------------------------
+// - Big thanks to "l4d_display_equipment" by Marttt and HarryPotter (@fbef0102) for helping on L4D1.
+//
+//-------------------------------------------------------------------------------------------------------------------
 // DONE:
 //-------------------------------------------------------------------------------------------------------------------
 // - Be a nice guy and less lazy, allow the plugin to work flawlessly with other's peoples needs.. It doesn't require much attention.
 // - Find cleaner methods to detect and handle functions.
 */
 
-#define PLUGIN_VERSION "4.0"
+#define PLUGIN_VERSION "4.1"
 
 #pragma semicolon 1
 #pragma newdecls required
@@ -54,6 +59,15 @@
 #include <left4dhooks>
 #include <clientprefs>
 
+public Plugin myinfo = 
+{
+	name = "L4D2 Pick-up Changes",
+	author = "Sir, Forgetest", //Update syntax A1m`
+	description = "Alters a few things regarding picking up/giving items and incapped Players.",
+	version = PLUGIN_VERSION,
+	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
+}
+
 #define FLAGS_SWITCH_MELEE                1
 #define FLAGS_SWITCH_PILLS                2
 
@@ -67,17 +81,19 @@
 #define DMG_TYPE_SPIT (DMG_RADIATION|DMG_ENERGYBEAM)
 
 bool
-	bLateLoad,
-	bCantSwitchHealth[MAXPLAYERS+1],
-	bCantSwitchSecondary[MAXPLAYERS+1],
-	bPreventValveSwitch[MAXPLAYERS+1];
-	
-int
-	iSwitchFlags[MAXPLAYERS+1],
-	SwitchFlags,
-	IncapFlags;
+	g_bCantSwitchDropped[MAXPLAYERS+1],
+	g_bCantSwitchGun[MAXPLAYERS+1],
+	g_bContinueValveSwitch[MAXPLAYERS+1];
 
 bool
+	g_bSwitchOnPickup[MAXPLAYERS+1];
+
+int
+	g_iSwitchFlags,
+	g_iIncapFlags;
+
+bool
+	g_bLateLoad,
 	g_bLeft4Dead2;
 
 MemoryPatch
@@ -85,15 +101,6 @@ MemoryPatch
 
 Cookie 
 	g_hSwitchCookie;
-
-public Plugin myinfo = 
-{
-	name = "L4D2 Pick-up Changes",
-	author = "Sir, Forgetest", //Update syntax A1m`
-	description = "Alters a few things regarding picking up/giving items and incapped Players.",
-	version = PLUGIN_VERSION,
-	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
-}
 
 #define GAMEDATA_FILE "l4d2_pickup"
 #define COOKIE_NAME "l4d2_pickup_switch_cookie"
@@ -161,13 +168,26 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 			return APLRes_SilentFailure;
 		}
 	}
-	bLateLoad = late;
+	g_bLateLoad = late;
 	return APLRes_Success;
+}
+
+#define TRANSLATION_FILE "l4d2_pickup.phrases.txt"
+void LoadPluginTranslations()
+{
+	char sPath[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sPath, sizeof(sPath), "translations/"...TRANSLATION_FILE);
+	if (!FileExists(sPath))
+	{
+		SetFailState("Missing translations \""...TRANSLATION_FILE..."\"");
+	}
+	LoadTranslations(TRANSLATION_FILE);
 }
 
 public void OnPluginStart()
 {
 	LoadSDK();
+	LoadPluginTranslations();
 	
 	ConVar cv = CreateConVar("pickup_switch_flags", "3", "Flags for Switching from current item (1:Weapons, 2: Passed Pills)", _, true, 0.0, true, 3.0);
 	SwitchCVarChanged(cv, "", "");
@@ -186,7 +206,7 @@ public void OnPluginStart()
 	
 	RegConsoleCmd("sm_secondary", ChangeSecondaryFlags);
 	
-	if (bLateLoad)
+	if (g_bLateLoad)
 		for (int i = 1; i <= MaxClients; i++)
 			if (IsClientInGame(i))
 				OnClientPutInServer(i);
@@ -199,16 +219,6 @@ public void OnPluginEnd()
 			OnClientDisconnect(i);
 }
 
-void InitSwitchCookie()
-{
-	if ((g_hSwitchCookie = Cookie.Find(COOKIE_NAME)) == null)
-	{
-		g_hSwitchCookie = new Cookie(COOKIE_NAME,
-								"Flags for Switching from current item for every client.",
-								CookieAccess_Public);
-	}
-}
-
 
 /* ---------------------------------
 //                                 |
@@ -218,8 +228,9 @@ void InitSwitchCookie()
 public void OnClientPutInServer(int client)
 {
 	HookValidClient(client, true);
-	if (!QuerySwitchCookie(client, iSwitchFlags[client]))
-		iSwitchFlags[client] = SwitchFlags & FLAGS_SWITCH_MELEE;
+	
+	if (!QuerySwitchCookie(client, g_bSwitchOnPickup[client]))
+		g_bSwitchOnPickup[client] = ((g_iSwitchFlags & FLAGS_SWITCH_MELEE) ? false : true);
 }
 
 public void OnClientDisconnect(int client)
@@ -227,19 +238,16 @@ public void OnClientDisconnect(int client)
 	HookValidClient(client, false);
 	
 	if (!IsFakeClient(client))
-		SetSwitchCookie(client, iSwitchFlags[client] & FLAGS_SWITCH_MELEE);
+		SetSwitchCookie(client, g_bSwitchOnPickup[client]);
 }
 
 Action ChangeSecondaryFlags(int client, int args)
 {
 	if (client && IsClientInGame(client)) {
-		if (~iSwitchFlags[client] & FLAGS_SWITCH_MELEE) {
-			iSwitchFlags[client] |= FLAGS_SWITCH_MELEE;
-			CPrintToChat(client, "%t", "Command_SwitchOff");
-		} else {
-			iSwitchFlags[client] &= ~FLAGS_SWITCH_MELEE;
-			CPrintToChat(client, "%t", "Command_SwitchOn");
-		}
+		bool temp = !g_bSwitchOnPickup[client];
+		g_bSwitchOnPickup[client] = temp;
+		
+		CPrintToChat(client, "%t", temp ? "Command_SwitchOn" : "Command_SwitchOff");
 	}
 	return Plugin_Handled;
 }
@@ -250,25 +258,25 @@ Action ChangeSecondaryFlags(int client, int args)
 //       Yucky Timer Method~       |
 //                                 |
 // -------------------------------*/
-void DelaySwitchHealth(any client)
+void DelaySwitchDropped(any client)
 {
-	bCantSwitchHealth[client] = false;
+	g_bCantSwitchDropped[client] = false;
 }
 
-void DelaySwitchSecondary(any client)
+void DelaySwitchGun(any client)
 {
-	bCantSwitchSecondary[client] = false;
+	g_bCantSwitchGun[client] = false;
 }
 
 void DelayValveSwitch(any client)
 {
-	bPreventValveSwitch[client] = false;
+	g_bContinueValveSwitch[client] = false;
 }
 
 
 /* ---------------------------------
 //                                 |
-//         SDK Hooks, Fun!         |
+//          Incap Pickups          |
 //                                 |
 // -------------------------------*/
 void Event_PlayerHurt(Event event, const char[] name, bool dontBroadcast)
@@ -284,7 +292,7 @@ void Event_PlayerHurt(Event event, const char[] name, bool dontBroadcast)
 	
 	// Spitter damaging player that's being picked up.
 	// Read the damage input differently, forcing the pick-up to end with every damage tick. (NOTE: Bots still bypass this)
-	if ((IncapFlags & FLAGS_INCAP_SPIT) && L4D_IsPlayerIncapacitated(client))
+	if ((g_iIncapFlags & FLAGS_INCAP_SPIT) && L4D_IsPlayerIncapacitated(client))
 	{
 		int type = event.GetInt("type");
 		if ((type & DMG_TYPE_SPIT) == DMG_TYPE_SPIT)
@@ -301,19 +309,25 @@ void Event_PlayerHurt(Event event, const char[] name, bool dontBroadcast)
 	{
 		if (strcmp(weapon, "tank_rock") == 0)
 		{
-			if (IncapFlags & FLAGS_INCAP_TANKROCK)
+			if (g_iIncapFlags & FLAGS_INCAP_TANKROCK)
 			{
 				L4D_StopReviveAction(client);
 			}
 		}
-		else if (IncapFlags & FLAGS_INCAP_TANKPUNCH)
+		else if (g_iIncapFlags & FLAGS_INCAP_TANKPUNCH)
 		{
 			L4D_StopReviveAction(client);
 		}
 	}
 }
 
-Action WeaponCanSwitchTo(int client, int weapon)
+
+/* ---------------------------------
+//                                 |
+//         Weapon Switches         |
+//                                 |
+// -------------------------------*/
+Action SDK_OnWeaponCanSwitchTo(int client, int weapon)
 {
 	int wep = IdentifyWeapon(weapon);
 	
@@ -327,19 +341,19 @@ Action WeaponCanSwitchTo(int client, int weapon)
 	}
 
 	// Health Items.
-	if ((SwitchFlags & FLAGS_SWITCH_PILLS) && (wepslot == L4D2WeaponSlot_LightHealthItem) && bCantSwitchHealth[client]) {
+	if ((g_iSwitchFlags & FLAGS_SWITCH_PILLS) && (wepslot == L4D2WeaponSlot_LightHealthItem) && g_bCantSwitchDropped[client]) {
 		return Plugin_Stop;
 	}
 	
 	//Weapons.
-	if ((iSwitchFlags[client] & FLAGS_SWITCH_MELEE) && (wepslot == L4D2WeaponSlot_Primary || wepslot == L4D2WeaponSlot_Secondary) && bCantSwitchSecondary[client]) {
+	if (!g_bSwitchOnPickup[client] && (wepslot == L4D2WeaponSlot_Primary || wepslot == L4D2WeaponSlot_Secondary) && g_bCantSwitchGun[client]) {
 		return Plugin_Stop;
 	}
 	
 	return Plugin_Continue;
 }
 
-Action WeaponEquip(int client, int weapon)
+Action SDK_OnWeaponEquip(int client, int weapon)
 {
 	// New Weapon
 	int wep = IdentifyWeapon(weapon);
@@ -348,40 +362,68 @@ Action WeaponEquip(int client, int weapon)
 		return Plugin_Continue;
 	}
 	
+	int slot = GetSlotFromWeaponId(wep);
+	if (slot == -1) {
+		return Plugin_Continue;
+	}
+	
 	// Weapon Currently Using
 	int active_weapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
-	int wepname = IdentifyWeapon(active_weapon);
+	int active_wep = IdentifyWeapon(active_weapon);
 	
-	if (wepname == WEPID_NONE) {
+	if (active_wep == WEPID_NONE) {
 		return Plugin_Continue;
 	}
 	
 	// Also Check if Survivor is incapped to make sure no issues occur (Melee players get given a pistol for example)
-	if (!L4D_IsPlayerIncapacitated(client) && !bPreventValveSwitch[client] && GetSlotFromWeaponId(wep) != GetSlotFromWeaponId(wepname)) {
+	if (!L4D_IsPlayerIncapacitated(client) && !g_bContinueValveSwitch[client] && slot != GetSlotFromWeaponId(active_wep)) {
 		if (GetDropTarget(weapon) == client) {
-			bCantSwitchHealth[client] = true;
-			RequestFrame(DelaySwitchHealth, client);
+			g_bCantSwitchDropped[client] = true;
+			RequestFrame(DelaySwitchDropped, client);
 			return Plugin_Continue;
 		}
 		
-		bCantSwitchSecondary[client] = true;
-		RequestFrame(DelaySwitchSecondary, client);
+		g_bCantSwitchGun[client] = true;
+		RequestFrame(DelaySwitchGun, client);
+		
+		if (!g_bLeft4Dead2) SDKHook(client, SDKHook_PostThinkPost, SDK_OnPostThink_Post);
 	}
 	return Plugin_Continue;
 }
 
-Action WeaponDrop(int client, int weapon)
+Action SDK_OnWeaponDrop(int client, int weapon)
 {
 	int active_weapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
 	
 	// Check if Player is Alive/Incapped and just dropped his secondary for a different one
 	if (!L4D_IsPlayerIncapacitated(client) && IsPlayerAlive(client)) {
 		if (weapon == active_weapon) {
-			bPreventValveSwitch[client] = true;
+			g_bContinueValveSwitch[client] = true;
 			RequestFrame(DelayValveSwitch, client);
 		}
 	}
 	return Plugin_Continue;
+}
+
+
+/* ---------------------------------
+//                                 |
+//       L4D1 Holster Model        |
+//                                 |
+// -------------------------------*/
+
+// Big thanks to "l4d_display_equipment" by Marttt and HarryPotter (@fbef0102) for helping on L4D1
+#define AddonBits_L4D1_Slot1 (1 << 4)
+void SDK_OnPostThink_Post(int client)
+{
+	if (IsClientInGame(client) && GetClientTeam(client) == TEAM_SURVIVOR && IsPlayerAlive(client))
+	{
+		// Unmark primary addon bit so on next think the game will update 
+		int bits = GetEntProp(client, Prop_Send, "m_iAddonBits");
+		SetEntProp(client, Prop_Send, "m_iAddonBits", bits & ~AddonBits_L4D1_Slot1);
+	}
+	
+	SDKUnhook(client, SDKHook_PostThinkPost, SDK_OnPostThink_Post);
 }
 
 
@@ -428,7 +470,7 @@ MRESReturn DTR_OnEquipSecondWeapon(int weapon, DHookReturn hReturn)
 	if (client == -1 || !IsClientInGame(client))
 		return MRES_Ignored;
 	
-	if (~iSwitchFlags[client] & FLAGS_SWITCH_MELEE)
+	if (g_bSwitchOnPickup[client])
 		return MRES_Ignored;
 	
 	if (!IsSwitchingToDualCase(client, weapon))
@@ -458,7 +500,7 @@ MRESReturn DTR_OnRemoveSecondWeapon_Ev(int weapon, DHookReturn hReturn)
 	if (active_weapon == -1 || active_weapon == weapon)
 		return MRES_Ignored;
 	
-	if (~iSwitchFlags[client] & FLAGS_SWITCH_MELEE)
+	if (g_bSwitchOnPickup[client])
 		return MRES_Ignored;
 	
 	SetEntProp(weapon, Prop_Send, "m_isDualWielding", 0);
@@ -501,39 +543,57 @@ MRESReturn DTR_OnSetViewModel(int weapon)
 
 /* ---------------------------------
 //                                 |
-//        Stocks, Functions        |
+//          Client Cookie          |
 //                                 |
 // -------------------------------*/
-bool QuerySwitchCookie(int client, int &val)
+void InitSwitchCookie()
+{
+	if ((g_hSwitchCookie = Cookie.Find(COOKIE_NAME)) == null)
+	{
+		g_hSwitchCookie = new Cookie(COOKIE_NAME,
+								"Flags for Switching from current item for every client.",
+								CookieAccess_Public);
+	}
+}
+
+bool QuerySwitchCookie(int client, bool &val)
 {
 	char buffer[8] = "";
 	g_hSwitchCookie.Get(client, buffer, sizeof(buffer));
-	if (strlen(buffer) > 0)
+	
+	int temp = 0;
+	if (StringToIntEx(buffer, temp))
 	{
-		val = StringToInt(buffer);
+		val = (temp == 1 ? true : false);
 		return true;
 	}
 	
 	return false;
 }
 
-void SetSwitchCookie(int client, int val)
+void SetSwitchCookie(int client, bool val)
 {
 	char buffer[8];
 	IntToString(val, buffer, sizeof(buffer));
 	g_hSwitchCookie.Set(client, buffer);
 }
 
+
+/* ---------------------------------
+//                                 |
+//        Stocks, Functions        |
+//                                 |
+// -------------------------------*/
 void HookValidClient(int client, bool Hook)
 {
 	if (Hook) {
-		SDKHook(client, SDKHook_WeaponCanSwitchTo, WeaponCanSwitchTo);
-		SDKHook(client, SDKHook_WeaponEquip, WeaponEquip);
-		SDKHook(client, SDKHook_WeaponDrop, WeaponDrop);
+		SDKHook(client, SDKHook_WeaponCanSwitchTo, SDK_OnWeaponCanSwitchTo);
+		SDKHook(client, SDKHook_WeaponEquip, SDK_OnWeaponEquip);
+		SDKHook(client, SDKHook_WeaponDrop, SDK_OnWeaponDrop);
 	} else {
-		SDKUnhook(client, SDKHook_WeaponCanSwitchTo, WeaponCanSwitchTo);
-		SDKUnhook(client, SDKHook_WeaponEquip, WeaponEquip);
-		SDKUnhook(client, SDKHook_WeaponDrop, WeaponDrop);
+		SDKUnhook(client, SDKHook_WeaponCanSwitchTo, SDK_OnWeaponCanSwitchTo);
+		SDKUnhook(client, SDKHook_WeaponEquip, SDK_OnWeaponEquip);
+		SDKUnhook(client, SDKHook_WeaponDrop, SDK_OnWeaponDrop);
 	}
 }
 
@@ -543,7 +603,7 @@ int GetDropTarget(int weapon)
 	static int iOffs_m_dropTimer = -1;
 	if (iOffs_m_hDropTarget == -1)
 	{
-		iOffs_m_hDropTarget = FindSendPropInfo("CTerrorWeapon", "m_DroppedByInfectedGender") - 28;
+		iOffs_m_hDropTarget = FindSendPropInfo("CTerrorWeapon", "m_swingTimer") + 576 - view_as<int>(g_bLeft4Dead2) * 4;
 		iOffs_m_dropTimer = iOffs_m_hDropTarget + 4;
 	}
 	
@@ -561,10 +621,10 @@ int GetDropTarget(int weapon)
 // -------------------------------*/
 void SwitchCVarChanged(ConVar cvar, const char[] oldValue, const char[] newValue)
 {
-	SwitchFlags = cvar.IntValue;
+	g_iSwitchFlags = cvar.IntValue;
 }
 
 void IncapCVarChanged(ConVar cvar, const char[] oldValue, const char[] newValue)
 {
-	IncapFlags = cvar.IntValue;
+	g_iIncapFlags = cvar.IntValue;
 }
