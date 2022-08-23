@@ -8,7 +8,7 @@
 #include <sourcescramble>
 #include <collisionhook>
 
-#define PLUGIN_VERSION "1.14"
+#define PLUGIN_VERSION "1.15"
 
 public Plugin myinfo = 
 {
