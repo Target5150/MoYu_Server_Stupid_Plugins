@@ -8,7 +8,7 @@
 #include <sourcescramble>
 #include <collisionhook>
 
-#define PLUGIN_VERSION "1.15"
+#define PLUGIN_VERSION "1.15.1"
 
 public Plugin myinfo = 
 {
@@ -122,6 +122,8 @@ void LoadSDK()
 		SetFailState("Failed to pre-detour \""...KEY_DETONATE..."\"");
 	if (!hDetour.Enable(Hook_Post, DTR_OnDetonate_Post))
 		SetFailState("Failed to post-detour \""...KEY_DETONATE..."\"");
+	
+	delete hDetour;
 	
 	/**
 	 * Spread configuration: class
