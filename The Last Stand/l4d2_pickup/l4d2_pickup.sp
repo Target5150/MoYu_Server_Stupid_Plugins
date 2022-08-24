@@ -38,13 +38,18 @@
 // - Big thanks to "l4d_display_equipment" by Marttt and HarryPotter (@fbef0102) for helping on L4D1.
 //
 //-------------------------------------------------------------------------------------------------------------------
+// Version 4.2: Fix unexpected preference override
+//-------------------------------------------------------------------------------------------------------------------
+// - Client preference is now saved only when command is used, won't be overridden with default setting ever.
+//
+//-------------------------------------------------------------------------------------------------------------------
 // DONE:
 //-------------------------------------------------------------------------------------------------------------------
 // - Be a nice guy and less lazy, allow the plugin to work flawlessly with other's peoples needs.. It doesn't require much attention.
 // - Find cleaner methods to detect and handle functions.
 */
 
-#define PLUGIN_VERSION "4.1"
+#define PLUGIN_VERSION "4.2"
 
 #pragma semicolon 1
 #pragma newdecls required
@@ -61,7 +66,7 @@
 
 public Plugin myinfo = 
 {
-	name = "L4D2 Pick-up Changes",
+	name = "[L4D & 2] Pick-up Changes",
 	author = "Sir, Forgetest", //Update syntax A1m`
 	description = "Alters a few things regarding picking up/giving items and incapped Players.",
 	version = PLUGIN_VERSION,
@@ -193,6 +198,8 @@ public void OnPluginStart()
 	SwitchCVarChanged(cv, "", "");
 	cv.AddChangeHook(SwitchCVarChanged);
 	
+	RegConsoleCmd("sm_secondary", ChangeSecondaryFlags);
+	
 	if (g_bLeft4Dead2)
 	{
 		cv = CreateConVar("pickup_incap_flags", "7", "Flags for Stopping Pick-up progress on Incapped Survivors (1:Spit Damage, 2:TankPunch, 4:TankRock", _, true, 0.0, true, 7.0);
@@ -203,20 +210,26 @@ public void OnPluginStart()
 	}
 	
 	InitSwitchCookie();
-	
-	RegConsoleCmd("sm_secondary", ChangeSecondaryFlags);
-	
-	if (g_bLateLoad)
-		for (int i = 1; i <= MaxClients; i++)
-			if (IsClientInGame(i))
-				OnClientPutInServer(i);
+	LateLoad();
 }
 
 public void OnPluginEnd()
 {
 	for (int i = 1; i <= MaxClients; i++)
-		if (IsClientInGame(i))
-			OnClientDisconnect(i);
+	{
+		if (IsClientInGame(i)) OnClientDisconnect(i);
+	}
+}
+
+void LateLoad()
+{
+	if (!g_bLateLoad)
+		return;
+	
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i)) OnClientPutInServer(i);
+	}
 }
 
 
@@ -236,9 +249,6 @@ public void OnClientPutInServer(int client)
 public void OnClientDisconnect(int client)
 {
 	HookValidClient(client, false);
-	
-	if (!IsFakeClient(client))
-		SetSwitchCookie(client, g_bSwitchOnPickup[client]);
 }
 
 Action ChangeSecondaryFlags(int client, int args)
@@ -246,6 +256,7 @@ Action ChangeSecondaryFlags(int client, int args)
 	if (client && IsClientInGame(client)) {
 		bool temp = !g_bSwitchOnPickup[client];
 		g_bSwitchOnPickup[client] = temp;
+		SetSwitchCookie(client, temp);
 		
 		CPrintToChat(client, "%t", temp ? "Command_SwitchOn" : "Command_SwitchOff");
 	}
