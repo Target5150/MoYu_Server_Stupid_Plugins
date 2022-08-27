@@ -13,24 +13,24 @@
 	"Announce_TankAttack"
 	{
 		"#format"	"{1:d},{2:d},{3:d}"
-		"en"		"{red}{green}> {default}Punch: {red}{1} {green}/ {default}Rock: {red}{2} {green}/ {default}Hittable: {red}{3}"
+		"en"		"{red}{green}> {default}Punches: {red}{1} {green}/ {default}Rocks: {red}{2} {green}/ {default}Hittables: {red}{3}"
 	}
 	
 	"Announce_AttackResult"
 	{
 		"#format"	"{1:d},{2:d}"
-		"en"		"{blue}{blue}{green}> {default}Incap: {olive}{1} {green}/ {default}Death: {olive}{2} {default}from {blue}Survivors"
+		"en"		"{blue}{blue}{green}> {default}Incaps: {olive}{1} {green}/ {default}Deaths: {olive}{2}"
 	}
 	
 	"Announce_Summary_WithMinute"
 	{
 		"#format"	"{1:d},{2:d},{3:d}"
-		"en"		"{lightgreen}{lightgreen}{lightgreen}{green}> {default}Duration: {lightgreen}{1}min {2}s {green}/ {default}Total damage: {lightgreen}{3}"
+		"en"		"{lightgreen}{lightgreen}{lightgreen}{green}> {default}Time Alive: {lightgreen}{1}min {2}s {green}/ {default}Total damage: {lightgreen}{3}"
 	}
 	
 	"Announce_Summary_WithoutMinute"
 	{
 		"#format"	"{1:d},{2:d}"
-		"en"		"{lightgreen}{lightgreen}{lightgreen}{green}> {default}Duration: {lightgreen}{1}s {green}/ {default}Total damage: {lightgreen}{2}"
+		"en"		"{lightgreen}{lightgreen}{lightgreen}{green}> {default}Time Alive: {lightgreen}{1}s {green}/ {default}Total damage: {lightgreen}{2}"
 	}
 }
