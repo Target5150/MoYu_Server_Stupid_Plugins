@@ -20,6 +20,23 @@ public Plugin myinfo =
 	url = "?"
 };
 
+#define TRANSLATION_FILE "scores.phrases"
+void LoadPluginTranslations()
+{
+	char sPath[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sPath, sizeof(sPath), "translations/"...TRANSLATION_FILE...".txt");
+	if (!FileExists(sPath))
+	{
+		SetFailState("Missing translation \""...TRANSLATION_FILE..."\"");
+	}
+	LoadTranslations(TRANSLATION_FILE);
+}
+
+public void OnPluginStart()
+{
+	LoadPluginTranslations();
+}
+
 public void L4D2_OnEndVersusModeRound_Post()
 {
 	if (InSecondHalfOfRound())
@@ -35,16 +52,16 @@ public Action Timer_PrintDifference(Handle timer)
 	
 	if (iRoundDifference != iTotalDifference) 
 	{
-		CPrintToChatAll("{default}[{green}!{default}] {default}Chapter difference: {green}%d ", iRoundDifference);
-		CPrintToChatAll("{default}[{olive}!{default}] {default}Total difference: {olive}%d ", iTotalDifference);
+		CPrintToChatAll("%t", "Announce_Chapter", iRoundDifference);
+		CPrintToChatAll("%t", "Announce_Total", iTotalDifference);
 	}
 	else 
 	{
-		CPrintToChatAll("{default}[{lightgreen}!{default}] {default}Difference: {lightgreen}%d", iRoundDifference);
+		CPrintToChatAll("%t", "Announce_ElseChapter", iRoundDifference);
 	}
 	
-	CPrintToChatAll("{default}[{blue}!{default}] Survivor score: {blue}%d", iSurvivorDifference);
-	CPrintToChatAll("{default}[{red}!{default}] Infected score: {red}%d", iInfectedDifference);
+	CPrintToChatAll("%t", "Announce_Survivor", iSurvivorDifference);
+	CPrintToChatAll("%t", "Announce_Infected", iInfectedDifference);
 }
 
 int GetChapterScore(int team)
