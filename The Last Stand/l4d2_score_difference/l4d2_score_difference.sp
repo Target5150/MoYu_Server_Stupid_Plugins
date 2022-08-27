@@ -30,12 +30,21 @@ public Action Timer_PrintDifference(Handle timer)
 {
 	int iRoundDifference = ABS(GetChapterScore(0) - GetChapterScore(1));
 	int iTotalDifference = ABS(GetCampaignScore(0) - GetCampaignScore(1));
+	int iSurvivorDifference = GetCampaignScore(L4D2_TeamNumberToTeamIndex(2));
+	int iInfectedDifference = GetCampaignScore(L4D2_TeamNumberToTeamIndex(3));
 	
-	if (iRoundDifference != iTotalDifference) {
-		CPrintToChatAll("{red}[{default}!{red}] {default}Difference: {olive}%d {green}({olive}%d {default}in total{green})", iRoundDifference, iTotalDifference);
-	} else {
-		CPrintToChatAll("{red}[{default}!{red}] {default}Difference: {olive}%d", iRoundDifference);
+	if (iRoundDifference != iTotalDifference) 
+	{
+		CPrintToChatAll("{default}[{green}!{default}] {default}Chapter difference: {green}%d ", iRoundDifference);
+		CPrintToChatAll("{default}[{olive}!{default}] {default}Total difference: {olive}%d ", iTotalDifference);
 	}
+	else 
+	{
+		CPrintToChatAll("{default}[{lightgreen}!{default}] {default}Difference: {lightgreen}%d", iRoundDifference);
+	}
+	
+	CPrintToChatAll("{default}[{blue}!{default}] Survivor score: {blue}%d", iSurvivorDifference);
+	CPrintToChatAll("{default}[{red}!{default}] Infected score: {red}%d", iInfectedDifference);
 }
 
 int GetChapterScore(int team)
@@ -48,7 +57,13 @@ int GetCampaignScore(int team)
 	return GameRules_GetProp("m_iCampaignScore", _, team);
 }
 
+
 int InSecondHalfOfRound()
 {
 	return GameRules_GetProp("m_bInSecondHalfOfRound");
+}
+
+stock int L4D2_TeamNumberToTeamIndex(int team)
+{
+    return (team - 2) ^ GameRules_GetProp("m_bAreTeamsFlipped");
 }
