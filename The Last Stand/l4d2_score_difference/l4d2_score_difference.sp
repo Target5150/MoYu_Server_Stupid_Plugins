@@ -20,7 +20,7 @@ public Plugin myinfo =
 	url = "?"
 };
 
-#define TRANSLATION_FILE "scores.phrases"
+#define TRANSLATION_FILE "l4d2_score_difference.phrases"
 void LoadPluginTranslations()
 {
 	char sPath[PLATFORM_MAX_PATH];
