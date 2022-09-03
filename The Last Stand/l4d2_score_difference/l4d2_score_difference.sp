@@ -20,6 +20,23 @@ public Plugin myinfo =
 	url = "?"
 };
 
+#define TRANSLATION_FILE "l4d2_score_difference.phrases"
+void LoadPluginTranslations()
+{
+	char sPath[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sPath, sizeof(sPath), "translations/"...TRANSLATION_FILE...".txt");
+	if (!FileExists(sPath))
+	{
+		SetFailState("Missing translation \""...TRANSLATION_FILE..."\"");
+	}
+	LoadTranslations(TRANSLATION_FILE);
+}
+
+public void OnPluginStart()
+{
+	LoadPluginTranslations();
+}
+
 public void L4D2_OnEndVersusModeRound_Post()
 {
 	if (InSecondHalfOfRound())
@@ -30,12 +47,21 @@ public Action Timer_PrintDifference(Handle timer)
 {
 	int iRoundDifference = ABS(GetChapterScore(0) - GetChapterScore(1));
 	int iTotalDifference = ABS(GetCampaignScore(0) - GetCampaignScore(1));
+	int iSurvivorDifference = GetCampaignScore(L4D2_TeamNumberToTeamIndex(2));
+	int iInfectedDifference = GetCampaignScore(L4D2_TeamNumberToTeamIndex(3));
 	
-	if (iRoundDifference != iTotalDifference) {
-		CPrintToChatAll("{red}[{default}!{red}] {default}Difference: {olive}%d {green}({olive}%d {default}in total{green})", iRoundDifference, iTotalDifference);
-	} else {
-		CPrintToChatAll("{red}[{default}!{red}] {default}Difference: {olive}%d", iRoundDifference);
+	if (iRoundDifference != iTotalDifference) 
+	{
+		CPrintToChatAll("%t", "Announce_Chapter", iRoundDifference);
+		CPrintToChatAll("%t", "Announce_Total", iTotalDifference);
 	}
+	else 
+	{
+		CPrintToChatAll("%t", "Announce_ElseChapter", iRoundDifference);
+	}
+	
+	CPrintToChatAll("%t", "Announce_Survivor", iSurvivorDifference);
+	CPrintToChatAll("%t", "Announce_Infected", iInfectedDifference);
 }
 
 int GetChapterScore(int team)
@@ -48,7 +74,13 @@ int GetCampaignScore(int team)
 	return GameRules_GetProp("m_iCampaignScore", _, team);
 }
 
+
 int InSecondHalfOfRound()
 {
 	return GameRules_GetProp("m_bInSecondHalfOfRound");
+}
+
+stock int L4D2_TeamNumberToTeamIndex(int team)
+{
+    return (team - 2) ^ GameRules_GetProp("m_bAreTeamsFlipped");
 }
