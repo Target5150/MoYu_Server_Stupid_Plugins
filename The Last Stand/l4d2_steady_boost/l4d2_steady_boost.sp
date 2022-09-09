@@ -4,7 +4,7 @@
 #include <sourcemod>
 #include <dhooks>
 
-#define PLUGIN_VERSION "1.2"
+#define PLUGIN_VERSION "1.2.1"
 
 public Plugin myinfo = 
 {
@@ -74,14 +74,14 @@ MRESReturn DTR_OnSetGroundEntity(int entity, DHookParam hParams)
 	// if (GetClientTeam(ground) == team) // do we need this?
 	//	return MRES_Ignored;
 	
-	if (IsLeaping(GetEntPropEnt(entity, Prop_Send, "m_customAbility"))) // jockey hotfix
+	if (IsLeapingAvailable(GetEntPropEnt(entity, Prop_Send, "m_customAbility"))) // jockey hotfix
 		return MRES_Ignored;
 	
 	SetEntPropEnt(entity, Prop_Send, "m_hGroundEntity", 0);
 	return MRES_Supercede;
 }
 
-bool IsLeaping(int ability)
+bool IsLeapingAvailable(int ability)
 {
 	if (!IsValidEdict(ability))
 		return false;
@@ -93,5 +93,5 @@ bool IsLeaping(int ability)
 	if (strcmp(cls, "ability_leap") != 0)
 		return false;
 	
-	return !!GetEntProp(ability, Prop_Send, "m_isLeaping");
+	return GetEntPropFloat(ability, Prop_Send, "m_nextActivationTimer", 1) <= GetGameTime();
 }
