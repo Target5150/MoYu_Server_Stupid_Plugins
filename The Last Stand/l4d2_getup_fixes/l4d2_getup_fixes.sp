@@ -52,7 +52,7 @@
 #undef REQUIRE_PLUGIN
 #include <godframecontrol>
 
-#define PLUGIN_VERSION "4.10"
+#define PLUGIN_VERSION "4.11"
 
 public Plugin myinfo = 
 {
@@ -75,7 +75,7 @@ int
 	m_hAnimState,
 	m_bCharged;
 
-enum AnimStateFlag // start from m_bCharged
+enum AnimStateFlag // mid-way start from m_bCharged
 {
 	AnimState_Charged			= 0, // aka multi-charged
 	AnimState_WallSlammed		= 2,
@@ -169,7 +169,7 @@ public void OnPluginStart()
 	HookEvent("jockey_ride_end", Event_JockeyRideEnd);
 	HookEvent("charger_carry_start", Event_ChargerCarryStart);
 	HookEvent("charger_pummel_start", Event_ChargerPummelStart);
-	HookEvent("charger_killed", Event_ChargerKilled);
+	HookEvent("player_death", Event_PlayerDeath);
 	
 	if (g_bLateLoad)
 	{
@@ -377,14 +377,26 @@ void Event_ChargerCarryStart(Event event, const char[] name, bool dontBroadcast)
 	}
 }
 
-void Event_ChargerKilled(Event event, const char[] name, bool dontBroadcast)
+void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
 	int userid = event.GetInt("userid");
 	int client = GetClientOfUserId(userid);
-	if (client)
+	
+	if (!client || !IsClientInGame(client))
+		return;
+	
+	if (GetClientTeam(client) == 2)
+	{
+		if (g_iChargeAttacker[client] != -1)
+		{
+			g_iChargeVictim[g_iChargeAttacker[client]] = -1;
+			g_iChargeAttacker[client] = -1;
+		}
+	}
+	else if (GetEntProp(client, Prop_Send, "m_zombieClass") == 6)
 	{
 		int victim = g_iChargeVictim[client];
-		if (victim != -1)
+		if (victim != -1 && IsClientInGame(victim))
 		{
 			AnimState hAnim = AnimState(victim);
 			
