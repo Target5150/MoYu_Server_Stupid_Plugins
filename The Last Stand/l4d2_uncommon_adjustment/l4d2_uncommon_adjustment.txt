@@ -1,0 +1,61 @@
+"Games"
+{
+	"left4dead2"
+	{
+		"MemPatches"
+		{
+			"InfectedAlert::OnSound__Uncommon_attract_skip"
+			{
+				"signature"		"InfectedAlert::OnSound"
+				"linux"
+				{
+					"offset"	"34Bh"
+					"verify"	"\x0F\x84"
+					"patch"		"\x90\xE9"
+				}
+				"windows"
+				{
+					"offset"	"EFh"
+					"verify"	"\x0F\x84"
+					"patch"		"\x90\xE9"
+				}
+			}
+			
+			"InfectedWander::OnSound__Uncommon_attract_skip"
+			{
+				"signature"		"InfectedWander::OnSound"
+				"linux"
+				{
+					"offset"	"315h"
+					"verify"	"\x74"
+					"patch"		"\xEB"
+				}
+				"windows"
+				{
+					"offset"	"EBh"
+					"verify"	"\x74"
+					"patch"		"\xEB"
+				}
+			}
+		}
+		
+		"Signatures"
+		{
+			"InfectedAlert::OnSound"
+			{
+				"library"		"server"
+				"linux"			"@_ZN13InfectedAlert7OnSoundEP8InfectedP11CBaseEntityRK6VectorP9KeyValues"
+				"windows"		"\x55\x8B\xEC\x53\x56\x57\x8B\xF9\x8B\x4D\x18"
+								/* 55 8B EC 53 56 57 8B F9 8B 4D 18 */
+			}
+			
+			"InfectedWander::OnSound"
+			{
+				"library"		"server"
+				"linux"			"@_ZN14InfectedWander7OnSoundEP8InfectedP11CBaseEntityRK6VectorP9KeyValues"
+				"windows"		"\x55\x8B\xEC\x83\xEC\x1C\x53\x8B\x5D\x0C\x89\x4D\xFC"
+								/* 55 8B EC 83 EC 1C 53 8B 5D 0C 89 4D FC */
+			}
+		}
+	}
+}
