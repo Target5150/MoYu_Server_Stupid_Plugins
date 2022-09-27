@@ -34,9 +34,3 @@ enum struct UncommonAttract_t
 		return this.hPatch1.Enable() && this.hPatch2.Enable();
 	}
 }
-
-UncommonAttract_t UncommonAttract()
-{
-	static UncommonAttract_t s_UncommonAttract;
-	return s_UncommonAttract;
-}

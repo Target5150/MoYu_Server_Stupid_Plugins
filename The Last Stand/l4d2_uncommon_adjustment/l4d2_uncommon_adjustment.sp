@@ -8,7 +8,7 @@
 #include "l4d2_uncommon_adjustment/util.inc"
 #include "l4d2_uncommon_adjustment/uncommon_attract.inc"
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.0.1"
 
 public Plugin myinfo =
 {
@@ -19,12 +19,14 @@ public Plugin myinfo =
 	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 };
 
-#define GAMEDATA_FILE "l4d2_uncommon_adjustment.txt"
+#define GAMEDATA_FILE "l4d2_uncommon_adjustment"
 
 ConVar z_health;
 
 float g_flHealthScale;
 float g_flJimmyHealthScale;
+
+UncommonAttract_t UncommonAttract;
 
 public void OnPluginStart()
 {
@@ -65,14 +67,14 @@ void LoadSDK()
 	GameData conf = new GameData(GAMEDATA_FILE);
 	__Assert(conf != null, "Missing gamedata \""...GAMEDATA_FILE..."\"");
 	
-	UncommonAttract().Init(conf);
+	UncommonAttract.Init(conf);
 	
 	delete conf;
 }
 
 void UncommonAttract_ConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	convar.BoolValue ? UncommonAttract().Enable() : UncommonAttract().Disable();
+	convar.BoolValue ? UncommonAttract.Enable() : UncommonAttract.Disable();
 }
 
 void UncommonHealthScale_ConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
