@@ -8,7 +8,7 @@
 #include "l4d2_uncommon_adjustment/util.inc"
 #include "l4d2_uncommon_adjustment/uncommon_attract.inc"
 
-#define PLUGIN_VERSION "1.0.1"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo =
 {

@@ -5,32 +5,41 @@
 
 #include <sourcescramble>
 
+#define PATCH_COUNT 3
+
+static const char s_keyPatch[PATCH_COUNT][] = {
+	"InfectedAlert::OnSound__Uncommon_attract_skip",
+	"InfectedWander::OnSound__Uncommon_attract_skip",
+	"InfectedAttack::OnSound__Uncommon_attract_skip"
+};
+
 enum struct UncommonAttract_t
 {
-	MemoryPatch hPatch1;
-	MemoryPatch hPatch2;
+	MemoryPatch hPatches[PATCH_COUNT];
 	
 	void Init(GameData conf)
 	{
-		static const char s_keyPatch1[] = "InfectedAlert::OnSound__Uncommon_attract_skip";
-		static const char s_keyPatch2[] = "InfectedWander::OnSound__Uncommon_attract_skip";
-		
-		this.hPatch1 = MemoryPatch.CreateFromConf(conf, s_keyPatch1);
-		this.hPatch2 = MemoryPatch.CreateFromConf(conf, s_keyPatch2);
-		
-		__Assert(this.hPatch1 != null, "Missing patch setup \"%s\"", s_keyPatch1);
-		__Assert(this.hPatch2 != null, "Missing patch setup \"%s\"", s_keyPatch2);
+		for (int i = 0; i < PATCH_COUNT; ++i)
+		{
+			this.hPatches[i] = MemoryPatch.CreateFromConf(conf, s_keyPatch[i]);
+			__Assert(this.hPatches[i] != null, "Missing patch setup \"%s\"", s_keyPatch[i]);
+		}
 	}
 	
 	bool Enable()
 	{
-		this.hPatch1.Disable();
-		this.hPatch2.Disable();
+		for (int i = 0; i < PATCH_COUNT; ++i)
+			this.hPatches[i].Disable();
+		
 		return true;
 	}
 	
 	bool Disable()
 	{
-		return this.hPatch1.Enable() && this.hPatch2.Enable();
+		for (int i = 0; i < PATCH_COUNT; ++i)
+			if (!this.hPatches[i].Enable())
+				return false;
+		
+		return true;
 	}
 }

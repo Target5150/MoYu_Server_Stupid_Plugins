@@ -37,6 +37,23 @@
 					"patch"		"\xEB"
 				}
 			}
+			
+			"InfectedAttack::OnSound__Uncommon_attract_skip"
+			{
+				"signature"		"InfectedAttack::OnSound"
+				"linux"
+				{
+					"offset"	"1DAh"
+					"verify"	"\x0F\x84"
+					"patch"		"\x90\xE9"
+				}
+				"windows"
+				{
+					"offset"	"E5h"
+					"verify"	"\x74"
+					"patch"		"\xEB"
+				}
+			}
 		}
 		
 		"Signatures"
@@ -55,6 +72,14 @@
 				"linux"			"@_ZN14InfectedWander7OnSoundEP8InfectedP11CBaseEntityRK6VectorP9KeyValues"
 				"windows"		"\x55\x8B\xEC\x83\xEC\x1C\x53\x8B\x5D\x0C\x89\x4D\xFC"
 								/* 55 8B EC 83 EC 1C 53 8B 5D 0C 89 4D FC */
+			}
+			
+			"InfectedAttack::OnSound"
+			{
+				"library"		"server"
+				"linux"			"@_ZN14InfectedAttack7OnSoundEP8InfectedP11CBaseEntityRK6VectorP9KeyValues"
+				"windows"		"\x55\x8B\xEC\x51\x53\x89\x4D\x2A\x8B\x4D\x18\x56\x57"
+								/* 55 8B EC 51 53 89 4D ? 8B 4D 18 56 57 */
 			}
 		}
 	}
