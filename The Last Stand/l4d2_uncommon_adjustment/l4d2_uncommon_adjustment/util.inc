@@ -15,6 +15,6 @@ void __Assert(bool test, const char[] error, any ...)
 
 void ResetEntityHealth(int entity, int health)
 {
-	SetEntProp(entity, Prop_Send, "m_iMaxHealth", health);
-	SetEntProp(entity, Prop_Send, "m_iHealth", health);
+	SetEntProp(entity, Prop_Data, "m_iMaxHealth", health);
+	SetEntProp(entity, Prop_Data, "m_iHealth", health);
 }
