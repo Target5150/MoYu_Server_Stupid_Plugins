@@ -49,7 +49,7 @@
 // - Find cleaner methods to detect and handle functions.
 */
 
-#define PLUGIN_VERSION "4.2"
+#define PLUGIN_VERSION "4.2.1"
 
 #pragma semicolon 1
 #pragma newdecls required
@@ -193,6 +193,8 @@ public void OnPluginStart()
 {
 	LoadSDK();
 	LoadPluginTranslations();
+	
+	CreateConVar("l4d2_pickup_version", PLUGIN_VERSION, "l4d2_pickup version cvar.", FCVAR_DONTRECORD|FCVAR_NOTIFY|FCVAR_REPLICATED|FCVAR_SPONLY);
 	
 	ConVar cv = CreateConVar("pickup_switch_flags", "3", "Flags for Switching from current item (1:Weapons, 2: Passed Pills)", _, true, 0.0, true, 3.0);
 	SwitchCVarChanged(cv, "", "");
