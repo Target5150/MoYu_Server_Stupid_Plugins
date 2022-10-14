@@ -8,7 +8,7 @@
 #include <sourcescramble>
 #include <collisionhook>
 
-#define PLUGIN_VERSION "1.17"
+#define PLUGIN_VERSION "1.18"
 
 public Plugin myinfo = 
 {
@@ -25,12 +25,12 @@ public Plugin myinfo =
 
 #define GAMEDATA_FILE "l4d2_spit_spread_patch"
 #define KEY_DETONATE "CSpitterProjectile::Detonate"
+#define KEY_SOLIDMASK "CSpitterProjectile::PhysicsSolidMaskForEntity"
 #define KEY_EVENT_KILLED "CTerrorPlayer::Event_Killed"
 #define KEY_DETONATE_FLAG_PATCH "CSpitterProjectile::Detonate__TraceFlag_patch"
 #define KEY_SPREAD_FLAG_PATCH "CInferno::Spread__TraceFlag_patch"
 #define KEY_SPREAD_PASS_PATCH "CInferno::Spread__PassEnt_patch"
 #define KEY_TRACEHEIGHT_PATCH "CTerrorPlayer::Event_Killed__TraceHeight_patch"
-#define KEY_SPAWNATTRIBUTES "TerrorNavArea::m_spawnAttributes"
 
 MemoryBlock g_hAlloc_TraceHeight;
 
@@ -38,40 +38,20 @@ MemoryBlock g_hAlloc_TraceHeight;
 // clean methodmap
 //======================================================================================================
 
-// TerrorNavArea
-// Bitflags for TerrorNavArea.SpawnAttributes
-enum
-{
-	TERROR_NAV_EMPTY = 2,
-	TERROR_NAV_STOP = 4,
-	TERROR_NAV_FINALE = 0x40,
-	TERROR_NAV_BATTLEFIELD = 0x100,
-	TERROR_NAV_PLAYER_START = 0x80,
-	TERROR_NAV_IGNORE_VISIBILITY = 0x200,
-	TERROR_NAV_NOT_CLEARABLE = 0x400,
-	TERROR_NAV_CHECKPOINT = 0x800,
-	TERROR_NAV_OBSCURED = 0x1000,
-	TERROR_NAV_NO_MOBS = 0x2000,
-	TERROR_NAV_THREAT = 0x4000,
-	TERROR_NAV_NOTHREAT = 0x80000,
-	TERROR_NAV_LYINGDOWN = 0x100000,
-	TERROR_NAV_RESCUE_CLOSET = 0x10000,
-	TERROR_NAV_RESCUE_VEHICLE = 0x8000
-}
-int g_iOffs_SpawnAttributes;
-
 methodmap TerrorNavArea {
 	public TerrorNavArea(const float vPos[3]) {
 		return view_as<TerrorNavArea>(L4D_GetNearestNavArea(vPos));
 	}
-	property int m_spawnAttributes {
-		public get() { return LoadFromAddress(view_as<Address>(this) + view_as<Address>(g_iOffs_SpawnAttributes), NumberType_Int32); }
+	public bool Valid() {
+		return this != view_as<TerrorNavArea>(0);
 	}
-	property float m_flow {
-		public get() { return L4D2Direct_GetTerrorNavAreaFlow(view_as<Address>(this)); }
+	public bool HasSpawnAttributes(int bits) {
+		return (this.m_spawnAttributes & bits) == bits;
+	}
+	property int m_spawnAttributes {
+		public get() { return L4D_GetNavArea_SpawnAttributes(view_as<Address>(this)); }
 	}
 }
-#define NULL_NAV_AREA view_as<TerrorNavArea>(0)
 
 //======================================================================================================
 // helper identifier
@@ -84,7 +64,7 @@ ArrayList g_aDetonatePuddles;
 // spread configuration
 //======================================================================================================
 
-ConVar g_cvSaferoomSpread, g_cvTraceHeight, g_cvMaxFlames;
+ConVar g_cvSaferoomSpread, g_cvTraceHeight, g_cvMaxFlames, g_cvWaterCollision;
 StringMap g_smNoSpreadMaps;
 int g_iSaferoomSpread;
 
@@ -96,9 +76,6 @@ void LoadSDK()
 {
 	Handle conf = LoadGameConfigFile(GAMEDATA_FILE);
 	if (!conf) SetFailState("Missing gamedata \""...GAMEDATA_FILE..."\"");
-	
-	g_iOffs_SpawnAttributes = GameConfGetOffset(conf, KEY_SPAWNATTRIBUTES);
-	if (g_iOffs_SpawnAttributes == -1) SetFailState("Missing offset \""...KEY_SPAWNATTRIBUTES..."\"");
 	
 	if (!MemoryPatch.CreateFromConf(conf, KEY_DETONATE_FLAG_PATCH).Enable()) SetFailState("Failed to enable patch \""...KEY_DETONATE_FLAG_PATCH..."\"");
 	if (!MemoryPatch.CreateFromConf(conf, KEY_SPREAD_FLAG_PATCH).Enable()) SetFailState("Failed to enable patch \""...KEY_SPREAD_FLAG_PATCH..."\"");
@@ -122,6 +99,14 @@ void LoadSDK()
 		SetFailState("Failed to pre-detour \""...KEY_DETONATE..."\"");
 	if (!hDetour.Enable(Hook_Post, DTR_OnDetonate_Post))
 		SetFailState("Failed to post-detour \""...KEY_DETONATE..."\"");
+	
+	delete hDetour;
+	
+	hDetour = DynamicDetour.FromConf(conf, KEY_SOLIDMASK);
+	if (!hDetour)
+		SetFailState("Missing detour setup of \""...KEY_SOLIDMASK..."\"");
+	if (!hDetour.Enable(Hook_Post, DTR_OnPhysicsSolidMaskForEntity_Post))
+		SetFailState("Failed to post-detour \""...KEY_SOLIDMASK..."\"");
 	
 	delete hDetour;
 	
@@ -166,7 +151,7 @@ public void OnPluginStart()
 	
 	g_cvSaferoomSpread = CreateConVar(
 							"l4d2_spit_spread_saferoom",
-							"1",
+							"0",
 							"Decides how the spit should spread in saferoom area.\n"
 						...	"0 = No spread, 1 = Spread on intro start area, 2 = Spread on every map.",
 							FCVAR_NOTIFY|FCVAR_SPONLY,
@@ -187,6 +172,14 @@ public void OnPluginStart()
 						...	"Minimum = 2, Game default = 10.",
 							FCVAR_NOTIFY|FCVAR_SPONLY,
 							true, 2.0);
+	
+	g_cvWaterCollision = CreateConVar(
+							"l4d2_spit_water_collision",
+							"0",
+							"Decides whether the spit projectile will collide with water.\n"
+						...	"0 = No collision, 1 = Enable collision.",
+							FCVAR_NOTIFY|FCVAR_SPONLY,
+							true, 0.0, true, 1.0);
 	
 	g_cvTraceHeight.AddChangeHook(CvarChange_TraceHeight);
 	CvarChange_TraceHeight(g_cvTraceHeight, "", "");
@@ -267,6 +260,17 @@ void SDK_OnSpawnPost(int entity)
 
 Action SDK_OnThink(int entity)
 {
+	float vPos[3];
+	GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", vPos);
+	
+	// Check if in water first
+	float flDepth = GetDepthBeneathWater(vPos);
+	if (flDepth > 0.0)
+	{
+		vPos[2] += flDepth;
+		TeleportEntity(entity, vPos, NULL_VECTOR, NULL_VECTOR);
+	}
+	
 	int index = g_aDetonatePuddles.FindValue(EntIndexToEntRef(entity));
 	if (index != -1)
 	{
@@ -286,13 +290,11 @@ Action SDK_OnThink(int entity)
 				}
 			}
 			
-			float vPos[3];
-			GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", vPos);
-			
 			TerrorNavArea nav = TerrorNavArea(vPos);
-			if (nav != NULL_NAV_AREA && nav.m_spawnAttributes & TERROR_NAV_CHECKPOINT)
+			if (nav.Valid() && nav.HasSpawnAttributes(NAV_SPAWN_CHECKPOINT))
 			{
-				if (!IsSaferoomSpreadAllowed(nav.m_flow))
+				bool isStart = nav.HasSpawnAttributes(NAV_SPAWN_PLAYER_START);
+				if (!IsSaferoomSpreadAllowed(isStart))
 				{
 					maxflames = 2;
 					CreateTimer(0.3, Timer_FixInvisibleSpit, EntIndexToEntRef(entity), TIMER_FLAG_NO_MAPCHANGE);
@@ -303,35 +305,22 @@ Action SDK_OnThink(int entity)
 	}
 	else
 	{
-		float vPos[3];
-		GetEntPropVector(entity, Prop_Data, "m_vecAbsOrigin", vPos);
-		vPos[2] += 0.1; // raise a bit to prevent issues
-		
-		float vEnd[3];
-		vEnd[0] = vPos[0];
-		vEnd[1] = vPos[1];
-		vEnd[2] = vPos[2] + 500.0;
-		
-		// Check if in water first
-		Handle tr = TR_TraceRayFilterEx(vPos, vEnd, MASK_WATER, RayType_EndPoint, TraceRayFilter_NoPlayers, entity);
-		
-		if (TR_StartSolid(tr))
+		if (flDepth == 0.0) // Check if invisbile spit
 		{
-			vEnd[2] = vPos[2] - 0.1 + 500.0 * TR_GetFractionLeftSolid(tr); // eventually at the water surface 
-			TeleportEntity(entity, vEnd, NULL_VECTOR, NULL_VECTOR);
-			CreateTimer(0.3, Timer_FixInvisibleSpit, EntIndexToEntRef(entity), TIMER_FLAG_NO_MAPCHANGE);
-		}
-		else // Check if invisbile spit
-		{
-			delete tr;
-			
+			float vEnd[3];
 			vEnd[0] = vPos[0];
 			vEnd[1] = vPos[1];
-			vEnd[2] = vPos[2] - 46.1;
+			vEnd[2] = vPos[2] - 46.0;
 			
-			tr = TR_TraceRayFilterEx(vPos, vEnd, MASK_SHOT|MASK_WATER, RayType_EndPoint, TraceRayFilter_NoPlayers, entity);
+			Handle tr = TR_TraceRayFilterEx(vPos, vEnd, MASK_SHOT|MASK_WATER, RayType_EndPoint, TraceRayFilter_NoPlayers, entity);
 			
 			// NOTE:
+			//
+			// v1.18:
+			// Seems something to do with "CNavMesh::GetNearestNavArea" called in
+			// "CInferno::CreateFire" that teleports the puddle to there.
+			//
+			//========================================================================================
 			//
 			// What is invisible death spit? As far as I know it's an issue where the game
 			// traces for solid surfaces within certain height, but regardless of the hitting result.
@@ -363,9 +352,9 @@ Action SDK_OnThink(int entity)
 				TeleportEntity(entity, vEnd, NULL_VECTOR, NULL_VECTOR);
 				CreateTimer(0.3, Timer_FixInvisibleSpit, EntIndexToEntRef(entity), TIMER_FLAG_NO_MAPCHANGE);
 			}
+			
+			delete tr;
 		}
-		
-		delete tr;
 	}
 	
 	SDKUnhook(entity, SDKHook_Think, SDK_OnThink);
@@ -392,9 +381,34 @@ Action Timer_FixInvisibleSpit(Handle timer, int entRef)
 	return Plugin_Stop;
 }
 
-bool IsSaferoomSpreadAllowed(float flow)
+float GetDepthBeneathWater(const float vecStart[3])
 {
-	return g_iSaferoomSpread == 2 || (g_iSaferoomSpread == 1 && flow / L4D2Direct_GetMapMaxFlowDistance() < 0.5);
+	static const float MAX_WATER_DEPTH = 300.0;
+	
+	float vecEnd[3];
+	
+	vecEnd[0] = vecStart[0];
+	vecEnd[1] = vecStart[1];
+	vecEnd[2] = vecStart[2] + MAX_WATER_DEPTH;
+	
+	float flFraction = 0.0;
+	
+	Handle tr = TR_TraceRayFilterEx(vecStart, vecEnd, MASK_WATER, RayType_EndPoint, TraceRayFilter_NoPlayers, -1);
+	if (TR_StartSolid(tr))
+	{
+		flFraction = TR_GetFractionLeftSolid(tr);
+	}
+	delete tr;
+	
+	return flFraction * MAX_WATER_DEPTH;
+}
+
+bool IsSaferoomSpreadAllowed(bool isStartSaferoom)
+{
+	if (L4D2_IsScavengeMode() || L4D_IsSurvivalMode())
+		return g_iSaferoomSpread > 0;
+	
+	return g_iSaferoomSpread == 2 || (g_iSaferoomSpread == 1 && isStartSaferoom);
 }
 
 //======================================================================================================
@@ -436,6 +450,15 @@ public Action CH_PassFilter(int touch, int pass, bool &result)
 	}
 	
 	return Plugin_Continue;
+}
+
+//======================================================================================================
+
+MRESReturn DTR_OnPhysicsSolidMaskForEntity_Post(DHookReturn hReturn)
+{
+	hReturn.Value |= (g_cvWaterCollision.BoolValue ? MASK_WATER : 0);
+	
+	return MRES_Supercede;
 }
 
 //======================================================================================================

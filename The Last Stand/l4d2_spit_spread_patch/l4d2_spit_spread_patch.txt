@@ -22,25 +22,32 @@
 				"return"		"void"
 				"this"			"entity"
 			}
+			
+			"CSpitterProjectile::PhysicsSolidMaskForEntity"
+			{
+				"signature"		"CSpitterProjectile::PhysicsSolidMaskForEntity"
+				"callconv"		"thiscall"
+				"return"		"int"
+				"this"			"ignore"
+			}
 		}
 		
 		"MemPatches"
 		{
 			"CSpitterProjectile::Detonate__TraceFlag_patch"	// Add `CONTENTS_MONSTER` to the trace flags `MASK_SOLID_BRUSHONLY`
-															// v1.15: Add `CONTENTS_WATER` and `CONTENTS_SLIME`
 			{
 				"signature"		"CSpitterProjectile::Detonate"
 				"linux"
 				{
 					"offset"	"285h"
 					"verify"	"\x0B\x40\x00\x00"
-					"patch"		"\x3B\x40\x00\x02"
+					"patch"		"\x0B\x40\x00\x02"
 				}
 				"windows"
 				{
 					"offset"	"12Bh"
 					"verify"	"\x0B\x40\x00\x00"
-					"patch"		"\x3B\x40\x00\x02"
+					"patch"		"\x0B\x40\x00\x02"
 				}
 			}
 			
@@ -137,15 +144,6 @@
 			}
 		}
 		
-		"Offsets"
-		{
-			"TerrorNavArea::m_spawnAttributes"
-			{
-				"linux"			"300"
-				"windows"		"296"
-			}
-		}
-		
 		"Signatures"
 		{
 			/** 
@@ -211,6 +209,14 @@
 				"linux"			"@_ZN18CSpitterProjectile8DetonateEv"
 				"windows"		"\x55\x8B\xEC\x81\x2A\x2A\x2A\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x33\x2A\x89\x2A\x2A\x53\x8B\x2A\x57"
 				/* 55 8B EC 81 ? ? ? ? ? A1 ? ? ? ? 33 ? 89 ? ? 53 8B ? 57 */
+			}
+			
+			"CSpitterProjectile::PhysicsSolidMaskForEntity"
+			{
+				"library"		"server"
+				"linux"			"@_ZNK18CSpitterProjectile25PhysicsSolidMaskForEntityEv"
+				"windows"		"\xE8\x2A\x2A\x2A\x2A\x83\xE0\xF7\xC3"
+								/* E8 ? ? ? ? 83 E0 F7 C3 */
 			}
 		}
 	}
