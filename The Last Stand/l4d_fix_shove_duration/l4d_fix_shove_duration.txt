@@ -7,7 +7,14 @@
 			"CTerrorPlayer::OnShovedByLunge"
 			{
 				"signature"		"CTerrorPlayer::OnShovedByLunge"
-				"callconv"		"thiscall"
+				"linux"
+				{
+					"callconv"		"cdecl"
+				}
+				"windows"
+				{
+					"callconv"		"stdcall"
+				}
 				"return"		"int"
 				"this"			"ignore"
 				"arguments"
