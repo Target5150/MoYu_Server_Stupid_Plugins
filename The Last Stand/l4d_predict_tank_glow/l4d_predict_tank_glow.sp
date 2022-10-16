@@ -10,7 +10,7 @@
 
 #tryinclude <l4d_info_editor>
 
-#define PLUGIN_VERSION "1.3"
+#define PLUGIN_VERSION "1.4"
 
 public Plugin myinfo = 
 {
@@ -88,17 +88,9 @@ public void OnPluginStart()
  */
 public void OnUpdateBosses(int iTankFlow, int iWitchFlow)
 {
-	if (IsValidEdict(g_iPredictModel))
-	{
-		RemoveEntity(g_iPredictModel);
-		g_iPredictModel = INVALID_ENT_REFERENCE;
-	}
-	
 	if (iTankFlow > 0)
 	{
 		Event_RoundStart(null, "", false);
-		Timer_DelayProcess(null);
-		Timer_AccessTankWarp(null, false); // lazy, let it go regardless of running or not.
 	}
 }
 
@@ -106,8 +98,6 @@ public void OnUpdateBosses(int iTankFlow, int iWitchFlow)
 
 void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {
-	g_iPredictModel = INVALID_ENT_REFERENCE;
-	
 	if (!L4D_IsVersusMode()) return;
 	
 	if (!GameRules_GetProp("m_bInSecondHalfOfRound", 1))
@@ -115,14 +105,18 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 		g_vModelPos = NULL_VECTOR;
 		g_vModelAng = NULL_VECTOR;
 	}
+	
+	// Need to delay a bit, seems crashing otherwise.
+	CreateTimer(1.0, Timer_DelayProcess, .flags = TIMER_FLAG_NO_MAPCHANGE);
+	
+	// TODO: Is there a hook?
+	CreateTimer(5.0, Timer_AccessTankWarp, false, TIMER_FLAG_NO_MAPCHANGE);
 }
 
 public void OnMapStart()
 {
-	for (int i; i < sizeof(g_sTankModels); ++i)
+	for (int i = 0; i < sizeof(g_sTankModels); ++i)
 		PrecacheModel(g_sTankModels[i]);
-	
-	HookEntityOutput("info_director", "OnGameplayStart", EntO_OnGameplayStart);
 }
 
 public void OnMapEnd()
@@ -130,21 +124,18 @@ public void OnMapEnd()
 	strcopy(g_sTankModels[TANK_VARIANT_SLOT], TANK_MODEL_STRLEN, "N/A");
 }
 
-void EntO_OnGameplayStart(const char[] output, int caller, int activator, float delay)
-{
-	// Need to delay a bit, seems crashing otherwise.
-	CreateTimer(1.0, Timer_DelayProcess, .flags = TIMER_FLAG_NO_MAPCHANGE);
-	
-	// TODO: Is there a hook?
-	CreateTimer(15.0, Timer_AccessTankWarp, false, TIMER_FLAG_NO_MAPCHANGE);
-}
-
 Action Timer_DelayProcess(Handle timer)
 {
 	if (!L4D_IsVersusMode()) return Plugin_Stop;
 	
+	if (IsValidEdict(g_iPredictModel))
+	{
+		RemoveEntity(g_iPredictModel);
+		g_iPredictModel = INVALID_ENT_REFERENCE;
+	}
+	
 	g_iPredictModel = ProcessPredictModel(g_vModelPos, g_vModelAng);
-	if (g_iPredictModel != -1)
+	if (g_iPredictModel != INVALID_ENT_REFERENCE)
 		g_iPredictModel = EntIndexToEntRef(g_iPredictModel);
 	
 	return Plugin_Stop;
@@ -162,7 +153,7 @@ Action Timer_AccessTankWarp(Handle timer, bool isRetry)
 		if (strcmp(buffer, "1") != 0)
 		{
 			// retry or seeu
-			if (!isRetry) CreateTimer(5.0, Timer_AccessTankWarp, true, TIMER_FLAG_NO_MAPCHANGE);
+			if (!isRetry) CreateTimer(15.0, Timer_AccessTankWarp, true, TIMER_FLAG_NO_MAPCHANGE);
 			return Plugin_Stop;
 		}
 		
@@ -239,7 +230,7 @@ int ProcessPredictModel(float vPos[3], float vAng[3])
 			for (float p = L4D2Direct_GetVSTankFlowPercent(0); p < 1.0; p += 0.01)
 			{
 				TerrorNavArea nav = GetBossSpawnAreaForFlow(p);
-				if (nav != NULL_NAV_AREA)
+				if (nav.Valid())
 				{
 					L4D_FindRandomSpot(view_as<int>(nav), vPos);
 					vPos[2] -= 8.0; // less floating off ground
@@ -266,11 +257,13 @@ TerrorNavArea GetBossSpawnAreaForFlow(float flow)
 	TheEscapeRoute().GetPositionOnPath(flow, vPos);
 	
 	TerrorNavArea nav = TerrorNavArea(vPos);
+	if (!nav.Valid())
+		return NULL_NAV_AREA;
 	
 	ArrayList aList = new ArrayList();
 	while( !nav.IsValidForWanderingPopulation()
-		|| (nav.GetCenter(vPos), vPos[2] += 10.0, !ZombieManager.IsSpaceForZombieHere(vPos))
 		|| nav.m_isUnderwater
+		|| (nav.GetCenter(vPos), vPos[2] += 10.0, !ZombieManager.IsSpaceForZombieHere(vPos))
 		|| nav.m_activeSurvivors )
 	{
 		if (aList.FindValue(nav) != -1)
@@ -279,7 +272,9 @@ TerrorNavArea GetBossSpawnAreaForFlow(float flow)
 			return NULL_NAV_AREA;
 		}
 		
-		aList.Push(nav);
+		if (nav.Valid())
+			aList.Push(nav);
+		
 		nav = nav.GetNextEscapeStep();
 	}
 	
@@ -312,7 +307,7 @@ int CreateTankGlowModel(const float vPos[3], const float vAng[3])
 
 public void OnGetMissionInfo(int pThis)
 {
-	if (strcmp(g_sTankModels[TANK_VARIANT_SLOT], "N/A") != 0)
+	if (strcmp(g_sTankModels[TANK_VARIANT_SLOT], "N/A") == 0)
 	{
 		static char buffer[64];
 		FormatEx(buffer, sizeof(buffer), "modes/versus/%i/TankVariant", L4D_GetCurrentChapter());
