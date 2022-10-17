@@ -6,9 +6,10 @@
 #include <left4dhooks>
 #undef REQUIRE_PLUGIN
 #include <l4d_boss_vote>
+#tryinclude <l4d_info_editor>
 #define REQUIRE_PLUGIN
 
-#define PLUGIN_VERSION "1.4.1"
+#define PLUGIN_VERSION "1.5"
 
 public Plugin myinfo = 
 {
@@ -21,20 +22,18 @@ public Plugin myinfo =
 
 //=========================================================================================================
 
+bool g_bLeft4Dead2;
+
 #define GAMEDATA_FILE "l4d_predict_tank_glow"
 #include "tankglow/tankglow_defines.inc"
 
-bool g_bLeft4Dead2;
-
-CZombieManager ZombieManager;
-
 // order is foreign referred in `PickTankVariant()`
 #define TANK_VARIANT_SLOT (sizeof(g_sTankModels)-1)
-#define TANK_MODEL_STRLEN 128
-static const char g_sTankModels[][TANK_MODEL_STRLEN] = {
+char g_sTankModels[][128] = {
 	"models/infected/hulk.mdl",
 	"models/infected/hulk_dlc3.mdl",
 	"models/infected/hulk_l4d1.mdl",
+	"models/infected/hulk2.mdl",
 	"N/A" // TankVariant slot
 };
 
@@ -43,10 +42,13 @@ float g_vModelPos[3], g_vModelAng[3];
 
 ConVar g_cvTeleport;
 
+float g_fTankFlowPercent;
+
 //=========================================================================================================
 
-// !!! remove this line if you want to include info_editor
+#if !defined _info_editor_included
 native void InfoEditor_GetString(int pThis, const char[] keyname, char[] dest, int destLen);
+#endif
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
@@ -61,7 +63,9 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 		}
 	}
 	
+#if !defined _info_editor_included
 	MarkNativeAsOptional("InfoEditor_GetString");
+#endif
 	return APLRes_Success;
 }
 
@@ -89,7 +93,7 @@ public void OnPluginStart()
  */
 public void OnUpdateBosses(int iTankFlow, int iWitchFlow)
 {
-	if (iTankFlow > 0)
+	if (iTankFlow != -1)
 	{
 		Event_RoundStart(null, "", false);
 	}
@@ -103,6 +107,8 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 	
 	if (!GameRules_GetProp("m_bInSecondHalfOfRound", 1))
 	{
+		g_fTankFlowPercent = -1.0;
+	
 		g_vModelPos = NULL_VECTOR;
 		g_vModelAng = NULL_VECTOR;
 	}
@@ -122,7 +128,7 @@ public void OnMapStart()
 
 public void OnMapEnd()
 {
-	strcopy(g_sTankModels[TANK_VARIANT_SLOT], TANK_MODEL_STRLEN, "N/A");
+	strcopy(g_sTankModels[TANK_VARIANT_SLOT], sizeof(g_sTankModels[]), "N/A");
 }
 
 Action Timer_DelayProcess(Handle timer)
@@ -240,6 +246,8 @@ int ProcessPredictModel(float vPos[3], float vAng[3])
 					vAng[1] = GetRandomFloat(0.0, 360.0);
 					vAng[2] = 0.0;
 					
+					g_fTankFlowPercent = p;
+					
 					break;
 				}
 			}
@@ -247,7 +255,7 @@ int ProcessPredictModel(float vPos[3], float vAng[3])
 	}
 	
 	if (GetVectorLength(vPos) == 0.0)
-		return -1;
+		return INVALID_ENT_REFERENCE;
 	
 	return CreateTankGlowModel(vPos, vAng);
 }
@@ -256,6 +264,9 @@ TerrorNavArea GetBossSpawnAreaForFlow(float flow)
 {
 	float vPos[3];
 	TheEscapeRoute().GetPositionOnPath(flow, vPos);
+	
+	if (CZombieBorder.IsBehindZombieBorder(vPos))
+		return NULL_NAV_AREA;
 	
 	TerrorNavArea nav = TerrorNavArea(vPos);
 	if (!nav.Valid())
@@ -287,21 +298,68 @@ TerrorNavArea GetBossSpawnAreaForFlow(float flow)
 
 int CreateTankGlowModel(const float vPos[3], const float vAng[3])
 {
-	int entity = CreateEntityByName("prop_dynamic");
+	int entity = CreateEntityByName(g_bLeft4Dead2 ? "prop_dynamic" : "prop_glowing_object");
 	if (entity == -1)
-		return -1;
+		return INVALID_ENT_REFERENCE;
 	
-	SetEntityModel(entity, g_sTankModels[PickTankVariant()]);
+	DispatchKeyValue(entity, "model", g_sTankModels[PickTankVariant()]);
 	DispatchKeyValue(entity, "disableshadows", "1");
 	DispatchKeyValue(entity, "DefaultAnim", "idle");
+	
+	if (!g_bLeft4Dead2)
+	{
+		DispatchKeyValue(entity, "StartGlowing", "1");
+        /* GlowForTeam =  -1:ALL  , 0:NONE , 1:SPECTATOR  , 2:SURVIVOR , 3:INFECTED */
+		DispatchKeyValue(entity, "GlowForTeam", "-1");
+	}
+	
+	TeleportEntity(entity, vPos, vAng, NULL_VECTOR);
 	DispatchSpawn(entity);
 	
 	SetEntProp(entity, Prop_Send, "m_CollisionGroup", 0);
 	SetEntProp(entity, Prop_Send, "m_nSolidType", 0);
-	L4D2_SetEntityGlow(entity, L4D2Glow_Constant, 0, 0, {77, 102, 255}, false);
-	TeleportEntity(entity, vPos, vAng, NULL_VECTOR);
+	
+	if (g_bLeft4Dead2)
+	{
+		L4D2_SetEntityGlow(entity, L4D2Glow_Constant, 0, 0, {77, 102, 255}, false);
+	}
+	else
+	{
+		SetEntityRenderFx(entity, RENDERFX_FADE_FAST);
+		CreateTimer(0.3, TimerGlow, EntIndexToEntRef(entity), TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+	}
 	
 	return entity;
+}
+
+#define PREDICT_PERCENT 8.0
+Action TimerGlow(Handle timer, int entRef)
+{
+	if (!IsValidEdict(entRef))
+		return Plugin_Stop;
+	
+	int entity = EntRefToEntIndex(entRef);
+	
+	float fCurrent = -999999.9;
+	int iHighestFlowSurv = L4D_GetHighestFlowSurvivor();
+	if (iHighestFlowSurv > 0)
+		fCurrent = L4D2Direct_GetFlowDistance(iHighestFlowSurv) / L4D2Direct_GetMapMaxFlowDistance();
+	
+	bool valid = false;
+	if (g_fTankFlowPercent != -1.0 && g_fTankFlowPercent - PREDICT_PERCENT <= fCurrent)
+		valid = true;
+	
+	bool glowing = (GetEntProp(entity, Prop_Data, "m_bIsGlowing") == 1);
+	if (valid && !glowing)
+	{
+		AcceptEntityInput(entity, "StartGlowing");
+	}
+	else if (!valid && glowing)
+	{
+		AcceptEntityInput(entity, "StopGlowing");
+	}
+	
+	return Plugin_Continue;
 }
 
 //=========================================================================================================
@@ -312,7 +370,7 @@ public void OnGetMissionInfo(int pThis)
 	{
 		static char buffer[64];
 		FormatEx(buffer, sizeof(buffer), "modes/versus/%i/TankVariant", L4D_GetCurrentChapter());
-		InfoEditor_GetString(pThis, buffer, g_sTankModels[TANK_VARIANT_SLOT], TANK_MODEL_STRLEN);
+		InfoEditor_GetString(pThis, buffer, g_sTankModels[TANK_VARIANT_SLOT], sizeof(g_sTankModels[]));
 	}
 }
 
@@ -321,14 +379,15 @@ int PickTankVariant()
 	if (strcmp(g_sTankModels[TANK_VARIANT_SLOT], "N/A") != 0)
 		return TANK_VARIANT_SLOT;
 	
-	if (!g_bLeft4Dead2 || L4D2_GetSurvivorSetMod() == 2)
+	if (g_bLeft4Dead2 && L4D2_GetSurvivorSetMod() == 2)
 		return 0;
 	
 	// in case some characteristic configs enables flow tank
 	char sCurrentMap[64];
-	GetCurrentMap(sCurrentMap, 6);
-	if (strcmp(sCurrentMap, "c7m1_docks") == 0)
+	GetCurrentMap(sCurrentMap, sizeof(sCurrentMap));
+	if ((g_bLeft4Dead2 && strcmp(sCurrentMap, "c7m1_docks") == 0)
+		|| (!g_bLeft4Dead2 && strcmp(sCurrentMap, "l4d_river01_docks") == 0))
 		return 1;
 	
-	return 2;
+	return 2 + view_as<int>(!g_bLeft4Dead2);
 }

@@ -188,6 +188,14 @@
 				"windows"		"\x55\x8B\xEC\x83\xEC\x2A\xF3\x0F\x10\x2A\x2A\x2A\x2A\x2A\x53\x56\x33\x2A\x89\x2A\x2A\x83\x2A\x58"
 								/* 55 8B EC 83 EC ? F3 0F 10 ? ? ? ? ? 53 56 33 ? 89 ? ? 83 ? 58 */
 			}
+			
+			"CZombieBorder::IsBehindZombieBorder"
+			{
+				"library"		"server"
+				"linux"			"@_ZN13CZombieBorder20IsBehindZombieBorderERK6Vector"
+				"windows"		"\x55\x8B\xEC\x51\x8B\x15\x2A\x2A\x2A\x2A\x53\x56\x57\x33\xFF"
+								/* 55 8B EC 51 8B 15 ? ? ? ? 53 56 57 33 FF */
+			}
 		}
 	}
 }
