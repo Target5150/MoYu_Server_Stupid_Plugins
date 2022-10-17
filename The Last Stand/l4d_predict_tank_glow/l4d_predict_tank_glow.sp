@@ -9,7 +9,7 @@
 #tryinclude <l4d_info_editor>
 #define REQUIRE_PLUGIN
 
-#define PLUGIN_VERSION "1.5"
+#define PLUGIN_VERSION "1.5.1"
 
 public Plugin myinfo = 
 {
@@ -33,7 +33,6 @@ char g_sTankModels[][128] = {
 	"models/infected/hulk.mdl",
 	"models/infected/hulk_dlc3.mdl",
 	"models/infected/hulk_l4d1.mdl",
-	"models/infected/hulk2.mdl",
 	"N/A" // TankVariant slot
 };
 
@@ -379,7 +378,7 @@ int PickTankVariant()
 	if (strcmp(g_sTankModels[TANK_VARIANT_SLOT], "N/A") != 0)
 		return TANK_VARIANT_SLOT;
 	
-	if (g_bLeft4Dead2 && L4D2_GetSurvivorSetMod() == 2)
+	if (!g_bLeft4Dead2 || L4D2_GetSurvivorSetMod() == 2)
 		return 0;
 	
 	// in case some characteristic configs enables flow tank
@@ -389,5 +388,5 @@ int PickTankVariant()
 		|| (!g_bLeft4Dead2 && strcmp(sCurrentMap, "l4d_river01_docks") == 0))
 		return 1;
 	
-	return 2 + view_as<int>(!g_bLeft4Dead2);
+	return 2;
 }
