@@ -9,12 +9,12 @@
 #tryinclude <l4d_info_editor>
 #define REQUIRE_PLUGIN
 
-#define PLUGIN_VERSION "1.5.1"
+#define PLUGIN_VERSION "1.5.2"
 
 public Plugin myinfo = 
 {
 	name = "[L4D & 2] Predict Tank Glow",
-	author = "Forgetest",
+	author = "Forgetest, HarryPotter",
 	description = "Predicts flow tank positions and fakes models with glow (mimic \"Dark Carnival: Remix\").",
 	version = PLUGIN_VERSION,
 	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
@@ -331,7 +331,7 @@ int CreateTankGlowModel(const float vPos[3], const float vAng[3])
 	return entity;
 }
 
-#define PREDICT_PERCENT 8.0
+#define PREDICT_PERCENT 0.08
 Action TimerGlow(Handle timer, int entRef)
 {
 	if (!IsValidEdict(entRef))
@@ -345,7 +345,7 @@ Action TimerGlow(Handle timer, int entRef)
 		fCurrent = L4D2Direct_GetFlowDistance(iHighestFlowSurv) / L4D2Direct_GetMapMaxFlowDistance();
 	
 	bool valid = false;
-	if (g_fTankFlowPercent != -1.0 && g_fTankFlowPercent - PREDICT_PERCENT <= fCurrent)
+	if (g_fTankFlowPercent != -1.0 && fCurrent + PREDICT_PERCENT > g_fTankFlowPercent)
 		valid = true;
 	
 	bool glowing = (GetEntProp(entity, Prop_Data, "m_bIsGlowing") == 1);
@@ -378,15 +378,15 @@ int PickTankVariant()
 	if (strcmp(g_sTankModels[TANK_VARIANT_SLOT], "N/A") != 0)
 		return TANK_VARIANT_SLOT;
 	
-	if (!g_bLeft4Dead2 || L4D2_GetSurvivorSetMod() == 2)
-		return 0;
-	
 	// in case some characteristic configs enables flow tank
 	char sCurrentMap[64];
 	GetCurrentMap(sCurrentMap, sizeof(sCurrentMap));
 	if ((g_bLeft4Dead2 && strcmp(sCurrentMap, "c7m1_docks") == 0)
 		|| (!g_bLeft4Dead2 && strcmp(sCurrentMap, "l4d_river01_docks") == 0))
 		return 1;
+	
+	if (!g_bLeft4Dead2 || L4D2_GetSurvivorSetMod() == 2)
+		return 0;
 	
 	return 2;
 }
