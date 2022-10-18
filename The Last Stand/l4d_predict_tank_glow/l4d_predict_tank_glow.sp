@@ -6,10 +6,11 @@
 #include <left4dhooks>
 #undef REQUIRE_PLUGIN
 #include <l4d_boss_vote>
+#undef REQUIRE_PLUGIN
 #tryinclude <l4d_info_editor>
 #define REQUIRE_PLUGIN
 
-#define PLUGIN_VERSION "1.5.2"
+#define PLUGIN_VERSION "1.6"
 
 public Plugin myinfo = 
 {
@@ -62,9 +63,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 		}
 	}
 	
-#if !defined _info_editor_included
 	MarkNativeAsOptional("InfoEditor_GetString");
-#endif
 	return APLRes_Success;
 }
 
@@ -263,9 +262,6 @@ TerrorNavArea GetBossSpawnAreaForFlow(float flow)
 {
 	float vPos[3];
 	TheEscapeRoute().GetPositionOnPath(flow, vPos);
-	
-	if (CZombieBorder.IsBehindZombieBorder(vPos))
-		return NULL_NAV_AREA;
 	
 	TerrorNavArea nav = TerrorNavArea(vPos);
 	if (!nav.Valid())

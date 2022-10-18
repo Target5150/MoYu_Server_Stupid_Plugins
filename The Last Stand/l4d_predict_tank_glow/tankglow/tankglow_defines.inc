@@ -8,7 +8,6 @@
 #define KEY_ISSPACEFORZOMBIEHERE "ZombieManager::IsSpaceForZombieHere"
 #define KEY_GETNEXTESCAPESTEP "TerrorNavArea::GetNextEscapeStep"
 #define KEY_ISVALIDFORWANDERINGPOPULATION "TerrorNavArea::IsValidForWanderingPopulation"
-#define KEY_ISBEHINDZOMBIEBORDER "CZombieBorder::IsBehindZombieBorder"
 #define KEY_m_vecCenter "CNavArea::m_vecCenter"
 #define KEY_m_bIsUnderwater "TerrorNavArea::m_bIsUnderwater"
 #define KEY_m_activeSurvivors "TerrorNavArea::m_activeSurvivors"
@@ -18,8 +17,7 @@ static Handle
 	s_hSDKCall_GetPositionOnPath,
 	s_hSDKCall_IsSpaceForZombieHere,
 	s_hSDKCall_GetNextEscapeStep,
-	s_hSDKCall_IsValidForWanderingPopulation,
-	s_hSDKCall_IsBehindZombieBorder;
+	s_hSDKCall_IsValidForWanderingPopulation;
 
 static Address 
 	s_addr_TheEscapeRoute;
@@ -95,13 +93,6 @@ methodmap ZombieManager
 	}
 }
 
-methodmap CZombieBorder
-{
-	public static bool IsBehindZombieBorder(const float vPos[3]) {
-		return g_bLeft4Dead2 && SDKCall(s_hSDKCall_IsBehindZombieBorder, vPos);
-	}
-}
-
 void LoadSDK()
 {
 	Handle conf = LoadGameConfigFile(GAMEDATA_FILE);
@@ -142,18 +133,6 @@ void LoadSDK()
 	s_hSDKCall_GetNextEscapeStep = EndPrepSDKCall();
 	if (s_hSDKCall_GetNextEscapeStep == null)
 		SetFailState("Failed to prepare SDKCall for \""...KEY_GETNEXTESCAPESTEP..."\"");
-	
-	if (g_bLeft4Dead2)
-	{
-		StartPrepSDKCall(SDKCall_Static);
-		if (!PrepSDKCall_SetFromConf(conf, SDKConf_Signature, KEY_ISBEHINDZOMBIEBORDER))
-			SetFailState("Missing signature "...KEY_ISBEHINDZOMBIEBORDER..."");
-		PrepSDKCall_AddParameter(SDKType_Vector, SDKPass_ByRef);
-		PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
-		s_hSDKCall_IsBehindZombieBorder = EndPrepSDKCall();
-		if (s_hSDKCall_IsBehindZombieBorder == null)
-			SetFailState("Failed to prepare SDKCall for \""...KEY_ISBEHINDZOMBIEBORDER..."\"");
-	}
 	
 	s_addr_TheEscapeRoute = GameConfGetAddress(conf, KEY_THEESCAPEROUTE);
 	if (s_addr_TheEscapeRoute == Address_Null)
