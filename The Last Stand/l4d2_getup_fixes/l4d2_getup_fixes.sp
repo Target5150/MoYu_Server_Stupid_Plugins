@@ -52,7 +52,7 @@
 #undef REQUIRE_PLUGIN
 #include <godframecontrol>
 
-#define PLUGIN_VERSION "4.11"
+#define PLUGIN_VERSION "4.12.1"
 
 public Plugin myinfo = 
 {
@@ -64,7 +64,7 @@ public Plugin myinfo =
 };
 
 #define GAMEDATA_FILE "l4d2_getup_fixes"
-#define KEY_ANIMSTATE "CTerrorPlayer::m_hAnimState"
+#define KEY_ANIMSTATE "CTerrorPlayer::m_PlayerAnimState"
 #define KEY_FLAG_CHARGED "CTerrorPlayerAnimState::m_bCharged"
 #define KEY_RESETMAINACTIVITY "CTerrorPlayerAnimState::ResetMainActivity"
 
@@ -72,7 +72,7 @@ Handle
 	g_hSDKCall_ResetMainActivity;
 
 int
-	m_hAnimState,
+	m_PlayerAnimState,
 	m_bCharged;
 
 enum AnimStateFlag // mid-way start from m_bCharged
@@ -89,7 +89,7 @@ enum AnimStateFlag // mid-way start from m_bCharged
 methodmap AnimState
 {
 	public AnimState(int client) {
-		int ptr = GetEntData(client, m_hAnimState, 4);
+		int ptr = GetEntData(client, m_PlayerAnimState, 4);
 		if (ptr == 0)
 			ThrowError("Invalid pointer to \"CTerrorPlayer::CTerrorPlayerAnimState\" (client %d).", client);
 		return view_as<AnimState>(ptr);
@@ -132,8 +132,8 @@ void LoadSDK()
 	if (!conf)
 		SetFailState("Missing gamedata \""...GAMEDATA_FILE..."\"");
 	
-	m_hAnimState = GameConfGetOffset(conf, KEY_ANIMSTATE);
-	if (m_hAnimState == -1)
+	m_PlayerAnimState = GameConfGetOffset(conf, KEY_ANIMSTATE);
+	if (m_PlayerAnimState == -1)
 		SetFailState("Missing offset \""...KEY_ANIMSTATE..."\"");
 	
 	m_bCharged = GameConfGetOffset(conf, KEY_FLAG_CHARGED);
@@ -169,7 +169,8 @@ public void OnPluginStart()
 	HookEvent("jockey_ride_end", Event_JockeyRideEnd);
 	HookEvent("charger_carry_start", Event_ChargerCarryStart);
 	HookEvent("charger_pummel_start", Event_ChargerPummelStart);
-	HookEvent("player_death", Event_PlayerDeath);
+	HookEvent("charger_pummel_end", Event_ChargerPummelEnd);
+	HookEvent("charger_killed", Event_ChargerKilled);
 	
 	if (g_bLateLoad)
 	{
@@ -272,11 +273,11 @@ void Event_ReviveSuccess(Event event, const char[] name, bool dontBroadcast)
 	if (client)
 	{
 		// Clear all get-up flags
-		AnimState hAnim = AnimState(client);
-		hAnim.SetFlag(AnimState_GroundSlammed, false);
-		hAnim.SetFlag(AnimState_WallSlammed, false);
-		hAnim.SetFlag(AnimState_Pounded, false); // probably no need
-		hAnim.SetFlag(AnimState_Pounced, false); // probably no need
+		AnimState pAnim = AnimState(client);
+		pAnim.SetFlag(AnimState_GroundSlammed, false);
+		pAnim.SetFlag(AnimState_WallSlammed, false);
+		pAnim.SetFlag(AnimState_Pounded, false); // probably no need
+		pAnim.SetFlag(AnimState_Pounced, false); // probably no need
 	}
 }
 
@@ -289,19 +290,19 @@ void Event_TongueGrab(Event event, const char[] name, bool dontBroadcast)
 	int client = GetClientOfUserId(event.GetInt("victim"));
 	if (client)
 	{
-		AnimState hAnim = AnimState(client);
+		AnimState pAnim = AnimState(client);
 		
 		// Fix double get-up
-		hAnim.SetFlag(AnimState_Pounced, false);
+		pAnim.SetFlag(AnimState_Pounced, false);
 		
 		// Commented to prevent unexpected buff
 		
 		// Fix get-up keeps playing
-		//hAnim.SetFlag(AnimState_GroundSlammed, false);
-		//hAnim.SetFlag(AnimState_WallSlammed, false);
-		//hAnim.SetFlag(AnimState_TankPunched, false);
-		//hAnim.SetFlag(AnimState_Pounded, false);
-		//hAnim.SetFlag(AnimState_Charged, false);
+		//pAnim.SetFlag(AnimState_GroundSlammed, false);
+		//pAnim.SetFlag(AnimState_WallSlammed, false);
+		//pAnim.SetFlag(AnimState_TankPunched, false);
+		//pAnim.SetFlag(AnimState_Pounded, false);
+		//pAnim.SetFlag(AnimState_Charged, false);
 	}
 }
 
@@ -314,13 +315,13 @@ void Event_LungePounce(Event event, const char[] name, bool dontBroadcast)
 	int client = GetClientOfUserId(event.GetInt("victim"));
 	if (client)
 	{
-		AnimState hAnim = AnimState(client);
+		AnimState pAnim = AnimState(client);
 		
 		// Fix get-up keeps playing
-		hAnim.SetFlag(AnimState_TankPunched, false);
-		hAnim.SetFlag(AnimState_Charged, false);
-		hAnim.SetFlag(AnimState_Pounded, false);
-		hAnim.SetFlag(AnimState_WallSlammed, false);
+		pAnim.SetFlag(AnimState_TankPunched, false);
+		pAnim.SetFlag(AnimState_Charged, false);
+		pAnim.SetFlag(AnimState_Pounded, false);
+		pAnim.SetFlag(AnimState_WallSlammed, false);
 	}
 }
 
@@ -334,9 +335,9 @@ void Event_JockeyRide(Event event, const char[] name, bool dontBroadcast)
 	if (client)
 	{
 		// Fix get-up keeps playing
-		AnimState hAnim = AnimState(client);
-		hAnim.SetFlag(AnimState_Charged, false);
-		hAnim.SetFlag(AnimState_WallSlammed, false);
+		AnimState pAnim = AnimState(client);
+		pAnim.SetFlag(AnimState_Charged, false);
+		pAnim.SetFlag(AnimState_WallSlammed, false);
 	}
 }
 
@@ -359,10 +360,10 @@ void Event_ChargerCarryStart(Event event, const char[] name, bool dontBroadcast)
 	int victim = GetClientOfUserId(event.GetInt("victim"));
 	if (victim)
 	{
-		AnimState hAnim = AnimState(victim);
+		AnimState pAnim = AnimState(victim);
 		
 		// Fix get-up keeps playing
-		hAnim.SetFlag(AnimState_TankPunched, false);
+		pAnim.SetFlag(AnimState_TankPunched, false);
 		
 		/**
 		 * FIXME:
@@ -370,88 +371,72 @@ void Event_ChargerCarryStart(Event event, const char[] name, bool dontBroadcast)
 		 * I would think charging victims away from other chargers
 		 * is really an undefined behavior, better block it.
 		 */
-		hAnim.SetFlag(AnimState_Charged, false);
-		hAnim.SetFlag(AnimState_Pounded, false);
-		hAnim.SetFlag(AnimState_GroundSlammed, false);
-		hAnim.SetFlag(AnimState_WallSlammed, false);
+		pAnim.SetFlag(AnimState_Charged, false);
+		pAnim.SetFlag(AnimState_Pounded, false);
+		pAnim.SetFlag(AnimState_GroundSlammed, false);
+		pAnim.SetFlag(AnimState_WallSlammed, false);
 	}
 }
 
-void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
+// Take care of pummel transition and self-clears
+void Event_ChargerKilled(Event event, const char[] name, bool dontBroadcast)
 {
-	int userid = event.GetInt("userid");
-	int client = GetClientOfUserId(userid);
-	
+	int client = GetClientOfUserId(event.GetInt("userid"));
 	if (!client || !IsClientInGame(client))
 		return;
 	
-	if (GetClientTeam(client) == 2)
+	int victim = g_iChargeVictim[client];
+	if (victim == -1 || !IsClientInGame(victim))
+		return;
+	
+	AnimState pAnim = AnimState(victim);
+	
+	// Chances that hunter pounces right on survivor queued for pummel
+	if (GetEntPropEnt(victim, Prop_Send, "m_pounceAttacker") != -1)
 	{
-		if (g_iChargeAttacker[client] != -1)
-		{
-			g_iChargeVictim[g_iChargeAttacker[client]] = -1;
-			g_iChargeAttacker[client] = -1;
-		}
+		// Fix double get-up
+		pAnim.SetFlag(AnimState_GroundSlammed, false);
+		pAnim.SetFlag(AnimState_WallSlammed, false);
 	}
-	else if (GetEntProp(client, Prop_Send, "m_zombieClass") == 6)
+	else
 	{
-		int victim = g_iChargeVictim[client];
-		if (victim != -1 && IsClientInGame(victim))
+		int attacker = GetClientOfUserId(event.GetInt("attacker"));
+		if (attacker && victim == attacker)
 		{
-			AnimState hAnim = AnimState(victim);
-			
-			// Chances that hunter pounces right on survivor queued for pummel
-			if (GetEntPropEnt(victim, Prop_Send, "m_pounceAttacker") == -1)
+			if (!L4D_IsPlayerIncapacitated(victim))
 			{
-				int attacker = GetClientOfUserId(event.GetInt("attacker"));
-				if (attacker && victim == attacker)
-				{
-					if (!L4D_IsPlayerIncapacitated(victim))
-					{
-						// No self-clear get-up
-						hAnim.SetFlag(AnimState_GroundSlammed, false);
-						hAnim.SetFlag(AnimState_WallSlammed, false);
-					}
-				}
-				else
-				{
-					// Fix double get-up
-					hAnim.SetFlag(AnimState_TankPunched, false);
-					hAnim.SetFlag(AnimState_Pounced, false);
-					
-					// long charged get-up
-					if ((hAnim.GetFlag(AnimState_GroundSlammed) && cvar_keepLongChargeLongGetUp.BoolValue)
-						|| (hAnim.GetFlag(AnimState_WallSlammed) && cvar_keepWallSlamLongGetUp.BoolValue))
-					{
-						SetInvulnerableForSlammed(victim, g_hLongChargeDuration.FloatValue);
-					}
-					else
-					{
-						if (hAnim.GetFlag(AnimState_GroundSlammed) || hAnim.GetFlag(AnimState_WallSlammed))
-						{
-							float duration = 2.0;
-							if (g_hChargeDuration != null)
-							{
-								duration = g_hChargeDuration.FloatValue;
-							}
-							SetInvulnerableForSlammed(victim, duration);
-						}
-						L4D2Direct_DoAnimationEvent(victim, ANIM_CHARGER_GETUP);
-					}
-				}
+				// No self-clear get-up
+				pAnim.SetFlag(AnimState_GroundSlammed, false);
+				pAnim.SetFlag(AnimState_WallSlammed, false);
+			}
+		}
+		else
+		{
+			// long charged get-up
+			if ((pAnim.GetFlag(AnimState_GroundSlammed) && cvar_keepLongChargeLongGetUp.BoolValue)
+				|| (pAnim.GetFlag(AnimState_WallSlammed) && cvar_keepWallSlamLongGetUp.BoolValue))
+			{
+				SetInvulnerableForSlammed(victim, g_hLongChargeDuration.FloatValue);
 			}
 			else
 			{
-				// Fix double get-up
-				hAnim.SetFlag(AnimState_GroundSlammed, false);
-				hAnim.SetFlag(AnimState_WallSlammed, false);
+				if (pAnim.GetFlag(AnimState_GroundSlammed) || pAnim.GetFlag(AnimState_WallSlammed))
+				{
+					float duration = 2.0;
+					if (g_hChargeDuration != null)
+					{
+						duration = g_hChargeDuration.FloatValue;
+					}
+					SetInvulnerableForSlammed(victim, duration);
+				}
+				L4D2Direct_DoAnimationEvent(victim, ANIM_CHARGER_GETUP);
 			}
-			
-			g_iChargeVictim[client] = -1;
-			g_iChargeAttacker[victim] = -1;
-			g_fLastChargedEndTime[victim] = GetGameTime();
 		}
 	}
+	
+	g_iChargeVictim[client] = -1;
+	g_iChargeAttacker[victim] = -1;
+	g_fLastChargedEndTime[victim] = GetGameTime();
 }
 
 // Pounces on survivors being carried will invoke this instantly.
@@ -463,6 +448,25 @@ void Event_ChargerPummelStart(Event event, const char[] name, bool dontBroadcast
 	{
 		g_iChargeVictim[client] = victim;
 		g_iChargeAttacker[victim] = client;
+	}
+}
+
+void Event_ChargerPummelEnd(Event event, const char[] name, bool dontBroadcast)
+{
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	int victim = GetClientOfUserId(event.GetInt("victim"));
+	if (client && victim)
+	{
+		AnimState pAnim = AnimState(victim);
+		
+		// Fix double get-up
+		pAnim.SetFlag(AnimState_TankPunched, false);
+		pAnim.SetFlag(AnimState_Pounced, false);
+		
+		// Normal processes don't need special care
+		g_iChargeVictim[client] = -1;
+		g_iChargeAttacker[victim] = -1;
+		g_fLastChargedEndTime[victim] = GetGameTime();
 	}
 }
 
@@ -483,92 +487,17 @@ Action SDK_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 				g_iChargeVictim[attacker] = victim;
 				g_iChargeAttacker[victim] = attacker;
 				
-				AnimState hAnim = AnimState(victim);
-				hAnim.SetFlag(AnimState_Pounded, false);
-				hAnim.SetFlag(AnimState_Charged, false);
-				hAnim.SetFlag(AnimState_TankPunched, false);
-				hAnim.SetFlag(AnimState_Pounced, false);
-				hAnim.ResetMainActivity();
+				AnimState pAnim = AnimState(victim);
+				pAnim.SetFlag(AnimState_Pounded, false);
+				pAnim.SetFlag(AnimState_Charged, false);
+				pAnim.SetFlag(AnimState_TankPunched, false);
+				pAnim.SetFlag(AnimState_Pounced, false);
+				pAnim.ResetMainActivity();
 			}
 		}
 	}
 	
 	return Plugin_Continue;
-}
-
-/**
- * Tank
- */
-public void L4D_TankClaw_OnPlayerHit_Post(int tank, int claw, int player)
-{
-	if (GetClientTeam(player) == 2 && !L4D_IsPlayerIncapacitated(player))
-	{
-		if (GetEntPropEnt(player, Prop_Send, "m_pummelAttacker") != -1)
-		{
-			return;
-		}
-		
-		AnimState hAnim = AnimState(player);
-		
-		// Fix double get-up
-		hAnim.SetFlag(AnimState_Charged, false);
-		
-		// Fix double get-up when punching charger with victim to die
-		// Keep in mind that do not mess up with later attacks to the survivor
-		if (GetGameTime() - g_fLastChargedEndTime[player] <= 0.1)
-		{
-			hAnim.SetFlag(AnimState_TankPunched, false);
-		}
-		else
-		{
-			// Remove charger get-up that doesn't pass the check above
-			hAnim.SetFlag(AnimState_GroundSlammed, false);
-			hAnim.SetFlag(AnimState_WallSlammed, false);
-			hAnim.SetFlag(AnimState_Pounded, false);
-			
-			//if (longerTankPunchGetup.BoolValue)
-			//{
-				// 2022/7/24: check out https://github.com/Target5150/MoYu_Server_Stupid_Plugins/tree/master/The%20Last%20Stand/l4d_static_punch_getup
-				// DONE: Does not extend the get-up.
-				// Fixable, though I'd wonder if it's actually needed.
-				//L4D2Direct_DoAnimationEvent(player, 57); // ANIM_SHOVED_BY_TEAMMATE
-			//}
-			hAnim.ResetMainActivity();
-		}
-	}
-}
-
-public void L4D_OnKnockedDown_Post(int client, int reason)
-{
-	if (reason == KNOCKDOWN_TANK && GetClientTeam(client) == 2)
-	{
-		if (GetEntPropEnt(client, Prop_Send, "m_pummelAttacker") != -1)
-		{
-			return;
-		}
-		
-		AnimState hAnim = AnimState(client);
-		
-		// Fix double get-up
-		hAnim.SetFlag(AnimState_Charged, false);
-		
-		// Fix double get-up when punching charger with victim to die
-		// Keep in mind that do not mess up with later attacks to the survivor
-		if (GetGameTime() - g_fLastChargedEndTime[client] <= 0.1)
-		{
-			hAnim.SetFlag(AnimState_TankPunched, false);
-		}
-		else
-		{
-			// Remove charger get-up that doesn't pass the check above
-			hAnim.SetFlag(AnimState_GroundSlammed, false);
-			hAnim.SetFlag(AnimState_WallSlammed, false);
-			hAnim.SetFlag(AnimState_Pounded, false);
-			
-			// Restart the get-up sequence if already playing
-			hAnim.ResetMainActivity();
-		}
-	}
 }
 
 void SetInvulnerableForSlammed(int client, float duration)
@@ -584,5 +513,54 @@ void SetInvulnerableForSlammed(int client, float duration)
 		{
 			CTimer_Start(timer, duration);
 		}
+	}
+}
+
+/**
+ * Tank
+ */
+void ProcessAttackedByTank(int victim)
+{
+	if (GetEntPropEnt(victim, Prop_Send, "m_pummelAttacker") != -1)
+	{
+		return;
+	}
+	
+	AnimState pAnim = AnimState(victim);
+	
+	// Fix double get-up
+	pAnim.SetFlag(AnimState_Charged, false);
+	
+	// Fix double get-up when punching charger with victim to die
+	// Keep in mind that do not mess up with later attacks to the survivor
+	if (GetGameTime() - g_fLastChargedEndTime[victim] <= 0.1)
+	{
+		pAnim.SetFlag(AnimState_TankPunched, false);
+	}
+	else
+	{
+		// Remove charger get-up that doesn't pass the check above
+		pAnim.SetFlag(AnimState_GroundSlammed, false);
+		pAnim.SetFlag(AnimState_WallSlammed, false);
+		pAnim.SetFlag(AnimState_Pounded, false);
+		
+		// Restart the get-up sequence if already playing
+		pAnim.ResetMainActivity();
+	}
+}
+
+public void L4D_TankClaw_OnPlayerHit_Post(int tank, int claw, int player)
+{
+	if (GetClientTeam(player) == 2 && !L4D_IsPlayerIncapacitated(player))
+	{
+		ProcessAttackedByTank(player);
+	}
+}
+
+public void L4D_OnKnockedDown_Post(int client, int reason)
+{
+	if (reason == KNOCKDOWN_TANK && GetClientTeam(client) == 2)
+	{
+		ProcessAttackedByTank(client);
 	}
 }
