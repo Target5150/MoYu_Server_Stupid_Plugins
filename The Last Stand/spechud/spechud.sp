@@ -19,7 +19,7 @@
 #include <lerpmonitor>
 #include <witch_and_tankifier>
 
-#define PLUGIN_VERSION	"3.6.0"
+#define PLUGIN_VERSION	"3.7"
 
 public Plugin myinfo = 
 {
@@ -598,6 +598,12 @@ public Action HudDrawTimer(Handle hTimer)
 		for (int i = 0; i < arraysize; ++i)
 		{
 			int client = hSpecHudViewers.Get(i);
+			
+			switch (GetClientMenu(client))
+			{
+				case MenuSource_External, MenuSource_Normal: continue;
+			}
+			
 			SendPanelToClient(specHud, client, DummySpecHudHandler, 3);
 			if (!bSpecHudHintShown[client])
 			{
@@ -617,6 +623,12 @@ public Action HudDrawTimer(Handle hTimer)
 		for (int i = 0; i < arraysize; ++i)
 		{
 			int client = hTankHudViewers.Get(i);
+			
+			switch (GetClientMenu(client))
+			{
+				case MenuSource_External, MenuSource_Normal: continue;
+			}
+			
 			SendPanelToClient(tankHud, client, DummyTankHudHandler, 3);
 			if (!bTankHudHintShown[client])
 			{
