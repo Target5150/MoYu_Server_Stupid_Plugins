@@ -2,65 +2,43 @@
 #pragma newdecls required
 
 #include <sourcemod>
-#include <sdktools>
-#include <l4d2util_constants>
-#include "l4d2util_weapons.inc"
+#include <sdktools_functions>
 #undef REQUIRE_PLUGIN
 #include <readyup>
 
-#define DEBUG					0
-#define ENTITY_NAME_MAX_SIZE	64
+#define MAX_ITEM_STRING_LEN 64
 
 ConVar
 	g_hCvarItemType = null;
-
-bool
-	g_bItemDistributed = false;
 
 public Plugin myinfo =
 {
 	name = "Starting Items",
 	author = "CircleSquared, Jacob, A1m`, Forgetest",
 	description = "Gives health items and throwables to survivors at the start of each round",
-	version = "3.0",
+	version = "3.1",
 	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 };
 
 public void OnPluginStart()
 {
 	g_hCvarItemType = CreateConVar("starting_item_list", \
-		"pain_pills,first_aid_kit,smg_silenced,katana", \
-		"Item names to give on leaving the saferoom (without \"weapon_\" prefix, separated by \",\")\n" \
+		"health,pain_pills,first_aid_kit,smg_silenced,katana", \
+		"Item names to give on leaving the saferoom (via \"give\" command, separated by \",\")\n" \
 	...	"NOTE: Generally supported melees are limited, unsupported ones won't spawned. A list of them can be found in \"missions.txt\"." \
 	);
 
-	HookEvent("round_start", Event_RoundStart, EventHookMode_PostNoCopy);
 	HookEvent("player_left_start_area", Event_PlayerLeftStartArea, EventHookMode_PostNoCopy);
-
-	L4D2Weapons_Init();
-
-#if DEBUG
-	RegAdminCmd("sm_give_starting_items", Cmd_GiveStartingItems, ADMFLAG_KICK);
-#endif
-}
-
-void Event_RoundStart(Event hEvent, const char[] sEventName, bool bDontBroadcast)
-{
-	g_bItemDistributed = false;
 }
 
 public void OnRoundIsLive()
 {
-	g_bItemDistributed = true;
 	DetermineItems();
 }
 
 void Event_PlayerLeftStartArea(Event hEvent, const char[] sEventName, bool bDontBroadcast)
 {
-	if (!g_bItemDistributed) {
-		g_bItemDistributed = true;
-		DetermineItems();
-	}
+	OnRoundIsLive();
 }
 
 void DetermineItems()
@@ -77,54 +55,42 @@ void DetermineItems()
 	sItemString[len] = ','; // take care of remainder
 	sItemString[len+1] = '\0';
 	
-	StringMap hItemsStringMap = new StringMap();
-	char sBuffer[64] = "weapon_"; // items are without prefix
-	int wepid;
+	char sBuffer[MAX_ITEM_STRING_LEN];
+	ArrayList arrayItemString = new ArrayList(ByteCountToCells(MAX_ITEM_STRING_LEN));
 	
 	for ( int i = 0, j = 0;
 			(j = FindCharInString(sItemString[i], ',') + 1) != 0;
 			i += j
 	) {
-		if (j > sizeof(sBuffer) - 7) { // overflow
-			continue;
+		if (j > sizeof(sBuffer)) { // overflow
+			ThrowError("Could not hold value of \"%s\" containing invalid string.", sItemString);
 		}
 		
-		strcopy(sBuffer[7], j/* C strncpy */, sItemString[i]);
-		sBuffer[7 + j] = '\0';
+		strcopy(sBuffer, j/* C strncpy */, sItemString[i]);
+		sBuffer[j] = '\0';
 		
-		if ((wepid = WeaponNameToId(sBuffer)) != WEPID_NONE) {
-			hItemsStringMap.SetValue(sBuffer, GetSlotFromWeaponId(wepid));
-		} else if (MeleeWeaponNameToId(sBuffer[7]) != WEPID_MELEE_NONE) {
-			hItemsStringMap.SetValue(sBuffer[7], GetSlotFromWeaponId(WEPID_MELEE));
-		}
+		arrayItemString.PushString(sBuffer);
 	}
 	
-	GiveStartingItems(hItemsStringMap);
+	GiveStartingItems(arrayItemString);
 
-	delete hItemsStringMap;
+	delete arrayItemString;
 }
 
-void GiveStartingItems(StringMap hItemsStringMap)
+void GiveStartingItems(ArrayList arrayItemString)
 {
-	if (hItemsStringMap.Size < 1) {
-		return;
-	}
-
-	char sEntName[ENTITY_NAME_MAX_SIZE];
-	StringMapSnapshot hItemsSnapshot = hItemsStringMap.Snapshot();
-	int iSlotIndex, iSize = hItemsSnapshot.Length;
+	int maxlength = arrayItemString.BlockSize;
+	char[] sBuffer = new char[maxlength];
+	int iSize = arrayItemString.Length;
 
 	for (int i = 1; i <= MaxClients; i++) {
-		if (IsClientInGame(i) && GetClientTeam(i) == L4D2Team_Survivor && IsPlayerAlive(i)) {
+		if (IsClientInGame(i) && GetClientTeam(i) == 2 && IsPlayerAlive(i)) {
 			for (int j = 0; j < iSize; j++) {
-				hItemsSnapshot.GetKey(j, sEntName, sizeof(sEntName));
-				hItemsStringMap.GetValue(sEntName, iSlotIndex);
-				GivePlayerWeaponByName(i, sEntName);
+				arrayItemString.GetString(j, sBuffer, maxlength);
+				GivePlayerWeaponByName(i, sBuffer);
 			}
 		}
 	}
-
-	delete hItemsSnapshot;
 }
 
 void GivePlayerWeaponByName(int iClient, const char[] sWeaponName)
@@ -132,15 +98,8 @@ void GivePlayerWeaponByName(int iClient, const char[] sWeaponName)
 	// NOTE:
 	// Campaigns have customized supported melees configured by "meleeweapons",
 	// if trying to give unsupported melees, they won't spawn.
-	GivePlayerItem(iClient, sWeaponName); // Fixed only in the latest version of sourcemod 1.11
+	if (GivePlayerItem(iClient, sWeaponName) == -1) // Fixed only in the latest version of sourcemod 1.11
+	{
+		LogMessage("Attempt to give invalid item (%s)", sWeaponName);
+	}
 }
-
-#if DEBUG
-public Action Cmd_GiveStartingItems(int iClient, int iArgs)
-{
-	DetermineItems();
-	PrintToChat(iClient, "DetermineItems()");
-
-	return Plugin_Handled;
-}
-#endif
