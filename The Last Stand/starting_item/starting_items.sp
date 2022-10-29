@@ -11,12 +11,15 @@
 ConVar
 	g_hCvarItemType = null;
 
+bool
+	g_bItemDistributed = false;
+
 public Plugin myinfo =
 {
 	name = "Starting Items",
 	author = "CircleSquared, Jacob, A1m`, Forgetest",
 	description = "Gives health items and throwables to survivors at the start of each round",
-	version = "3.1",
+	version = "3.1.1",
 	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 };
 
@@ -28,12 +31,22 @@ public void OnPluginStart()
 	...	"NOTE: Generally supported melees are limited, unsupported ones won't spawned. A list of them can be found in \"missions.txt\"." \
 	);
 
+	HookEvent("round_start", Event_RoundStart, EventHookMode_PostNoCopy);
 	HookEvent("player_left_start_area", Event_PlayerLeftStartArea, EventHookMode_PostNoCopy);
 }
 
 public void OnRoundIsLive()
 {
-	DetermineItems();
+	if (!g_bItemDistributed)
+	{
+		g_bItemDistributed = true;
+		DetermineItems();
+	}
+}
+
+void Event_RoundStart(Event hEvent, const char[] sEventName, bool bDontBroadcast)
+{
+	g_bItemDistributed = false;
 }
 
 void Event_PlayerLeftStartArea(Event hEvent, const char[] sEventName, bool bDontBroadcast)
