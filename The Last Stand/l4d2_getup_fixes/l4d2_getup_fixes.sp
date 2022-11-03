@@ -472,7 +472,7 @@ void Event_ChargerPummelEnd(Event event, const char[] name, bool dontBroadcast)
 
 Action SDK_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3])
 {
-	if (!attacker || attacker > MaxClients)
+	if (attacker <= 0 || attacker > MaxClients)
 		return Plugin_Continue;
 	
 	if (GetClientTeam(victim) != 2 || GetClientTeam(attacker) != 3)
