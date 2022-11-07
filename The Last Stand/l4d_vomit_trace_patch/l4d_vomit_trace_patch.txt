@@ -11,6 +11,14 @@
 				"return"		"void"
 				"this"			"entity"
 			}
+			
+			"CBaseEntity::PhysicsSolidMaskForEntity"
+			{
+				"offset"		"CBaseEntity::PhysicsSolidMaskForEntity"
+				"hooktype"		"entity"
+				"return"		"int"
+				"this"			"ignore"
+			}
 		}
 		
 		"MemPatches"
@@ -67,6 +75,40 @@
 					"patch"			"\xEB\x02\x66\x90\x8B\xCE\xE8\x00\x00\x00\x00\x83\xF8\x03\x74"
 				}
 			}
+			
+			"OnVomitCollide__TraceRayMask_patch"
+			{
+				"signature"			"OnVomitCollide"
+				"linux"
+				{
+					"offset"		"15Bh"
+					"verify"		"\x0B\x40\x00\x46"
+					"patch"			"\x03\x40\x00\x46"
+				}
+				"windows"
+				{
+					"offset"		"5Ch"
+					"verify"		"\x0B\x40\x00\x46"
+					"patch"			"\x03\x40\x00\x46"
+				}
+			}
+			
+			"OnVomitCollide__ClipRayMask_patch"
+			{
+				"signature"			"OnVomitCollide"
+				"linux"
+				{
+					"offset"		"253h"
+					"verify"		"\x0B\x40\x00\x46"
+					"patch"			"\x03\x40\x00\x46"
+				}
+				"windows"
+				{
+					"offset"		"F1h"
+					"verify"		"\x0B\x40\x00\x46"
+					"patch"			"\x03\x40\x00\x46"
+				}
+			}
 		}
 
 		"Offsets"
@@ -81,6 +123,12 @@
 			{
 				"linux"		"1"
 				"windows"	"7"
+			}
+			
+			"CBaseEntity::PhysicsSolidMaskForEntity"
+			{
+				"linux"		"164"
+				"windows"	"163"
 			}
 		}
 		
@@ -115,6 +163,14 @@
 				"linux"			"@_ZNK11CBaseEntity13GetTeamNumberEv"
 				"windows"		"\x8B\x81\xEC\x01\x00\x00\xC3"
 				/* 8B 81 EC 01 00 00 C3 */
+			}
+			
+			"OnVomitCollide"
+			{
+				"library"		"server"
+				"linux"			"@_Z14OnVomitCollideP13CTerrorPlayerP11CBaseEntityS2_i6VectorS3_"
+				"windows"		"\x81\xEC\x2A\x2A\x2A\x2A\x8B\x84\x24\x2A\x2A\x2A\x2A\x8B\x8C\x24\x2A\x2A\x2A\x2A\x8B\x94\x24"
+				/* 81 EC ? ? ? ? 8B 84 24 ? ? ? ? 8B 8C 24 ? ? ? ? 8B 94 24 */
 			}
 		}
 	}

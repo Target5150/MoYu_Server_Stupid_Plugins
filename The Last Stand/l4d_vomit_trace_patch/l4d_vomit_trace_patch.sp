@@ -5,7 +5,7 @@
 #include <dhooks>
 #include <sourcescramble>
 
-#define PLUGIN_VERSION "2.3"
+#define PLUGIN_VERSION "2.4"
 
 public Plugin myinfo =
 {
@@ -23,6 +23,8 @@ MemoryPatch g_hPatch;
 DynamicHook g_hDHook;
 int g_iPatchOffs, g_iFuncOffs;
 
+DynamicHook g_hDHook_PhysicsSolidMaskForEntity;
+
 public void OnPluginStart()
 {
 	Handle conf = LoadGameConfigFile(GAMEDATA_FILE);
@@ -30,12 +32,16 @@ public void OnPluginStart()
 		SetFailState("Missing gamedata \"" ... GAMEDATA_FILE ... "\"");
 	
 	g_hPatch = MemoryPatch.CreateFromConf(conf, "ShouldHitEntity_MyInfectedPointer");
-	if (!g_hPatch || !g_hPatch.Validate())
+	if (!g_hPatch.Validate())
 		SetFailState("Failed to validate patch \"ShouldHitEntity_MyInfectedPointer\"");
 	
 	g_hDHook = DynamicHook.FromConf(conf, "CBaseAbility::UpdateAbility");
 	if (g_hDHook == null)
 		SetFailState("Failed to create dynamic hook on \"CBaseAbility::UpdateAbility\"");
+	
+	g_hDHook_PhysicsSolidMaskForEntity = DynamicHook.FromConf(conf, "CBaseEntity::PhysicsSolidMaskForEntity");
+	if (g_hDHook_PhysicsSolidMaskForEntity == null)
+		SetFailState("Failed to create dynamic hook on \"CBaseEntity::PhysicsSolidMaskForEntity\"");
 	
 	Address pGetTeamNumberFuncAddr = GameConfGetAddress(conf, "CBaseEntity_GetTeamNumber");
 	if (pGetTeamNumberFuncAddr == Address_Null)
@@ -47,6 +53,12 @@ public void OnPluginStart()
 	
 	g_iFuncOffs =
 		view_as<int>(pGetTeamNumberFuncAddr) - (view_as<int>(g_hPatch.Address) + (g_iPatchOffs - 1) + OP_CALL_SIZE);
+	
+	if (!MemoryPatch.CreateFromConf(conf, "OnVomitCollide__TraceRayMask_patch").Enable())
+		SetFailState("Failed to patch \"OnVomitCollide__TraceRayMask_patch\"");
+	
+	if (!MemoryPatch.CreateFromConf(conf, "OnVomitCollide__ClipRayMask_patch").Enable())
+		SetFailState("Failed to patch \"OnVomitCollide__ClipRayMask_patch\"");
 	
 	delete conf;
 	
@@ -71,7 +83,7 @@ void ApplyPatch(bool patch)
 	}
 }
 
-public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
+void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	if (!client || GetClientTeam(client) != 3 || GetEntProp(client, Prop_Send, "m_zombieClass") != 2)
@@ -82,18 +94,30 @@ public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast
 	{
 		g_hDHook.HookEntity(Hook_Pre, ability, CVomit_UpdateAbility);
 		g_hDHook.HookEntity(Hook_Post, ability, CVomit_UpdateAbility_Post);
+		
+		g_hDHook_PhysicsSolidMaskForEntity.HookEntity(Hook_Pre, ability, CVomit_PhysicsSolidMaskForEntity);
 	}
 }
 
-public MRESReturn CVomit_UpdateAbility(int pThis)
+MRESReturn CVomit_UpdateAbility(int pThis)
 {
 	if (GetEntProp(pThis, Prop_Send, "m_isSpraying"))
 	{
 		ApplyPatch(true);
 	}
+	
+	return MRES_Ignored;
 }
 
-public MRESReturn CVomit_UpdateAbility_Post(int pThis)
+MRESReturn CVomit_UpdateAbility_Post(int pThis)
 {
 	ApplyPatch(false);
+	
+	return MRES_Ignored;
+}
+
+MRESReturn CVomit_PhysicsSolidMaskForEntity(DHookReturn hReturn)
+{
+	hReturn.Value = 0x2004003;
+	return MRES_Supercede;
 }
