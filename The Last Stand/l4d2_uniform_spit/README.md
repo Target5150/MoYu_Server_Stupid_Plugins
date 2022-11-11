@@ -3,6 +3,7 @@
 ### Introduction
 - Custom version that provides several features.
 	1. Mimic vanilla behavior that damage changes per second according to a linear curve.
+		- ![Vanilla damage curve](https://github.com/Target5150/MoYu_Server_Stupid_Plugins/raw/master/The%20Last%20Stand/l4d2_uniform_spit/vanilladamagecurve.png)
 	2. Individual damage calculation for every player.
 		- Only meaningful if damage curve is used.
 
