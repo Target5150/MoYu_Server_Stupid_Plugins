@@ -57,8 +57,8 @@ public Plugin myinfo =
 	name = "L4D2 Uniform Spit",
 	author = "Visor, Sir, A1m`, Forgetest",
 	description = "Make the spit deal a set amount of DPS under all circumstances",
-	version = "2.0",
-	url = "https://github.com/SirPlease/L4D2-Competitive-Rework"
+	version = "2.0.1",
+	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 };
 
 public void OnPluginStart()
@@ -117,6 +117,9 @@ int StringToFloatArray(const char[] buffer, const char[] split, float[] array, i
 	
 	char[][] buffers = new char[size][MAX_FLOAT_STRING_SIZE];
 	int numStrings = ExplodeString(buffer, split, buffers, size, MAX_FLOAT_STRING_SIZE, true);
+	
+	if (numStrings == 0)
+		return 0;
 	
 	if (numStrings > size)
 		numStrings = size;
