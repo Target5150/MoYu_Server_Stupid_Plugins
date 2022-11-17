@@ -5,7 +5,7 @@
 #include <sdktools>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "1.1"
+#define PLUGIN_VERSION "1.1.1"
 
 public Plugin myinfo =
 {
@@ -135,8 +135,6 @@ ArrayList g_aAreaFlows;
 
 float g_flMapMaxFlowDistance;
 
-bool g_bShouldContinue;
-
 public void OnPluginStart()
 {
 	GameData conf = new GameData("l4d_consistent_escaperoute");
@@ -203,17 +201,7 @@ public void OnPluginStart()
 	g_aSpawnPathAreas = new ArrayList();
 	g_aAreaFlows = new ArrayList(NUM_OF_FLOW_INFO);
 	
-	HookEvent("round_start", Event_RoundStart);
 	HookEvent("round_start_post_nav", Event_RoundStartPostNav);
-}
-
-void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
-{
-	if (!L4D_IsVersusMode())
-		return;
-	
-	if (!InSecondHalfOfRound())
-		g_bShouldContinue = false;
 }
 
 void Event_RoundStartPostNav(Event event, const char[] name, bool dontBroadcast)
@@ -224,36 +212,42 @@ void Event_RoundStartPostNav(Event event, const char[] name, bool dontBroadcast)
 	g_spawnPath = LoadFromAddress(g_pSpawnPath, NumberType_Int32);
 	TheNavAreas = NavAreaVector(g_pTheNavAreas);
 	
-	if (InSecondHalfOfRound() && g_bShouldContinue)
+	if (InSecondHalfOfRound())
 	{
-		for (int i = 0; i < g_spawnPath.m_nMainPathAreaCount; ++i)
+		if (g_aAreaFlows.Length)
 		{
-			TerrorNavArea area = g_spawnPath.GetMainPathArea(i);
-			area.RemoveSpawnAttributes(NAV_SPAWN_ESCAPE_ROUTE);
-		}
-		
-		PrintToServer("[l4d_consistent_escaperoute] Second half (%i / %i nav) (%.5f)", g_spawnPath.m_nMainPathAreaCount, TheNavAreas.Size(), g_flMapMaxFlowDistance);
-		
-		for (int i = 0; i < g_aAreaFlows.Length; ++i)
-		{
-			TerrorNavArea area = TheNavMesh.GetNavAreaByID(g_aAreaFlows.Get(i, NAV_AREA_ID));
-			area.m_flowToGoal = g_aAreaFlows.Get(i, FLOW_TO_GOAL);
-			area.m_flowFromStart = g_aAreaFlows.Get(i, FLOW_FROM_START);
-		}
-		
-		g_spawnPath.ResetPath();
-		
-		for (int i = 0; i < g_aSpawnPathAreas.Length; ++i)
-		{
-			int id = g_aSpawnPathAreas.Get(i);
+			for (int i = 0; i < g_aAreaFlows.Length; ++i)
+			{
+				TerrorNavArea area = TheNavMesh.GetNavAreaByID(g_aAreaFlows.Get(i, NAV_AREA_ID));
+				area.m_flowToGoal = g_aAreaFlows.Get(i, FLOW_TO_GOAL);
+				area.m_flowFromStart = g_aAreaFlows.Get(i, FLOW_FROM_START);
+			}
 			
-			TerrorNavArea area = TheNavMesh.GetNavAreaByID(id);
-			g_spawnPath.AddArea(area);
+			TheNavMesh.m_flMapMaxFlowDistance = g_flMapMaxFlowDistance;
 		}
 		
-		g_spawnPath.FinishPath();
-		
-		TheNavMesh.m_flMapMaxFlowDistance = g_flMapMaxFlowDistance;
+		if (g_aSpawnPathAreas.Length)
+		{
+			for (int i = 0; i < g_spawnPath.m_nMainPathAreaCount; ++i)
+			{
+				TerrorNavArea area = g_spawnPath.GetMainPathArea(i);
+				area.RemoveSpawnAttributes(NAV_SPAWN_ESCAPE_ROUTE);
+			}
+			
+			PrintToServer("[l4d_consistent_escaperoute] Second half (%i / %i nav) (%.5f)", g_spawnPath.m_nMainPathAreaCount, TheNavAreas.Size(), g_flMapMaxFlowDistance);
+			
+			g_spawnPath.ResetPath();
+			
+			for (int i = 0; i < g_aSpawnPathAreas.Length; ++i)
+			{
+				int id = g_aSpawnPathAreas.Get(i);
+				
+				TerrorNavArea area = TheNavMesh.GetNavAreaByID(id);
+				g_spawnPath.AddArea(area);
+			}
+			
+			g_spawnPath.FinishPath();
+		}
 		
 		PrintToServer("[l4d_consistent_escaperoute] Restored escape route from last half (%i / %i nav)", g_aSpawnPathAreas.Length, TheNavAreas.Size());
 	}
@@ -280,8 +274,6 @@ void Event_RoundStartPostNav(Event event, const char[] name, bool dontBroadcast)
 		g_flMapMaxFlowDistance = TheNavMesh.m_flMapMaxFlowDistance;
 		
 		PrintToServer("[l4d_consistent_escaperoute] Cached escape route of first half (%i / %i nav) (%.5f)", g_aSpawnPathAreas.Length, TheNavAreas.Size(), g_flMapMaxFlowDistance);
-		
-		g_bShouldContinue = true;
 	}
 }
 
