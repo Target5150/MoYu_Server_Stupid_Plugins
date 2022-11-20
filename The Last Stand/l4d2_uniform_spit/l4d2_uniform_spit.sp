@@ -14,21 +14,22 @@
 
 #define DMG_TYPE_SPIT (DMG_RADIATION|DMG_ENERGYBEAM)
 
-enum
+enum struct PuddleInfo
 {
-	eCount = 0,
-	eAltTick,
-	eLastTime,
-	
-	eArray_Size
-};
+	int iCount;
+	bool bAltTick;
+	float flDamageTime;
+	float flResetTime;
+	Address pLastArea;
+}
 
 ConVar
 	g_hCvarDamagePerTick,
 	g_hCvarAlternateDamagePerTwoTicks,
 	g_hCvarMaxTicks,
 	g_hCvarGodframeTicks,
-	g_hCvarIndividualCalc;
+	g_hCvarIndividualCalc,
+	g_hCvarResumeTicks;
 
 StringMap
 	g_hPuddles;
@@ -57,17 +58,18 @@ public Plugin myinfo =
 	name = "L4D2 Uniform Spit",
 	author = "Visor, Sir, A1m`, Forgetest",
 	description = "Make the spit deal a set amount of DPS under all circumstances",
-	version = "2.0.1",
+	version = "2.1",
 	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 };
 
 public void OnPluginStart()
 {
-	g_hCvarDamagePerTick = CreateConVar("l4d2_spit_dmg", "0.0/1.0/2.0/4.0/6.0/6.0/4.0/1.4", "Linear curve of damage per second that the spit inflicts. -1 to skip damage adjustments");
+	g_hCvarDamagePerTick = CreateConVar("l4d2_spit_dmg", "0.0/1.0/2.0/4.0/6.0/6.0/4.0/1.4", "Linear curve of damage per second that the spit inflicts (separated by \"/\"). -1 to skip damage adjustments");
 	g_hCvarAlternateDamagePerTwoTicks = CreateConVar("l4d2_spit_alternate_dmg", "-1.0", "Damage per alternate tick. -1 to disable");
 	g_hCvarMaxTicks = CreateConVar("l4d2_spit_max_ticks", "28", "Maximum number of acid damage ticks");
 	g_hCvarGodframeTicks = CreateConVar("l4d2_spit_godframe_ticks", "4", "Number of initial godframed acid ticks");
 	g_hCvarIndividualCalc = CreateConVar("l4d2_spit_individual_calc", "0", "Individual damage calculation for every player.");
+	g_hCvarResumeTicks = CreateConVar("l4d2_spit_resume_ticks", "6", "Tolerance window of ticks that individual damage calculation can resume from last state.");
 	
 	g_hCvarDamagePerTick.AddChangeHook(CvarsChanged);
 	g_hCvarAlternateDamagePerTwoTicks.AddChangeHook(CvarsChanged);
@@ -171,8 +173,8 @@ public void OnEntityCreated(int iEntity, const char[] sClassName)
 		char sTrieKey[MAX_INT_STRING_SIZE];
 		IntToString(iEntity, sTrieKey, sizeof(sTrieKey));
 
-		int iVictimArray[MAXPLAYERS + 1][eArray_Size];
-		g_hPuddles.SetArray(sTrieKey, iVictimArray[0][0], (sizeof(iVictimArray) * sizeof(iVictimArray[])));
+		PuddleInfo[] iVictimArray = new PuddleInfo[MaxClients+1];
+		g_hPuddles.SetArray(sTrieKey, iVictimArray[0], ((MaxClients+1) * sizeof(PuddleInfo)));
 	}
 }
 
@@ -205,46 +207,58 @@ Action Hook_OnTakeDamage(int iVictim, int &iAttacker, int &iInflictor, float &fD
 	char sTrieKey[MAX_INT_STRING_SIZE];
 	IntToString(iInflictor, sTrieKey, sizeof(sTrieKey));
 
-	int iVictimArray[MAXPLAYERS + 1][eArray_Size];
-	if (g_hPuddles.GetArray(sTrieKey, iVictimArray[0][0], (sizeof(iVictimArray) * sizeof(iVictimArray[])))) {
-		iVictimArray[iVictim][eCount]++;
+	PuddleInfo[] iVictimArray = new PuddleInfo[MaxClients+1];
+	if (g_hPuddles.GetArray(sTrieKey, iVictimArray[0], ((MaxClients+1) * sizeof(PuddleInfo)))) {
+		
+		iVictimArray[iVictim].iCount++;
 		
 		// Check to see if it's a godframed tick
-		if ((GetPuddleLifetime(iInflictor) >= g_iGodframeTicks * TICK_TIME) && iVictimArray[iVictim][eCount] < g_iGodframeTicks) {
-			iVictimArray[iVictim][eCount] = g_iGodframeTicks + 1;
+		if ((GetPuddleLifetime(iInflictor) >= g_iGodframeTicks * TICK_TIME) && iVictimArray[iVictim].iCount < g_iGodframeTicks) {
+			iVictimArray[iVictim].iCount = g_iGodframeTicks + 1;
 		}
 		
-		float flTempTimestamp = ITimer_GetTimestamp(GetInfernoActiveTimer(iInflictor));
+		float flActiveSince = ITimer_GetTimestamp(GetInfernoActiveTimer(iInflictor));
 		
 		if (g_bIndividualCalc) {
-			float flNow = GetGameTime();
-			if (flNow - view_as<float>(iVictimArray[iVictim][eLastTime]) <= 1.0) {
-				flTempTimestamp = view_as<float>(iVictimArray[iVictim][eLastTime]);
-			} else {
-				iVictimArray[iVictim][eLastTime] = view_as<int>(flNow);
+			// Area check to help determine if the victim was godframed
+			Address area = L4D_GetLastKnownArea(iVictim);
+			Address lastArea = iVictimArray[iVictim].pLastArea;
+			
+			if (lastArea == Address_Null || area != lastArea) {
+				iVictimArray[iVictim].pLastArea = area;
 			}
+			
+			float flNow = GetGameTime();
+			if (iVictimArray[iVictim].flDamageTime == 0.0
+				|| (area != lastArea && flNow > iVictimArray[iVictim].flResetTime)
+			) {
+				iVictimArray[iVictim].flDamageTime = flNow;
+			}
+			
+			iVictimArray[iVictim].flResetTime = flNow + TICK_TIME * g_hCvarResumeTicks.IntValue;
+			flActiveSince = iVictimArray[iVictim].flDamageTime;
 		}
 
 		// Let's see what do we have here
-		float flDamageThisTick = GetDamagePerTick(flTempTimestamp);
+		float flDamageThisTick = GetDamagePerTick(flActiveSince);
 		if (flDamageThisTick > -1.0) {
-			if (g_fAlternatePerTick > -1.0 && iVictimArray[iVictim][eAltTick]) {
-				iVictimArray[iVictim][eAltTick] = false;
+			if (g_fAlternatePerTick > -1.0 && iVictimArray[iVictim].bAltTick) {
+				iVictimArray[iVictim].bAltTick = false;
 				fDamage = g_fAlternatePerTick;
 			} else {
 				fDamage = flDamageThisTick;
-				iVictimArray[iVictim][eAltTick] = true;
+				iVictimArray[iVictim].bAltTick = true;
 			}
 		}
 		
 		// Update the array with stored tickcounts
-		g_hPuddles.SetArray(sTrieKey, iVictimArray[0][0], (sizeof(iVictimArray) * sizeof(iVictimArray[])));
+		g_hPuddles.SetArray(sTrieKey, iVictimArray[0], ((MaxClients+1) * sizeof(PuddleInfo)));
 		
-		if (g_iGodframeTicks >= iVictimArray[iVictim][eCount] || iVictimArray[iVictim][eCount] > g_iMaxTicks) {
+		if (g_iGodframeTicks >= iVictimArray[iVictim].iCount || iVictimArray[iVictim].iCount > g_iMaxTicks) {
 			fDamage = 0.0;
 		}
 		
-		if (iVictimArray[iVictim][eCount] > g_iMaxTicks) {
+		if (iVictimArray[iVictim].iCount > g_iMaxTicks) {
 			KillEntity(iInflictor);
 		}
 		
