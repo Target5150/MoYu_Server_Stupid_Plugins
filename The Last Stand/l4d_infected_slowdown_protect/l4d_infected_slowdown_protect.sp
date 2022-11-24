@@ -20,6 +20,7 @@ bool g_bLateLoad;
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	g_bLateLoad = late;
+	return APLRes_Success;
 }
 
 public void OnPluginStart()
