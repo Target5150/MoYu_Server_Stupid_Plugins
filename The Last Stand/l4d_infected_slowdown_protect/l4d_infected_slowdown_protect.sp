@@ -63,8 +63,6 @@ Action SDK_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 	if (flTemp < 1.0)
 		flVelocityMod = flTemp;
 	
-	PrintToChat(victim, "PreDamage : %f", flVelocityMod);
-	
 	return Plugin_Continue;
 }
 
@@ -75,8 +73,6 @@ void SDK_OnTakeDamage_Post(int victim, int attacker, int inflictor, float damage
 		if (IsClientInGame(victim) && !IsIncapacitated(victim) && IsPlayerAlive(victim))
 		{
 			SetEntPropFloat(victim, Prop_Send, "m_flVelocityModifier", flVelocityMod);
-	
-			PrintToChat(victim, "PostDamage : %f", flVelocityMod);
 		}
 		
 		flVelocityMod = -1.0;
