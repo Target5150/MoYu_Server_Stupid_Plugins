@@ -4,7 +4,7 @@
 #include <sourcemod>
 #include <sdkhooks>
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo =
 {
@@ -43,20 +43,16 @@ public void OnClientPutInServer(int client)
 float flVelocityMod = -1.0;
 Action SDK_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
-	flVelocityMod = -1.0;
+	if (flVelocityMod != -1.0)
+		flVelocityMod = -1.0;
 	
-	if (!(damagetype & ((DMG_BULLET|DMG_BUCKSHOT)		// regular friendly-fire
-					| (DMG_RADIATION|DMG_ENERGYBEAM)	// spit
-					| DMG_CLUB							// melee / claw
-					| DMG_PLASMA))						// workaround for plugin l4d2_shotgun_ff
-	) {
+	if (!attacker || attacker > MaxClients)
 		return Plugin_Continue;
-	}
+	
+	if (!IsClientInGame(attacker))
+		return Plugin_Continue;
 	
 	if (GetClientTeam(victim) != 2)
-		return Plugin_Continue;
-	
-	if (attacker > MaxClients)
 		return Plugin_Continue;
 	
 	float flTemp = GetEntPropFloat(victim, Prop_Send, "m_flVelocityModifier");
@@ -68,15 +64,17 @@ Action SDK_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 
 void SDK_OnTakeDamage_Post(int victim, int attacker, int inflictor, float damage, int damagetype)
 {
-	if (flVelocityMod != -1.0)
-	{
-		if (IsClientInGame(victim) && !IsIncapacitated(victim) && IsPlayerAlive(victim))
-		{
-			SetEntPropFloat(victim, Prop_Send, "m_flVelocityModifier", flVelocityMod);
-		}
-		
-		flVelocityMod = -1.0;
-	}
+	if (flVelocityMod == -1.0)
+		return;
+	
+	if (!IsClientInGame(victim))
+		return;
+	
+	if (IsIncapacitated(victim) || !IsPlayerAlive(victim))
+		return;
+	
+	if (1.0 == GetEntPropFloat(victim, Prop_Send, "m_flVelocityModifier"))
+		SetEntPropFloat(victim, Prop_Send, "m_flVelocityModifier", flVelocityMod);
 }
 
 stock bool IsIncapacitated(int client)
