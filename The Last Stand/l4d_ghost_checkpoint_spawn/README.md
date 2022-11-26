@@ -15,17 +15,18 @@
 // Default: "0" | Range: [0, 2]
 z_ghost_unrestricted_spawn_in_start 0
 
+// Allow ghost to materialize in end saferoom.
+// 0 = Disable, 1 = All maps
+// -
+// Default: "0" | Range: [0, 1]
+z_ghost_unrestricted_spawn_in_end 0
+
 // L4D1 only. Allow ghost to materialize in start saferoom when all survivors leave.
 // 0 = Disable, 1 = Enable
 // -
 // Default: "0" | Range: [0, 1]
 l4d1_ghost_spawn_in_start 0
 ```
-
-<hr>
-
-### Requirement
-- [Source Scramble](https://forums.alliedmods.net/showthread.php?t=317175)
 
 <hr>
 
@@ -36,4 +37,6 @@ l4d1_ghost_spawn_in_start 0
 <hr>
 
 ### Changelog
+(v1.1 2022/11/26 UTC+8) In favor of SDKHooks
+
 (v1.0 2022/11/26 UTC+8) Initial release.
