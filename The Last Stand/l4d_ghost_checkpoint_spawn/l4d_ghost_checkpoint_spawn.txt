@@ -2,62 +2,12 @@
 {
 	"left4dead"
 	{
-		"MemPatches"
-		{
-			"CTerrorPlayer::OnPreThinkGhostState__GetInitialCheckpoint_patch"
-			{
-				"linux"
-				{
-					"offset"	"8C5h"
-					"verify"	"\xE8"
-					"preserve"	"\xFF\xFF\xFF\xFF\xFF"
-					"patch"		"\x00\x00\x00\x00\x00"
-				}
-				"windows"
-				{
-					"offset"	"1E7h"
-					"verify"	"\xE8"
-					"preserve"	"\xFF\xFF\xFF\xFF\xFF"
-					"patch"		"\x00\x00\x00\x00\x00"
-				}
-			}
-			
-			"CTerrorPlayer::OnPreThinkGhostState__GetInitialCheckpoint_patch2"
-			{
-				"linux"
-				{
-					"offset"	"92Ah"
-					"verify"	"\xE8"
-					"preserve"	"\xFF\xFF\xFF\xFF\xFF"
-					"patch"		"\x00\x00\x00\x00\x00"
-				}
-				"windows"
-				{
-					"offset"	"502h"
-					"verify"	"\xE8"
-					"preserve"	"\xFF\xFF\xFF\xFF\xFF"
-					"patch"		"\x00\x00\x00\x00\x00"
-				}
-			}
-		}
-		
 		"Offsets"
 		{
 			"CDirector::m_bLastSurvivorLeftStartArea"
 			{
 				"windows"		"361"
 				"linux"			"357"
-			}
-		}
-		
-		"Signatures"
-		{
-			"TerrorNavMesh::GetLastCheckpoint"
-			{
-				"library"		"server"
-				"linux"			"@_ZNK13TerrorNavMesh17GetLastCheckpointEv"
-				"windows"		" 8B 91 ? ? ? ? 56 33 C0 85 D2 57 7E ? 8B B1 ? ? ? ? 8B"
-								/* 8B 91 ? ? ? ? 56 33 C0 85 D2 57 7E ? 8B B1 ? ? ? ? 8B */
 			}
 		}
 	}

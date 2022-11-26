@@ -2,10 +2,10 @@
 #pragma newdecls required
 
 #include <sourcemod>
-#include <sourcescramble>
+#include <sdkhooks>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo =
 {
@@ -17,39 +17,7 @@ public Plugin myinfo =
 };
 
 #define GAMEDATA_FILE "l4d_ghost_checkpoint_spawn"
-#define PATCH_INITIAL_CHECKPOINT "CTerrorPlayer::OnPreThinkGhostState__GetInitialCheckpoint_patch"
 #define OFFSET_LAST_SURVIVOR_LEFT_START_AREA "CDirector::m_bLastSurvivorLeftStartArea"
-
-#define OPCODE_CALL_NEAR 0xE8
-
-enum struct L4D1CheckpointSpawnPatch
-{
-	MemoryPatch m_patches[2];
-	Address m_pfnGetLastCheckpoint;
-	
-	void Init(GameData conf) {
-		this.m_patches[0] = MemoryPatch.CreateFromConf(conf, PATCH_INITIAL_CHECKPOINT);
-		this.m_patches[1] = MemoryPatch.CreateFromConf(conf, PATCH_INITIAL_CHECKPOINT..."2");
-		
-		if (!this.m_patches[0].Validate() || !this.m_patches[1].Validate())
-			SetFailState("Failed to validate patch \""...PATCH_INITIAL_CHECKPOINT..."\"");
-		
-		this.m_pfnGetLastCheckpoint = conf.GetMemSig("TerrorNavMesh::GetLastCheckpoint");
-		if (this.m_pfnGetLastCheckpoint == Address_Null)
-			SetFailState("Missing signature \"TerrorNavMesh::GetLastCheckpoint\"");
-	}
-	
-	void Enable() {
-		this.m_patches[0].Enable(), this.m_patches[1].Enable();
-		PatchNearJump(OPCODE_CALL_NEAR, this.m_patches[0].Address, this.m_pfnGetLastCheckpoint);
-		PatchNearJump(OPCODE_CALL_NEAR, this.m_patches[1].Address, this.m_pfnGetLastCheckpoint);
-	}
-	
-	void Disable() {
-		this.m_patches[0].Disable(), this.m_patches[1].Disable();
-	}
-}
-L4D1CheckpointSpawnPatch g_L4D1SpawnPatch;
 
 int g_iOffs_LastSurvivorLeftStartArea;
 methodmap CDirector
@@ -60,7 +28,8 @@ methodmap CDirector
 }
 CDirector TheDirector;
 
-bool g_bIntroCondition, g_bGlobalCondition;
+bool g_bL4D1Spawn;
+bool g_bIntroCondition, g_bGlobalStartCondition, g_bGlobalEndCondition;
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
@@ -84,9 +53,6 @@ public void OnPluginStart()
 	if (conf == null)
 		SetFailState("Missing gamedata \""...GAMEDATA_FILE..."\"");
 	
-	if (!bLeft4Dead2)
-		g_L4D1SpawnPatch.Init(conf);
-	
 	g_iOffs_LastSurvivorLeftStartArea = conf.GetOffset(OFFSET_LAST_SURVIVOR_LEFT_START_AREA);
 	if (g_iOffs_LastSurvivorLeftStartArea == -1)
 		SetFailState("Missing offset \""...OFFSET_LAST_SURVIVOR_LEFT_START_AREA..."\"");
@@ -100,8 +66,17 @@ public void OnPluginStart()
 						...	"0 = Disable, 1 = Intro maps only, 2 = All maps",
 							FCVAR_SPONLY|FCVAR_NOTIFY,
 							true, 0.0, true, 2.0);
-	CVarChg_UnrestrictedSpawn(cv, "", "");
-	cv.AddChangeHook(CVarChg_UnrestrictedSpawn);
+	CVarChg_UnrestrictedSpawnInStart(cv, "", "");
+	cv.AddChangeHook(CVarChg_UnrestrictedSpawnInStart);
+	
+	cv = CreateConVar("z_ghost_unrestricted_spawn_in_end",
+							"0",
+							"Allow ghost to materialize in end saferoom.\n"
+						...	"0 = Disable, 1 = All maps",
+							FCVAR_SPONLY|FCVAR_NOTIFY,
+							true, 0.0, true, 1.0);
+	CVarChg_UnrestrictedSpawnInEnd(cv, "", "");
+	cv.AddChangeHook(CVarChg_UnrestrictedSpawnInEnd);
 	
 	if (bLeft4Dead2)
 		return;
@@ -116,30 +91,75 @@ public void OnPluginStart()
 	cv.AddChangeHook(CVarChg_L4D1SpawnPatch);
 }
 
-void CVarChg_UnrestrictedSpawn(ConVar convar, const char[] oldValue, const char[] newValue)
+void CVarChg_UnrestrictedSpawnInStart(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	int val = convar.IntValue;
 	
 	g_bIntroCondition = val == 1;
-	g_bGlobalCondition = val == 2;
+	g_bGlobalStartCondition = val == 2;
+}
+
+void CVarChg_UnrestrictedSpawnInEnd(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	g_bGlobalEndCondition = convar.BoolValue;
 }
 
 void CVarChg_L4D1SpawnPatch(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	convar.BoolValue ? g_L4D1SpawnPatch.Enable() : g_L4D1SpawnPatch.Disable();
+	g_bL4D1Spawn = convar.BoolValue;
 }
 
 public void L4D_OnFirstSurvivorLeftSafeArea_Post(int client)
 {
-	if (g_bGlobalCondition
+	if (g_bGlobalStartCondition
 		|| (L4D_IsFirstMapInScenario() && g_bIntroCondition)
 	) {
 		TheDirector.m_bLastSurvivorLeftStartArea = true;
 	}
 }
 
-void PatchNearJump(int instruction, Address src, Address dest)
+public void L4D_OnEnterGhostState(int client)
 {
-	StoreToAddress(src, instruction, NumberType_Int8);
-	StoreToAddress(src + view_as<Address>(1), view_as<int>(dest - src) - 5, NumberType_Int32);
+	if (!IsClientInGame(client) || IsFakeClient(client))
+		return;
+	
+	if (g_bL4D1Spawn || g_bGlobalEndCondition)
+		SDKHook(client, SDKHook_PreThinkPost, SDK_OnPreThink_Post);
+}
+
+void SDK_OnPreThink_Post(int client)
+{
+	if (!IsClientInGame(client))
+		return;
+	
+	if (!L4D_IsPlayerGhost(client))
+	{
+		SDKUnhook(client, SDKHook_PreThinkPost, SDK_OnPreThink_Post);
+	}
+	else
+	{
+		int spawnstate = L4D_GetPlayerGhostSpawnState(client);
+		if (~spawnstate & L4D_SPAWNFLAG_RESTRICTEDAREA)
+			return;
+		
+		Address area = L4D_GetLastKnownArea(client);
+		if (area == Address_Null)
+			return;
+		
+		// Some stupid maps like Blood Harvest finale and The Passing finale have CHECKPOINT inside a FINALE marked area.
+		int spawnattr = L4D_GetNavArea_SpawnAttributes(area);
+		if (~spawnattr & NAV_SPAWN_CHECKPOINT || spawnattr & NAV_SPAWN_FINALE)
+			return;
+		
+		float flow = L4D2Direct_GetTerrorNavAreaFlow(area);
+		if (flow > 2500.0)
+		{
+			if (!g_bGlobalEndCondition)
+				return;
+		}
+		else if (!g_bL4D1Spawn)
+			return;
+		
+		L4D_SetPlayerGhostSpawnState(client, spawnstate & ~L4D_SPAWNFLAG_RESTRICTEDAREA);
+	}
 }
