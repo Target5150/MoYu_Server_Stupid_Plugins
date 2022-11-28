@@ -8,8 +8,8 @@
 	
 	"RemainingHealth_AI"
 	{
-		"#format"	"{1:d}"
-		"en"		"{default}[{green}!{default}] {blue}Tank {default}({olive}AI{default}) had {green}{1} {default}health remaining"
+		"#format"	"{1:s},{2:d}"
+		"en"		"{default}[{green}!{default}] {blue}Tank {default}({olive}AI{default}) had {green}{2} {default}health remaining"
 	}
 	
 	"RemainingHealth_HumanControlled"
@@ -26,6 +26,7 @@
 	
 	"DamageDealt_AI"
 	{
+		"#format"	"{1:s}"
 		"en"		"{default}[{green}!{default}] {blue}Damage {default}dealt to {blue}Tank {default}({olive}AI{default})"
 	}
 	

@@ -25,9 +25,13 @@
 * - Merged with `l4d2_tank_facts_announce`
 * - TODO: Some style settings.
 * @Forgetest
+
+* Version 2.1
+* - Added support to print names of AI Tank.
+* @Forgetest
 */    
 
-#define PLUGIN_VERSION "2.0"
+#define PLUGIN_VERSION "2.1"
 
 public Plugin myinfo =
 {
@@ -246,6 +250,19 @@ Action SDK_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 	return Plugin_Continue;
 }
 
+public void L4D_OnSpawnTank_Post(int client, const float vecPos[3], const float vecAng[3])
+{
+	if (client <= 0)
+		return;
+	
+	int userid = GetClientUserId(client);
+	
+	// New tank, damage has not been announced
+	g_bIsTankInPlay = true;
+	g_aTankInfo.UserSet(userid, SurvivorInfoVector, new UserVector(NUM_SURVIVOR_INFO), true);
+	g_aTankInfo.UserSet(userid, AliveSince, GetGameTime());
+}
+
 void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {
 	g_bIsTankInPlay = false;
@@ -432,19 +449,6 @@ void Event_PlayerKilled(Event event, const char[] name, bool dontBroadcast)
 	}
 }
 
-public void L4D_OnSpawnTank_Post(int client, const float vecPos[3], const float vecAng[3])
-{
-	if (client <= 0)
-		return;
-	
-	int userid = GetClientUserId(client);
-	
-	// New tank, damage has not been announced
-	g_bIsTankInPlay = true;
-	g_aTankInfo.UserSet(userid, SurvivorInfoVector, new UserVector(NUM_SURVIVOR_INFO), true);
-	g_aTankInfo.UserSet(userid, AliveSince, GetGameTime());
-}
-
 Action Timer_CheckTank(Handle timer, int userid)
 {
 	int client = GetClientOfUserId(userid);
@@ -462,7 +466,7 @@ Action Timer_CheckTank(Handle timer, int userid)
 	return Plugin_Stop;
 }
 
-bool FindTankPlayerName(int userid, char[] name, int maxlen)
+bool FindTankControlName(int userid, char[] name, int maxlen)
 {
 	int client = GetClientOfUserId(userid);
 	
@@ -474,10 +478,10 @@ bool FindTankPlayerName(int userid, char[] name, int maxlen)
 	int lastControlUserid;
 	if (g_aTankInfo.UserGet(userid, LastControlUserid, lastControlUserid))
 	{
-		// CPrintToChatAll("{default}[{green}!{default}] {blue}Tank {default}({olive}%s{default}) had {green}%d {default}health remaining", name, g_iLastTankHealth);
 		return GetClientNameFromUserId(lastControlUserid, name, maxlen);
 	}
 	
+	GetClientName(client, name, maxlen);
 	return false;
 }
 
@@ -486,7 +490,7 @@ void PrintTitle(int userid)
 	int client = GetClientOfUserId(userid);
 	
 	char name[MAX_NAME_LENGTH];
-	bool bHumanControlled = FindTankPlayerName(userid, name, sizeof(name));
+	bool bHumanControlled = FindTankControlName(userid, name, sizeof(name));
 	
 	if (IsPlayerAlive(client))
 	{
@@ -498,7 +502,7 @@ void PrintTitle(int userid)
 			if (bHumanControlled)
 				CPrintToChatAll("%t", "RemainingHealth_Frustrated", name, lastHealth);
 			else
-				CPrintToChatAll("%t", "RemainingHealth_AI", lastHealth);
+				CPrintToChatAll("%t", "RemainingHealth_AI", name, lastHealth);
 		}
 		else
 		{
@@ -512,7 +516,7 @@ void PrintTitle(int userid)
 			if (bHumanControlled)
 				CPrintToChatAll("%t", "DamageDealt_Frustrated", name);
 			else
-				CPrintToChatAll("%t", "DamageDealt_AI");
+				CPrintToChatAll("%t", "DamageDealt_AI", name);
 		}
 		else
 		{
@@ -556,7 +560,6 @@ void PrintTankInfo(int paramuserid = 0)
 			percent = RoundToNearest(float(damage) / flMaxHealth * 100.0);
 			GetClientNameFromUserId(survivorVector.User(i), name, sizeof(name));
 			
-			// CPrintToChatAll("{blue}[{default}%d{blue}] ({default}%i%%{blue}) {olive}%N", damage, percent_damage, client);		
 			CPrintToChatAll("%t", "DamageToTank", damage, percent, name);
 		}
 		
