@@ -1,0 +1,77 @@
+"Phrases"
+{
+	"RemainingHealth_Frustrated"
+	{
+		"#format"	"{1:s},{2:d}"
+		"en"		"{default}[{green}!{default}] {blue}Tank {default}({olive}AI [{1}]{default}) had {green}{2} {default}health remaining"
+	}
+	
+	"RemainingHealth_AI"
+	{
+		"#format"	"{1:d}"
+		"en"		"{default}[{green}!{default}] {blue}Tank {default}({olive}AI{default}) had {green}{1} {default}health remaining"
+	}
+	
+	"RemainingHealth_HumanControlled"
+	{
+		"#format"	"{1:s},{2:d}"
+		"en"		"{default}[{green}!{default}] {blue}Tank {default}({olive}{1}{default}) had {green}{2} {default}health remaining"
+	}
+	
+	"DamageDealt_Frustrated"
+	{
+		"#format"	"{1:s}"
+		"en"		"{default}[{green}!{default}] {blue}Damage {default}dealt to {blue}Tank {default}({olive}AI [{1}]{default})"
+	}
+	
+	"DamageDealt_AI"
+	{
+		"en"		"{default}[{green}!{default}] {blue}Damage {default}dealt to {blue}Tank {default}({olive}AI{default})"
+	}
+	
+	"DamageDealt_HumanControlled"
+	{
+		"#format"	"{1:s}"
+		"en"		"{default}[{green}!{default}] {blue}Damage {default}dealt to {blue}Tank {default}({olive}{1}{default})"
+	}
+	
+	"DamageToTank"
+	{
+		"#format"	"{1:d},{2:d},{3:s}"
+		"en"		"{blue}[{default}{1}{blue}] ({default}{2}%%{blue}) {olive}{3}"
+	}
+	
+	"Announce_Title"
+	{
+		"#format"	"{1:s}"
+		"en"		"[{green}!{default}] {blue}Facts {default}of the {blue}Tank {default}({olive}{1}{default})"
+	}
+	
+	// CSayText appears to be async or via text stream?, whatever it costs random amount of time.
+	// For unknown reason stacking color tags can slow certain processing of message.
+	// To print messages in a proper order, extra tags should be added in front.
+	
+	"Announce_TankAttack"
+	{
+		"#format"	"{1:d},{2:d},{3:d}"
+		"en"		"{red}{green}> {default}Punch: {red}{1} {green}/ {default}Rock: {red}{2} {green}/ {default}Hittable: {red}{3}"
+	}
+	
+	"Announce_AttackResult"
+	{
+		"#format"	"{1:d},{2:d}"
+		"en"		"{blue}{blue}{green}> {default}Incap: {olive}{1} {green}/ {default}Death: {olive}{2} {default}from {blue}Survivors"
+	}
+	
+	"Announce_Summary_WithMinute"
+	{
+		"#format"	"{1:d},{2:d},{3:d}"
+		"en"		"{lightgreen}{lightgreen}{lightgreen}{green}> {default}Duration: {lightgreen}{1}min {2}s {green}/ {default}Total damage: {lightgreen}{3}"
+	}
+	
+	"Announce_Summary_WithoutMinute"
+	{
+		"#format"	"{1:d},{2:d}"
+		"en"		"{lightgreen}{lightgreen}{lightgreen}{green}> {default}Duration: {lightgreen}{1}s {green}/ {default}Total damage: {lightgreen}{2}"
+	}
+}
