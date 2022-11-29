@@ -39,7 +39,7 @@
 * @Forgetest
 */    
 
-#define PLUGIN_VERSION "2.2"
+#define PLUGIN_VERSION "2.2.1"
 
 public Plugin myinfo =
 {
@@ -544,18 +544,12 @@ bool FindTankControlName(int userid, char[] name, int maxlen)
 
 void PrintTitle(const char[] name, int lastHealth, bool bAI, bool bAlive, bool bHumanControlled, bool bFacts)
 {
-	static const char ksControlType[][] = {
-		"HumanControlled",
-		"AI",
-		"Frustrated"
-	};
-	
 	char sTranslation[64];
 	FormatEx(sTranslation,
 			sizeof(sTranslation),
 			"%s_%s",
 			bFacts ? "FactsTitle" : (bAlive ? "RemainingHealth" : "DamageDealt"),
-			ksControlType[view_as<int>(bAI) + view_as<int>(bHumanControlled)]);
+			bAI ? (bHumanControlled ? "Frustrated" : "AI") : "HumanControlled");
 	
 	if (bAlive)
 		CPrintToChatAll("%t", sTranslation, name, lastHealth);
