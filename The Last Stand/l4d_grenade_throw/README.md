@@ -8,7 +8,7 @@
 	2. Emit grenades earlier (defaults to **0.1s** after releasing **M1** in CS:GO).
 		- From releasing M1 to grenade actually flies.
 - Recommended settings for CS:GO like experience:
-	- `grenade_throw_windup_time 0.1`
+	- `grenade_throw_windup_time 0.0`
 	- `grenade_throw_delay 0.1` (Bindings for jump-throw could work)
 
 <hr>
