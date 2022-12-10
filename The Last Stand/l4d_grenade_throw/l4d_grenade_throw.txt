@@ -1,0 +1,89 @@
+"Games"
+{
+	"#default"
+	{
+		"#supported"
+		{
+			"engine"			"left4dead"
+			"engine"			"left4dead2"
+		}
+		
+		"Functions"
+		{
+			"CBaseCSGrenade::PrimaryAttack"
+			{
+				"signature"		"CBaseCSGrenade::PrimaryAttack"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"entity"
+			}
+			
+			"CBaseCSGrenade::StartGrenadeThrow"
+			{
+				"signature"		"CBaseCSGrenade::StartGrenadeThrow"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"entity"
+			}
+		}
+		
+		"Signatures"
+		{
+			"CBaseCSGrenade::PrimaryAttack"
+			{
+				"library"	"server"
+				"linux"		"@_ZN14CBaseCSGrenade13PrimaryAttackEv"
+			}
+			
+			"CBaseCSGrenade::StartGrenadeThrow"
+			{
+				"library"	"server"
+				"linux"		"@_ZN14CBaseCSGrenade17StartGrenadeThrowEv"
+			}
+		}
+	}
+	
+	"left4dead"
+	{
+		"Signatures"
+		{
+			// Search string "ThrewGrenade".
+			"CBaseCSGrenade::PrimaryAttack"
+			{
+				"library"	"server"
+				"windows"	"\x83\xEC\x2A\x53\x55\x56\x8B\xF1\x80\xBE\x2A\x2A\x2A\x2A\x2A\x57\x0F\x85"
+							/* 83 EC ? 53 55 56 8B F1 80 BE ? ? ? ? ? 57 0F 85 */
+			}
+			
+			// The last 4 function in Vtable.
+			"CBaseCSGrenade::StartGrenadeThrow"
+			{
+				"library"	"server"
+				"windows"	"\x51\xA1\x2A\x2A\x2A\x2A\xD9\x40\x2A\x56\xD8\x05"
+							/* 51 A1 ? ? ? ? D9 40 ? 56 D8 05 */
+			}
+		}
+	}
+	
+	"left4dead2"
+	{
+		"Signatures"
+		{
+			// Search string "ThrewGrenade".
+			"CBaseCSGrenade::PrimaryAttack"
+			{
+				"library"	"server"
+				"windows"	"\x55\x8B\xEC\x81\xEC\x2A\x2A\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x33\xC5\x89\x45\xFC\x53\x56\x8B\xF1\x80"
+							/* 55 8B EC 81 EC ? ? ? ? A1 ? ? ? ? 33 C5 89 45 FC 53 56 8B F1 80 */
+			}
+			
+			// The last 4 function in Vtable.
+			"CBaseCSGrenade::StartGrenadeThrow"
+			{
+				"library"	"server"
+				"windows"	"\x55\x8B\xEC\x51\xA1\x2A\x2A\x2A\x2A\xF3\x0F\x10\x40\x2A\xF3\x0F\x58\x05"
+							/* 55 8B EC 51 A1 ? ? ? ? F3 0F 10 40 ? F3 0F 58 05 */
+			}
+		}
+	}
+}
