@@ -6,7 +6,19 @@
 #include <colors>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "1.2"
+#undef REQUIRE_PLUGIN
+
+#tryinclude <l4d_info_editor>
+#if !defined _info_editor_included
+ native void InfoEditor_GetString(int pThis, const char[] keyname, char[] dest, int destLen);
+#endif
+
+#tryinclude <confogl>
+#if !defined _confogl_Included
+ native int LGO_BuildConfigPath(char[] buffer, int maxlength, const char[] sFileName);
+#endif
+
+#define PLUGIN_VERSION "1.3"
 
 public Plugin myinfo = 
 {
@@ -20,6 +32,8 @@ public Plugin myinfo =
 #define ABS(%0) (((%0) < 0) ? -(%0) : (%0))
 
 float g_flDelay;
+bool g_bLateLoad, g_bLeft4Dead2;
+int g_iMapDistance, g_iNextMapDistance;
 
 #define TRANSLATION_FILE "l4d2_score_difference.phrases"
 void LoadPluginTranslations()
@@ -33,6 +47,23 @@ void LoadPluginTranslations()
 	LoadTranslations(TRANSLATION_FILE);
 }
 
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+	switch (GetEngineVersion())
+	{
+		case Engine_Left4Dead: g_bLeft4Dead2 = false;
+		case Engine_Left4Dead2: g_bLeft4Dead2 = true;
+		default:
+		{
+			strcopy(error, err_max, "Plugin supports L4D & 2 only");
+			return APLRes_SilentFailure;
+		}
+	}
+	
+	g_bLateLoad = late;
+	return APLRes_Success;
+}
+
 public void OnPluginStart()
 {
 	LoadPluginTranslations();
@@ -40,11 +71,58 @@ public void OnPluginStart()
 	ConVar cv = CreateConVar("l4d2_scorediff_print_delay", "5.0", "Delay in printing score difference.", FCVAR_SPONLY|FCVAR_NOTIFY, true, 0.0);
 	OnConVarChanged(cv, "", "");
 	cv.AddChangeHook(OnConVarChanged);
+	
+	if (g_bLateLoad)
+	{
+		L4D_OnFirstSurvivorLeftSafeArea_Post(-1);
+	}
 }
 
 void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	g_flDelay = convar.FloatValue;
+}
+
+public void L4D_OnFirstSurvivorLeftSafeArea_Post(int client)
+{
+	g_iMapDistance = L4D_GetVersusMaxCompletionScore();
+}
+
+public void OnGetMissionInfo(int pThis)
+{
+	g_iNextMapDistance = 0;
+	
+	if (!g_bLeft4Dead2)
+		return;
+	
+	int iNextChapter = L4D_GetCurrentChapter() + 1;
+	char buffer[64], ret[64];
+	
+	FormatEx(buffer, sizeof(buffer), "modes/versus/%i/VersusCompletionScore", iNextChapter);
+	InfoEditor_GetString(pThis, buffer, ret, sizeof(ret));
+	
+	if (!StringToIntEx(ret, g_iNextMapDistance))
+	{
+		if (iNextChapter <= L4D_GetMaxChapters())
+		{
+			g_iNextMapDistance = 800 - 100 * (L4D_GetMaxChapters() - iNextChapter);
+		}
+	}
+	
+	if (GetFeatureStatus(FeatureType_Native, "LGO_BuildConfigPath") == FeatureStatus_Available)
+	{
+		FormatEx(buffer, sizeof(buffer), "modes/versus/%i/Map", iNextChapter);
+		InfoEditor_GetString(pThis, buffer, ret, sizeof(ret));
+		
+		KeyValues kv = new KeyValues("MapInfo");
+		LGO_BuildConfigPath(buffer, sizeof(buffer), "mapinfo.txt");
+		if (kv.ImportFromFile(buffer) && kv.JumpToKey(ret))
+		{
+			g_iNextMapDistance = kv.GetNum("map_distance", g_iNextMapDistance);
+		}
+		
+		delete kv;
+	}
 }
 
 public void L4D2_OnEndVersusModeRound_Post()
@@ -56,6 +134,48 @@ public void L4D2_OnEndVersusModeRound_Post()
 		else
 			Timer_PrintDifference(null);
 	}
+	else
+	{
+		if (g_flDelay >= 0.1)
+			CreateTimer(g_flDelay, Timer_PrintComeback, _, TIMER_FLAG_NO_MAPCHANGE);
+		else
+			Timer_PrintComeback(null);
+	}
+}
+
+Action Timer_PrintComeback(Handle timer)
+{
+	int iSurvCampaignScore = GetCampaignScore(L4D2_TeamNumberToTeamIndex(2));
+	int iInfCampaignScore = GetCampaignScore(L4D2_TeamNumberToTeamIndex(3));
+	
+	int iTotalDifference = ABS(iSurvCampaignScore - iInfCampaignScore);
+	
+	if (TranslationPhraseExists("Announce_Survivor"))
+		CPrintToChatAll("%t", "Announce_Survivor", iSurvCampaignScore);
+	
+	if (TranslationPhraseExists("Announce_Infected"))
+		CPrintToChatAll("%t", "Announce_Infected", iInfCampaignScore);
+	
+	if (g_bLeft4Dead2)
+	{
+		if (iTotalDifference <= g_iMapDistance)
+		{
+			if (TranslationPhraseExists("Announce_ComebackWithDistance"))
+				CPrintToChatAll("%t", "Announce_ComebackWithDistance", iTotalDifference);
+		}
+		else
+		{
+			if (TranslationPhraseExists("Announce_ComebackWithBonus"))
+				CPrintToChatAll("%t", "Announce_ComebackWithBonus", g_iMapDistance, iTotalDifference - g_iMapDistance);
+		}
+	}
+	else
+	{
+		if (TranslationPhraseExists("Announce_ComebackWithBonus_L4D1"))
+			CPrintToChatAll("%t", "Announce_ComebackWithBonus_L4D1", iTotalDifference);
+	}
+	
+	return Plugin_Stop;
 }
 
 Action Timer_PrintDifference(Handle timer)
@@ -84,16 +204,26 @@ Action Timer_PrintDifference(Handle timer)
 	if (TranslationPhraseExists("Announce_Infected"))
 		CPrintToChatAll("%t", "Announce_Infected", iInfCampaignScore);
 	
-	int iMapDistance = L4D_GetVersusMaxCompletionScore();
-	if (iTotalDifference <= iMapDistance)
+	if (g_bLeft4Dead2)
 	{
-		if (TranslationPhraseExists("Announce_ComebackWithDistance"))
-			CPrintToChatAll("%t", "Announce_ComebackWithDistance", iTotalDifference);
+		if (!L4D_IsMissionFinalMap() && g_iNextMapDistance > 0)
+		{
+			if (iTotalDifference <= g_iNextMapDistance)
+			{
+				if (TranslationPhraseExists("Announce_ComebackWithDistance"))
+					CPrintToChatAll("%t", "Announce_ComebackWithDistance", iTotalDifference);
+			}
+			else
+			{
+				if (TranslationPhraseExists("Announce_ComebackWithBonus"))
+					CPrintToChatAll("%t", "Announce_ComebackWithBonus", g_iNextMapDistance, iTotalDifference - g_iNextMapDistance);
+			}
+		}
 	}
 	else
 	{
-		if (TranslationPhraseExists("Announce_ComebackWithBonus"))
-			CPrintToChatAll("%t", "Announce_ComebackWithBonus", iMapDistance, iTotalDifference - iMapDistance);
+		if (TranslationPhraseExists("Announce_ComebackWithBonus_L4D1"))
+			CPrintToChatAll("%t", "Announce_ComebackWithBonus_L4D1", iTotalDifference);
 	}
 	
 	return Plugin_Stop;
@@ -101,7 +231,7 @@ Action Timer_PrintDifference(Handle timer)
 
 int GetChapterScore(int team)
 {
-	if (L4D_IsEngineLeft4Dead1())
+	if (!g_bLeft4Dead2)
 	{
 		switch (team)
 		{
