@@ -37,9 +37,15 @@
 * - Added another 3 text styles (one is disabling extra prints).
 * - Added a few natives written by @nikita1824.
 * @Forgetest
-*/    
 
-#define PLUGIN_VERSION "2.2.1"
+* Version 2.3
+* - Fixed a case where there's no print if an AI as Tank is kicked. (Reported by @Alan)
+* - Added a variant to separate lines printing style. (Requested by @Alan)
+* - Added a new field "Index" to Tank info to indicate the number of Tank spawned on current map.
+* @Forgetest
+*/
+
+#define PLUGIN_VERSION "2.3"
 
 public Plugin myinfo =
 {
@@ -148,6 +154,7 @@ enum
 
 enum
 {
+	Index,					// Serial number of Tanks spawned on this map
 	Incap,					// Total Survivor incaps
 	Death,					// Total Survivor death
 	TotalDamage,			// Total damage done to Survivors
@@ -163,7 +170,8 @@ UserVector g_aTankInfo;		// Every Tank has a slot here along with relationships.
 StringMap g_smUserNames;	// Simple map from userid to player names.
 
 int 
-	g_iPlayerLastHealth[MAXPLAYERS+1];				// Used for Tank damage record
+	g_iPlayerLastHealth[MAXPLAYERS+1],				// Used for Tank damage record
+	g_iTankIndex;									// Used to index every Tank
 
 bool
 	g_bIsTankInPlay				= false,            // Whether or not the tank is active
@@ -179,8 +187,11 @@ enum
 	STYLE_FACTS_BEGIN,
 	Style_Combined = 1,
 	
+	STYLE_SEPARATE_REVERSE_BEGIN,
+	Style_Separate_Reverse = 2,
+	
 	STYLE_SEPARATE_BEGIN,
-	Style_Separate = 2,
+	Style_Separate = 3,
 	Stype_SeparateDelay,
 	
 	NUM_TEXT_STYLE
@@ -242,9 +253,13 @@ public void OnPluginStart()
 	g_hTextStyle = CreateConVar("l4d_tankdamage_text_style",
 										"2",
 										"Text style for how tank facts are printed.\n"
-									...	"0 = Nothing, 1 = Combine with damage print, 2 = Separate lines, 3 = Individually print with a delay.",
+									...	"0 = Nothing\n"
+									...	"1 = Combine with damage print\n"
+									...	"2 = Separate lines before damage print\n"
+									...	"3 = Separate lines after damage print\n"
+									...	"4 = Individually print with a delay.",
 										FCVAR_SPONLY|FCVAR_NOTIFY,
-										true, 0.0, true, 3.0);
+										true, 0.0, true, 4.0);
 	
 	if (g_bLateLoad)
 	{
@@ -268,6 +283,11 @@ public void OnClientDisconnect(int client)
 	IntToString(userid, key, sizeof(key));
 	GetClientName(client, name, sizeof(name));
 	g_smUserNames.SetString(key, name);
+	
+	if (IsFakeClient(client))
+	{
+		PrintTankInfo(userid);
+	}
 }
 
 Action SDK_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
@@ -307,18 +327,21 @@ public void L4D_OnSpawnTank_Post(int client, const float vecPos[3], const float 
 	
 	int userid = GetClientUserId(client);
 	
+	++g_iTankIndex;
+	
 	// New tank, damage has not been announced
 	g_bIsTankInPlay = true;
 	g_aTankInfo.UserSet(userid, SurvivorInfoVector, new UserVector(NUM_SURVIVOR_INFO), true);
 	g_aTankInfo.UserSet(userid, AliveSince, GetGameTime());
-	g_aTankInfo.UserSet(userid, TankLastHealth, GetEntProp(client, Prop_Send, "m_iMaxHealth"));
+	g_aTankInfo.UserSet(userid, TankLastHealth, -1);
+	g_aTankInfo.UserSet(userid, Index, g_iTankIndex);
 }
 
 void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {
-	g_bIsTankInPlay = false;
+	g_iTankIndex = 0;
 	g_smUserNames.Clear();
-	ClearTankInfo(); // Probably redundant
+	ClearTankInfo();
 }
 
 // When survivors wipe or juke tank, announce damage
@@ -327,7 +350,6 @@ void Event_RoundEnd(Event event, const char[] name, bool dontBroadcast)
 	// But only if a tank that hasn't been killed exists
 	PrintTankInfo();
 	ClearTankInfo();
-	g_bIsTankInPlay = false;
 }
 
 void Event_PlayerBotReplace(Event event, const char[] name, bool dontBroadcast)
@@ -506,19 +528,20 @@ void Event_PlayerKilled(Event event, const char[] name, bool dontBroadcast)
 	}
 }
 
+// xref: OnClientDisconnect, Event_PlayerKilled
 Action Timer_CheckTank(Handle timer, int userid)
 {
-	int client = GetClientOfUserId(userid);
-	if (!client || !IsClientInGame(client))
-		return Plugin_Stop;
+	int temp;
 	
-	if (!IsTank(client))
-		return Plugin_Stop;
-	
-	PrintTankInfo(userid);
-	ClearTankInfo(userid);
-	Call_StartForward(fwdOnTankDeath);
-	Call_Finish();
+	// straight searching for the index, if success it indicates no replace has happened
+	// so the user is the final control of the Tank
+	if (g_aTankInfo.UserIndex(userid, temp, false))
+	{
+		PrintTankInfo(userid);
+		ClearTankInfo(userid);
+		Call_StartForward(fwdOnTankDeath);
+		Call_Finish();
+	}
 	
 	return Plugin_Stop;
 }
@@ -533,7 +556,7 @@ bool FindTankControlName(int userid, char[] name, int maxlen)
 	}
 	
 	int lastControlUserid;
-	if (g_aTankInfo.UserGet(userid, LastControlUserid, lastControlUserid))
+	if (g_aTankInfo.UserGet(userid, LastControlUserid, lastControlUserid) && lastControlUserid)
 	{
 		return GetClientNameFromUserId(lastControlUserid, name, maxlen);
 	}
@@ -542,7 +565,7 @@ bool FindTankControlName(int userid, char[] name, int maxlen)
 	return false;
 }
 
-void PrintTitle(const char[] name, int lastHealth, bool bAI, bool bAlive, bool bHumanControlled, bool bFacts)
+void PrintTitle(const char[] name, int lastHealth, bool bAI, bool bAlive, bool bHumanControlled, bool bFacts, int index)
 {
 	char sTranslation[64];
 	FormatEx(sTranslation,
@@ -552,9 +575,9 @@ void PrintTitle(const char[] name, int lastHealth, bool bAI, bool bAlive, bool b
 			bAI ? (bHumanControlled ? "Frustrated" : "AI") : "HumanControlled");
 	
 	if (bAlive)
-		CPrintToChatAll("%t", sTranslation, name, lastHealth);
+		CPrintToChatAll("%t", sTranslation, name, lastHealth, index);
 	else
-		CPrintToChatAll("%t", sTranslation, name);
+		CPrintToChatAll("%t", sTranslation, name, index);
 }
 
 void PrintTankInfo(int paramuserid = 0)
@@ -573,24 +596,37 @@ void PrintTankInfo(int paramuserid = 0)
 		int userid = g_aTankInfo.User(index);
 		int client = GetClientOfUserId(userid);
 		
-		char name[MAX_NAME_LENGTH];
-		bool bHumanControlled = FindTankControlName(userid, name, sizeof(name));
+		char controlName[MAX_NAME_LENGTH];
+		bool bHumanControlled = FindTankControlName(userid, controlName, sizeof(controlName));
+		
+		int maxHealth = GetEntProp(client, Prop_Send, "m_iMaxHealth");
 		
 		int lastHealth = g_aTankInfo.Get(index, TankLastHealth);
-		PrintTitle(name,
+		if (lastHealth == -1)
+			lastHealth = maxHealth;
+		
+		int tankindex = g_aTankInfo.Get(index, Index);
+		
+		PrintTitle(controlName,
 				lastHealth,
 				IsFakeClient(client),
 				IsPlayerAlive(client),
 				bHumanControlled,
-				false);
+				false,
+				tankindex);
+		
+		if (style == Style_Separate_Reverse)
+		{
+			PrintTankFacts(index, false);
+		}
 		
 		UserVector survivorVector = g_aTankInfo.Get(index, SurvivorInfoVector);
 		survivorVector.SortCustom(SortADT_DamageDesc);
 		
-		float flMaxHealth = GetEntProp(client, Prop_Send, "m_iMaxHealth") + 0.0;
-		
+		// Tank damage
+		char name[MAX_NAME_LENGTH];
 		int damage, damageReceived, percent;
-		int total_punch, total_rock, total_hittable;
+		int punch, rock, hittable;
 		
 		for (int i = 0; i < survivorVector.Length; ++i)
 		{
@@ -599,20 +635,18 @@ void PrintTankInfo(int paramuserid = 0)
 			
 			// basic tank damage announce
 			damage = survivorVector.Get(i, DamageDone);
-			percent = RoundToNearest(float(damage) / flMaxHealth * 100.0);
 			
-			// see what type of facts announce is used
-			if (style == Style_Combined) // dont need to add up
+			// TODO:
+			// Original version takes care of round up issue where sum of percentages goes over 100%.
+			// I decided to keep it simple at first but might consider a restore if it happens a lot.
+			percent = RoundToNearest(float(damage) / maxHealth * 100.0);
+			
+			// combined style
+			if (style == Style_Combined)
 			{
-				total_punch = survivorVector.Get(i, Punch);
-				total_rock = survivorVector.Get(i, Rock);
-				total_hittable = survivorVector.Get(i, Hittable);
-			}
-			else if (style >= STYLE_SEPARATE_BEGIN)
-			{
-				total_punch += survivorVector.Get(i, Punch);
-				total_rock += survivorVector.Get(i, Rock);
-				total_hittable += survivorVector.Get(i, Hittable);
+				punch = survivorVector.Get(i, Punch);
+				rock = survivorVector.Get(i, Rock);
+				hittable = survivorVector.Get(i, Hittable);
 				damageReceived = survivorVector.Get(i, DamageReceived);
 			}
 			
@@ -620,7 +654,7 @@ void PrintTankInfo(int paramuserid = 0)
 			if (damage > 0 || (style == Style_Combined && damageReceived))
 			{
 				if (style == Style_Combined)
-					CPrintToChatAll("%t", "DamageToTank_Combined", damage, percent, name, total_punch, total_rock, total_hittable, damageReceived);
+					CPrintToChatAll("%t", "DamageToTank_Combined", damage, percent, name, punch, rock, hittable, damageReceived);
 				else
 					CPrintToChatAll("%t", "DamageToTank", damage, percent, name);
 			}
@@ -628,38 +662,63 @@ void PrintTankInfo(int paramuserid = 0)
 		
 		if (style >= STYLE_SEPARATE_BEGIN)
 		{
-			int total_incap = g_aTankInfo.Get(index, Incap);
-			int total_death = g_aTankInfo.Get(index, Death);
-			int total_damage = g_aTankInfo.Get(index, TotalDamage);
-			
-			int iAliveDuration = RoundToFloor(GetGameTime() - view_as<float>(g_aTankInfo.Get(index, AliveSince)));
-	
-			DataPack dp = new DataPack();
-			dp.WriteCell(total_punch);
-			dp.WriteCell(total_rock);
-			dp.WriteCell(total_hittable);
-			dp.WriteCell(total_incap);
-			dp.WriteCell(total_death);
-			dp.WriteCell(total_damage);
-			dp.WriteCell(iAliveDuration);
-			
-			if (style == Style_Separate)
-			{
-				Timer_PrintTankFacts(null, dp);
-				delete dp;
-			}
-			else // Stype_SeparateDelay
-			{
-				dp.WriteString(name);
-				dp.WriteCell(IsFakeClient(client));
-				dp.WriteCell(IsPlayerAlive(client));
-				dp.WriteCell(bHumanControlled);
-				CreateTimer(3.0, Timer_PrintTankFacts, dp, TIMER_FLAG_NO_MAPCHANGE|TIMER_DATA_HNDL_CLOSE);
-			}
+			PrintTankFacts(index, style == Stype_SeparateDelay);
 		}
 		
 		if (paramuserid > 0)
 			break;
+	}
+}
+
+void PrintTankFacts(int index, bool delay)
+{
+	int userid = g_aTankInfo.User(index);
+	int client = GetClientOfUserId(userid);
+	
+	int total_punch = 0;
+	int total_rock = 0;
+	int total_hittable = 0;
+	int total_incap = g_aTankInfo.Get(index, Incap);
+	int total_death = g_aTankInfo.Get(index, Death);
+	int total_damage = g_aTankInfo.Get(index, TotalDamage);
+	
+	int iAliveDuration = RoundToFloor(GetGameTime() - view_as<float>(g_aTankInfo.Get(index, AliveSince)));
+	
+	int tankindex = g_aTankInfo.Get(index, Index);
+
+	UserVector survivorVector = g_aTankInfo.Get(index, SurvivorInfoVector);
+	for (int i = 0; i < survivorVector.Length; ++i)
+	{
+		total_punch += survivorVector.Get(i, Punch);
+		total_rock += survivorVector.Get(i, Rock);
+		total_hittable += survivorVector.Get(i, Hittable);
+	}
+	
+	DataPack dp = new DataPack();
+	dp.WriteCell(total_punch);
+	dp.WriteCell(total_rock);
+	dp.WriteCell(total_hittable);
+	dp.WriteCell(total_incap);
+	dp.WriteCell(total_death);
+	dp.WriteCell(total_damage);
+	dp.WriteCell(iAliveDuration);
+	
+	if (!delay) // Style_Separate
+	{
+		Timer_PrintTankFacts(null, dp);
+		delete dp;
+	}
+	else // Stype_SeparateDelay
+	{
+		char controlName[MAX_NAME_LENGTH];
+		bool bHumanControlled = FindTankControlName(userid, controlName, sizeof(controlName));
+		
+		dp.WriteString(controlName);
+		dp.WriteCell(IsFakeClient(client));
+		dp.WriteCell(IsPlayerAlive(client));
+		dp.WriteCell(bHumanControlled);
+		dp.WriteCell(tankindex);
+		CreateTimer(3.0, Timer_PrintTankFacts, dp, TIMER_FLAG_NO_MAPCHANGE|TIMER_DATA_HNDL_CLOSE);
 	}
 }
 
@@ -689,7 +748,9 @@ Action Timer_PrintTankFacts(Handle timer, DataPack dp)
 		bool bAlive = dp.ReadCell();
 		bool bHumanControlled = dp.ReadCell();
 		
-		PrintTitle(name, 0, bAI, bAlive, bHumanControlled, true);
+		int tankindex = dp.ReadCell();
+		
+		PrintTitle(name, 0, bAI, bAlive, bHumanControlled, true, tankindex);
 	}
 	
 	CPrintToChatAll("%t", "Announce_TankAttack", total_punch, total_rock, total_hittable);

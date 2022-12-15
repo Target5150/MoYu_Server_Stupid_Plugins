@@ -2,37 +2,43 @@
 {
 	"RemainingHealth_Frustrated"
 	{
-		"#format"	"{1:s},{2:d}"
+		// name, lastHealth, index
+		"#format"	"{1:s},{2:d},{3:d}"
 		"en"		"{default}[{green}!{default}] {blue}Tank {default}({olive}AI [{1}]{default}) had {green}{2} {default}health remaining"
 	}
 	
 	"RemainingHealth_AI"
 	{
-		"#format"	"{1:s},{2:d}"
+		// name, lastHealth, index
+		"#format"	"{1:s},{2:d},{3:d}"
 		"en"		"{default}[{green}!{default}] {blue}Tank {default}({olive}AI{default}) had {green}{2} {default}health remaining"
 	}
 	
 	"RemainingHealth_HumanControlled"
 	{
-		"#format"	"{1:s},{2:d}"
+		// name, lastHealth, index
+		"#format"	"{1:s},{2:d},{3:d}"
 		"en"		"{default}[{green}!{default}] {blue}Tank {default}({olive}{1}{default}) had {green}{2} {default}health remaining"
 	}
 	
 	"DamageDealt_Frustrated"
 	{
-		"#format"	"{1:s}"
+		// name, index
+		"#format"	"{1:s},{2:d}"
 		"en"		"{default}[{green}!{default}] {blue}Damage {default}dealt to {blue}Tank {default}({olive}AI [{1}]{default})"
 	}
 	
 	"DamageDealt_AI"
 	{
-		"#format"	"{1:s}"
+		// name, index
+		"#format"	"{1:s},{2:d}"
 		"en"		"{default}[{green}!{default}] {blue}Damage {default}dealt to {blue}Tank {default}({olive}AI{default})"
 	}
 	
 	"DamageDealt_HumanControlled"
 	{
-		"#format"	"{1:s}"
+		// name, index
+		"#format"	"{1:s},{2:d}"
 		"en"		"{default}[{green}!{default}] {blue}Damage {default}dealt to {blue}Tank {default}({olive}{1}{default})"
 	}
 	
@@ -54,19 +60,22 @@
 	
 	"FactsTitle_Frustrated"
 	{
-		"#format"	"{1:s}"
+		// name, index
+		"#format"	"{1:s},{2:d}"
 		"en"		"[{green}!{default}] {blue}Facts {default}of the {blue}Tank {default}({olive}AI [{1}]{default})"
 	}
 	
 	"FactsTitle_AI"
 	{
-		"#format"	"{1:s}"
+		// name, index
+		"#format"	"{1:s},{2:d}"
 		"en"		"[{green}!{default}] {blue}Facts {default}of the {blue}Tank {default}({olive}AI{default})"
 	}
 	
 	"FactsTitle_HumanControlled"
 	{
-		"#format"	"{1:s}"
+		// name, index
+		"#format"	"{1:s},{2:d}"
 		"en"		"[{green}!{default}] {blue}Facts {default}of the {blue}Tank {default}({olive}{1}{default})"
 	}
 	
