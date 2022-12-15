@@ -1,4 +1,8 @@
 /* -------------------CHANGELOG--------------------
+3.5
+ - Fixed handle leaks.
+ - New syntax.
+
 3.4
  - Fixed previous support to allow setting separated text file.
 
@@ -52,7 +56,7 @@
 #undef REQUIRE_PLUGIN
 #include <confogl>
 #define REQUIRE_PLUGIN
-#define PL_VERSION "3.4"
+#define PL_VERSION "3.5"
 
 #pragma semicolon 1
 #pragma newdecls required
@@ -93,10 +97,10 @@ public void OnPluginStart()
 	}
 	
 	//Check if s_n.txt exists
-	kv = CreateKeyValues("GameMods");
+	kv = new KeyValues("GameMods");
 	char filepath[64];
 	BuildPath(Path_SM, filepath, sizeof(filepath), "configs/server_namer.txt");
-	if (!FileToKeyValues(kv, filepath))
+	if (!kv.ImportFromFile(filepath))
 	{
 		SetFailState("configs/server_namer.txt not found!");
 	}
@@ -115,13 +119,13 @@ public void OnPluginStart()
 	cvarZDifficulty = FindConVar("z_difficulty");
 		
 	//Hooks
-	HookConVarChange(cvarMpGameMode, OnCvarChanged);
-	HookConVarChange(cvarZDifficulty, OnCvarChanged);
-	//HookConVarChange(cvarMainName, OnCvarChanged);
-	HookConVarChange(cvarHostNum, OnCvarChanged);
-	HookConVarChange(cvarServerNameFormatCase1, OnCvarChanged);
-	HookConVarChange(cvarServerNameFormatCase2, OnCvarChanged);
-	HookConVarChange(cvarServerNameFormatCase3, OnCvarChanged);
+	cvarMpGameMode.AddChangeHook(OnCvarChanged);
+	cvarZDifficulty.AddChangeHook(OnCvarChanged);
+	//cvarMainName.AddChangeHook(OnCvarChanged);
+	cvarHostNum.AddChangeHook(OnCvarChanged);
+	cvarServerNameFormatCase1.AddChangeHook(OnCvarChanged);
+	cvarServerNameFormatCase2.AddChangeHook(OnCvarChanged);
+	cvarServerNameFormatCase3.AddChangeHook(OnCvarChanged);
 	IsConfoglAvailable = LibraryExists("confogl");
 	SetName();
 }
@@ -159,7 +163,7 @@ public Action Cmd_Hostname(int client, int args)
 		CustomName = true;
 		char arg1[128];
 		GetCmdArg(1, arg1, sizeof(arg1));
-		SetConVarString(cvarHostname, arg1, false, false);
+		cvarHostname.SetString(arg1, false, false);
 	}
 	
 	return Plugin_Handled;
@@ -200,40 +204,40 @@ void SetVanillaName()
 	char FinalHostname[128];
 	if (isempty || IsGameModeEmpty())
 	{
-		GetConVarString(cvarServerNameFormatCase3, FinalHostname, sizeof(FinalHostname));
+		cvarServerNameFormatCase3.GetString(FinalHostname, sizeof(FinalHostname));
 		ParseNameAndSendToMainConVar(FinalHostname);
 	}
 	else
 	{
 		char CurGamemode[128];
-		GetConVarString(cvarMpGameMode, CurGamemode, sizeof(CurGamemode));
-		KvRewind(kv);
-		if (KvJumpToKey(kv, CurGamemode))
+		cvarMpGameMode.GetString(CurGamemode, sizeof(CurGamemode));
+		kv.Rewind();
+		if (kv.JumpToKey(CurGamemode))
 		{
-			KvGetString(kv, "name", GameMode, sizeof(GameMode));
-			if (KvGetNum(kv, "difficulty") == 1)
+			kv.GetString("name", GameMode, sizeof(GameMode));
+			if (kv.GetNum("difficulty") == 1)
 			{
 				char CurDiff[32];
-				GetConVarString(cvarZDifficulty, CurDiff, sizeof(CurDiff));
-				KvRewind(kv);
-				KvJumpToKey(kv, "difficulties");
+				cvarZDifficulty.GetString(CurDiff, sizeof(CurDiff));
+				kv.Rewind();
+				kv.JumpToKey("difficulties");
 				char CurDiffBuffer[32];
-				KvGetString(kv, CurDiff, CurDiffBuffer, sizeof(CurDiffBuffer));
-				GetConVarString(cvarServerNameFormatCase2, FinalHostname, sizeof(FinalHostname));
+				kv.GetString(CurDiff, CurDiffBuffer, sizeof(CurDiffBuffer));
+				cvarServerNameFormatCase2.GetString(FinalHostname, sizeof(FinalHostname));
 				ReplaceString(FinalHostname, sizeof(FinalHostname), "{gamemode}", GameMode);
 				ReplaceString(FinalHostname, sizeof(FinalHostname), "{difficulty}", CurDiffBuffer);
 				ParseNameAndSendToMainConVar(FinalHostname);
 			}
 			else
 			{
-				GetConVarString(cvarServerNameFormatCase1, FinalHostname, sizeof(FinalHostname));
+				cvarServerNameFormatCase1.GetString(FinalHostname, sizeof(FinalHostname));
 				ReplaceString(FinalHostname, sizeof(FinalHostname), "{gamemode}", GameMode);
 				ParseNameAndSendToMainConVar(FinalHostname);
 			}
 		}
 		else
 		{
-			GetConVarString(cvarServerNameFormatCase1, FinalHostname, sizeof(FinalHostname));
+			cvarServerNameFormatCase1.GetString(FinalHostname, sizeof(FinalHostname));
 			ReplaceString(FinalHostname, sizeof(FinalHostname), "{gamemode}", CurGamemode);
 			ParseNameAndSendToMainConVar(FinalHostname);
 		}
@@ -246,13 +250,13 @@ void SetConfoglName()
 	char FinalHostname[128];
 	if (isempty)
 	{
-		GetConVarString(cvarServerNameFormatCase3, FinalHostname, sizeof(FinalHostname));
+		cvarServerNameFormatCase3.GetString(FinalHostname, sizeof(FinalHostname));
 		ParseNameAndSendToMainConVar(FinalHostname);
 	}
 	else
 	{
-		GetConVarString(cvarReadyUpCfgName, GameMode, sizeof(GameMode));
-		GetConVarString(cvarServerNameFormatCase1, FinalHostname, sizeof(FinalHostname));
+		cvarReadyUpCfgName.GetString(GameMode, sizeof(GameMode));
+		cvarServerNameFormatCase1.GetString(FinalHostname, sizeof(FinalHostname));
 		ReplaceString(FinalHostname, sizeof(FinalHostname), "{gamemode}", GameMode);
 		ParseNameAndSendToMainConVar(FinalHostname);
 	}
@@ -261,30 +265,31 @@ void SetConfoglName()
 void ParseNameAndSendToMainConVar(char[] sBuffer)
 {
 	char tBuffer[128];
-	GetConVarString(cvarMainName, tBuffer, sizeof(tBuffer));
+	cvarMainName.GetString(tBuffer, sizeof(tBuffer));
 	ReplaceString(sBuffer, 128, "{hostname}", tBuffer);
-	GetConVarString(cvarHostNum, tBuffer, sizeof(tBuffer));
+	cvarHostNum.GetString(tBuffer, sizeof(tBuffer));
 	ReplaceString(sBuffer, 128, "{servernum}", tBuffer);
-	SetConVarString(cvarHostname, sBuffer, false, false);
+	cvarHostname.SetString(sBuffer, false, false);
 }
 
 void StoreMainNameFromFile()
 {
 	char sPath[PLATFORM_MAX_PATH];
-	GetConVarString(cvarMainNameFile, sPath, sizeof sPath);
+	cvarMainNameFile.GetString(sPath, sizeof sPath);
 	if (!strlen(sPath)) return;
 	
 	BuildPath(Path_SM, sPath, sizeof(sPath), "configs/%s", sPath);
 	
 	File file = OpenFile(sPath, "r");
-	if (file != INVALID_HANDLE)
+	if (file != null)
 	{
 		char readData[256];
-		if(!IsEndOfFile(file) && ReadFileLine(file, readData, sizeof(readData)))
+		if(!file.EndOfFile() && file.ReadLine(readData, sizeof(readData)))
 		{
-			SetConVarString(cvarMainName, readData);
+			cvarMainName.SetString(readData);
 		}
-		return;
+		
+		delete file;
 	}
 }
 
@@ -306,12 +311,12 @@ bool IsGameModeEmpty()
 	char GameMode[128];
 	char CurGamemode[128];
 
-	GetConVarString(cvarMpGameMode, CurGamemode, sizeof(CurGamemode));
+	cvarMpGameMode.GetString(CurGamemode, sizeof(CurGamemode));
 
-	KvRewind(kv);
-	if (KvJumpToKey(kv, CurGamemode))
+	kv.Rewind();
+	if (kv.JumpToKey(CurGamemode))
 	{
-		KvGetString(kv, "name", GameMode, sizeof(GameMode));
+		kv.GetString("name", GameMode, sizeof(GameMode));
 
 		if (GameMode[0] == '\0') return true;
 	}
