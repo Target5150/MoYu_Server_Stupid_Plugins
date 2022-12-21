@@ -63,7 +63,7 @@ PlayerBody Tank__GetBodyInterface(int tank)
 {
 	static int s_iOffs_m_playerBody = -1;
 	if (s_iOffs_m_playerBody == -1)
-		s_iOffs_m_playerBody = FindSendPropInfo("SurvivorBot"/* lol */, "m_humanSpectatorEntIndex") + 8;
+		s_iOffs_m_playerBody = FindSendPropInfo("SurvivorBot"/* lol */, "m_humanSpectatorEntIndex") + 12 - 4 * view_as<int>(L4D_IsEngineLeft4Dead2());
 	
 	return view_as<PlayerBody>(
 		LoadFromAddress(GetEntityAddress(tank) + view_as<Address>(s_iOffs_m_playerBody), NumberType_Int32)
