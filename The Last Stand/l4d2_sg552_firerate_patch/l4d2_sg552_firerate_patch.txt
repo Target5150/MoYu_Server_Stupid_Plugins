@@ -1,0 +1,33 @@
+"Games"
+{
+	"left4dead2"
+	{
+		"Keys"
+		{
+			"temp_sig_pattern"
+			{
+				"linux"			"\\x74\\x2A\\xD9\\x05"
+				"windows"		"\\x74\\x2A\\xD9\\x05"
+			}
+		}
+		
+		"Offsets"
+		{
+			"OS"
+			{
+				"linux"			"1"
+				"windows"		"0"
+			}
+		}
+		
+		"Signatures"
+		{
+			"0.13500001"
+			{
+				"library"		"server"
+				"linux"			"\x71\x3D\x0A\x3E"
+				"windows"		"\x71\x3D\x0A\x3E"
+			}
+		}
+	}
+}
