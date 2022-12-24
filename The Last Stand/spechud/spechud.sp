@@ -19,7 +19,7 @@
 #include <lerpmonitor>
 #include <witch_and_tankifier>
 
-#define PLUGIN_VERSION	"3.7"
+#define PLUGIN_VERSION	"3.7.1"
 
 public Plugin myinfo = 
 {
@@ -532,7 +532,7 @@ public Action ToggleSpecHudCmd(int client, int args)
 		}
 	}
 	
-	CPrintToChat(client, "<{olive}HUD{default}> Spectator HUD is now %s.", (bSpecHudActive[client] ? "{blue}on{default}" : "{red}off{default}"));
+	CPrintToChat(client, "%t", "Notify_SpechudState", (bSpecHudActive[client] ? "on" : "off"));
 	return Plugin_Handled;
 }
 
@@ -562,7 +562,7 @@ public Action ToggleTankHudCmd(int client, int args)
 		}
 	}
 	
-	CPrintToChat(client, "<{olive}HUD{default}> Tank HUD is now %s.", (bTankHudActive[client] ? "{blue}on{default}" : "{red}off{default}"));
+	CPrintToChat(client, "%t", "Notify_TankhudState", (bTankHudActive[client] ? "on" : "off"));
 
 	return Plugin_Handled;
 }
@@ -608,7 +608,7 @@ public Action HudDrawTimer(Handle hTimer)
 			if (!bSpecHudHintShown[client])
 			{
 				bSpecHudHintShown[client] = true;
-				CPrintToChat(client, "<{olive}HUD{default}> Type {green}!spechud{default} into chat to toggle the {blue}Spectator HUD{default}.");
+				CPrintToChat(client, "%t", "Notify_SpechudUsage");
 			}
 		}
 		delete specHud;
@@ -633,7 +633,7 @@ public Action HudDrawTimer(Handle hTimer)
 			if (!bTankHudHintShown[client])
 			{
 				bTankHudHintShown[client] = true;
-				CPrintToChat(client, "<{olive}HUD{default}> Type {green}!tankhud{default} into chat to toggle the {red}Tank HUD{default}.");
+				CPrintToChat(client, "%t", "Notify_TankhudUsage");
 			}
 		}
 	}
@@ -1080,6 +1080,7 @@ bool FillTankInfo(Panel hSpecHud, bool bTankHUD = false)
 	if (bTankHUD)
 	{
 		FormatEx(info, sizeof(info), "%s :: Tank HUD", sReadyCfgName);
+		ValvePanel_ShiftInvalidString(info, sizeof(info));
 		DrawPanelText(hSpecHud, info);
 		
 		int len = strlen(info);
@@ -1309,20 +1310,34 @@ stock void GetClientFixedName(int client, char[] name, int length)
 {
 	GetClientName(client, name, length);
 
-	if (name[0] == '[')
-	{
-		char temp[MAX_NAME_LENGTH];
-		strcopy(temp, sizeof(temp), name);
-		temp[sizeof(temp)-2] = 0;
-		strcopy(name[1], length-1, temp);
-		name[0] = ' ';
-	}
+	ValvePanel_ShiftInvalidString(name, length);
 
 	if (strlen(name) > 18)
 	{
 		name[15] = name[16] = name[17] = '.';
 		name[18] = 0;
 	}
+}
+
+stock bool ValvePanel_ShiftInvalidString(char[] str, int maxlen)
+{
+	switch (str[0])
+	{
+	case '[':
+		{
+			char[] temp = new char[maxlen];
+			int termIndex = strcopy(temp, maxlen, str) + 1;
+			
+			strcopy(str[1], maxlen-1, temp);
+			str[0] = ' ';
+			
+			str[maxlen < termIndex ? maxlen : termIndex] = '0';
+			
+			return true;
+		}
+	}
+	
+	return false;
 }
 
 //stock int GetRealTeam(int team)
