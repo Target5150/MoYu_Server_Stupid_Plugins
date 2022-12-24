@@ -6,7 +6,7 @@
 #include <sourcescramble>
 #include <dhooks>
 
-#define PLUGIN_VERSION "1.2"
+#define PLUGIN_VERSION "1.2.1"
 
 public Plugin myinfo = 
 {
@@ -164,7 +164,7 @@ MRESReturn DTR_OnUpdateTongueTarget_Post(int pThis)
 
 public Action CH_PassFilter(int touch, int pass, bool &result)
 {
-	if (touch > MaxClients || !IsClientInGame(touch))
+	if (!touch || touch > MaxClients || !IsClientInGame(touch))
 		return Plugin_Continue;
 	
 	if (GetClientTeam(touch) != 3)

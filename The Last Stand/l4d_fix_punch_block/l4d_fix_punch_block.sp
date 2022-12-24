@@ -6,7 +6,7 @@
 #include <collisionhook>
 #include <left4dhooks_lux_library>
 
-#define PLUGIN_VERSION "1.2"
+#define PLUGIN_VERSION "1.2.1"
 
 public Plugin myinfo = 
 {
@@ -72,7 +72,7 @@ public void OnPluginStart()
 public Action CH_PassFilter(int touch, int pass, bool &result)
 {
 	// (pass == tank) && (touch == infected)
-	if (pass > MaxClients || touch <= MaxClients)
+	if (!pass || pass > MaxClients || touch <= MaxClients)
 		return Plugin_Continue;
 	
 	if (!IsClientInGame(pass))
