@@ -18,7 +18,7 @@
  native int LGO_BuildConfigPath(char[] buffer, int maxlength, const char[] sFileName);
 #endif
 
-#define PLUGIN_VERSION "1.3"
+#define PLUGIN_VERSION "1.4"
 
 public Plugin myinfo = 
 {
@@ -32,7 +32,7 @@ public Plugin myinfo =
 #define ABS(%0) (((%0) < 0) ? -(%0) : (%0))
 
 float g_flDelay;
-bool g_bLateLoad, g_bLeft4Dead2;
+bool g_bLateLoad, g_bLeft4Dead2, g_bNewMap;
 int g_iMapDistance, g_iNextMapDistance;
 
 #define TRANSLATION_FILE "l4d2_score_difference.phrases"
@@ -76,6 +76,8 @@ public void OnPluginStart()
 	{
 		L4D_OnFirstSurvivorLeftSafeArea_Post(-1);
 	}
+	
+	HookEvent("round_start", Event_RoundStart);
 }
 
 void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -88,12 +90,30 @@ public void L4D_OnFirstSurvivorLeftSafeArea_Post(int client)
 	g_iMapDistance = L4D_GetVersusMaxCompletionScore();
 }
 
+void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
+{
+	if (g_bNewMap)
+	{
+		g_bNewMap = false;
+		g_iNextMapDistance = 0;
+	}
+}
+
+public void OnMapEnd()
+{
+	g_bNewMap = true;
+}
+
+bool bDoVanillaDistanceCalc = false;
 public void OnGetMissionInfo(int pThis)
 {
-	g_iNextMapDistance = 0;
+	if (g_iNextMapDistance != 0 || bDoVanillaDistanceCalc)
+		return;
 	
 	if (!g_bLeft4Dead2)
 		return;
+	
+	bDoVanillaDistanceCalc = false;
 	
 	int iNextChapter = L4D_GetCurrentChapter() + 1;
 	char buffer[64], ret[64];
@@ -103,10 +123,7 @@ public void OnGetMissionInfo(int pThis)
 	
 	if (!StringToIntEx(ret, g_iNextMapDistance))
 	{
-		if (iNextChapter <= L4D_GetMaxChapters())
-		{
-			g_iNextMapDistance = 800 - 100 * (L4D_GetMaxChapters() - iNextChapter);
-		}
+		bDoVanillaDistanceCalc = true;
 	}
 	
 	if (GetFeatureStatus(FeatureType_Native, "LGO_BuildConfigPath") == FeatureStatus_Available)
@@ -119,6 +136,7 @@ public void OnGetMissionInfo(int pThis)
 		if (kv.ImportFromFile(buffer) && kv.JumpToKey(ret))
 		{
 			g_iNextMapDistance = kv.GetNum("map_distance", g_iNextMapDistance);
+			bDoVanillaDistanceCalc = false;
 		}
 		
 		delete kv;
@@ -127,6 +145,24 @@ public void OnGetMissionInfo(int pThis)
 
 public void L4D2_OnEndVersusModeRound_Post()
 {
+	if (bDoVanillaDistanceCalc)
+	{
+		int iNextChapter = L4D_GetCurrentChapter() + 1;
+		int iMaxChapters = L4D_GetMaxChapters();
+		
+		if (iNextChapter <= iMaxChapters)
+		{
+			if (iMaxChapters <= 5)
+			{
+				g_iNextMapDistance = 800 - 100 * (iMaxChapters - iNextChapter);
+			}
+			else
+			{
+				g_iNextMapDistance = 400 + 100 * (iNextChapter - 1);
+			}
+		}
+	}
+	
 	if (InSecondHalfOfRound())
 	{
 		if (g_flDelay >= 0.1)
