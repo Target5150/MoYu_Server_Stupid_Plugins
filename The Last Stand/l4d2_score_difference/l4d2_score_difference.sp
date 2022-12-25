@@ -18,7 +18,7 @@
  native int LGO_BuildConfigPath(char[] buffer, int maxlength, const char[] sFileName);
 #endif
 
-#define PLUGIN_VERSION "1.4"
+#define PLUGIN_VERSION "1.5"
 
 public Plugin myinfo = 
 {
@@ -32,8 +32,9 @@ public Plugin myinfo =
 #define ABS(%0) (((%0) < 0) ? -(%0) : (%0))
 
 float g_flDelay;
-bool g_bLateLoad, g_bLeft4Dead2, g_bNewMap;
-int g_iMapDistance, g_iNextMapDistance;
+bool g_bLateLoad, g_bLeft4Dead2;
+char g_sNextMap[64];
+int g_iMapDistance, g_iNextMapDistance, g_iNextMapInfoDistance;
 
 #define TRANSLATION_FILE "l4d2_score_difference.phrases"
 void LoadPluginTranslations()
@@ -75,9 +76,13 @@ public void OnPluginStart()
 	if (g_bLateLoad)
 	{
 		L4D_OnFirstSurvivorLeftSafeArea_Post(-1);
+		
+		if (GetFeatureStatus(FeatureType_Native, "InfoEditor_ReloadData") == FeatureStatus_Available)
+		{
+			OnMapEnd();
+			InfoEditor_ReloadData();
+		}
 	}
-	
-	HookEvent("round_start", Event_RoundStart);
 }
 
 void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -90,62 +95,55 @@ public void L4D_OnFirstSurvivorLeftSafeArea_Post(int client)
 	g_iMapDistance = L4D_GetVersusMaxCompletionScore();
 }
 
-void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
-{
-	if (g_bNewMap)
-	{
-		g_bNewMap = false;
-		g_iNextMapDistance = 0;
-	}
-}
-
 public void OnMapEnd()
 {
-	g_bNewMap = true;
+	g_iNextMapDistance = 0;
+	g_sNextMap[0] = '\0';
+	g_iNextMapInfoDistance = 0;
 }
 
-bool bDoVanillaDistanceCalc = false;
 public void OnGetMissionInfo(int pThis)
 {
-	if (g_iNextMapDistance != 0 || bDoVanillaDistanceCalc)
-		return;
-	
 	if (!g_bLeft4Dead2)
 		return;
-	
-	bDoVanillaDistanceCalc = false;
 	
 	int iNextChapter = L4D_GetCurrentChapter() + 1;
 	char buffer[64], ret[64];
 	
-	FormatEx(buffer, sizeof(buffer), "modes/versus/%i/VersusCompletionScore", iNextChapter);
-	InfoEditor_GetString(pThis, buffer, ret, sizeof(ret));
-	
-	if (!StringToIntEx(ret, g_iNextMapDistance))
+	if (g_iNextMapDistance == 0)
 	{
-		bDoVanillaDistanceCalc = true;
-	}
-	
-	if (GetFeatureStatus(FeatureType_Native, "LGO_BuildConfigPath") == FeatureStatus_Available)
-	{
-		FormatEx(buffer, sizeof(buffer), "modes/versus/%i/Map", iNextChapter);
+		FormatEx(buffer, sizeof(buffer), "modes/versus/%i/VersusCompletionScore", iNextChapter);
 		InfoEditor_GetString(pThis, buffer, ret, sizeof(ret));
 		
-		KeyValues kv = new KeyValues("MapInfo");
-		LGO_BuildConfigPath(buffer, sizeof(buffer), "mapinfo.txt");
-		if (kv.ImportFromFile(buffer) && kv.JumpToKey(ret))
+		g_iNextMapDistance = StringToInt(ret);
+	}
+	
+	if (g_sNextMap[0] == '\0')
+	{
+		if (GetFeatureStatus(FeatureType_Native, "LGO_BuildConfigPath") == FeatureStatus_Available)
 		{
-			g_iNextMapDistance = kv.GetNum("map_distance", g_iNextMapDistance);
-			bDoVanillaDistanceCalc = false;
+			FormatEx(buffer, sizeof(buffer), "modes/versus/%i/Map", iNextChapter);
+			InfoEditor_GetString(pThis, buffer, g_sNextMap, sizeof(g_sNextMap));
+			
+			KeyValues kv = new KeyValues("MapInfo");
+			LGO_BuildConfigPath(buffer, sizeof(buffer), "mapinfo.txt");
+			if (kv.ImportFromFile(buffer) && kv.JumpToKey(g_sNextMap))
+			{
+				g_iNextMapInfoDistance = kv.GetNum("map_distance", 0);
+			}
+			
+			delete kv;
 		}
-		
-		delete kv;
 	}
 }
 
 public void L4D2_OnEndVersusModeRound_Post()
 {
-	if (bDoVanillaDistanceCalc)
+	if (g_iNextMapInfoDistance != 0)
+	{
+		g_iNextMapDistance = g_iNextMapInfoDistance;
+	}
+	else if (g_iNextMapDistance == 0)
 	{
 		int iNextChapter = L4D_GetCurrentChapter() + 1;
 		int iMaxChapters = L4D_GetMaxChapters();
