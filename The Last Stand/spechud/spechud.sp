@@ -19,7 +19,7 @@
 #include <lerpmonitor>
 #include <witch_and_tankifier>
 
-#define PLUGIN_VERSION	"3.7.1"
+#define PLUGIN_VERSION	"3.7.2"
 
 public Plugin myinfo = 
 {
@@ -34,6 +34,7 @@ public Plugin myinfo =
 //  Macros
 // ======================================================================
 #define SPECHUD_DRAW_INTERVAL   0.5
+#define TRANSLATION_FILE "spechud.phrases"
 
 // ======================================================================
 //  Plugin Vars
@@ -91,6 +92,8 @@ bool bSpecHudHintShown[MAXPLAYERS+1], bTankHudHintShown[MAXPLAYERS+1];
 // ======================================================================
 public void OnPluginStart()
 {
+	LoadPluginTranslations();
+	
 	(	survivor_limit			= FindConVar("survivor_limit")			).AddChangeHook(GameConVarChanged);
 	(	z_max_player_zombies	= FindConVar("z_max_player_zombies")	).AddChangeHook(GameConVarChanged);
 	(	versus_boss_buffer		= FindConVar("versus_boss_buffer")		).AddChangeHook(GameConVarChanged);
@@ -211,6 +214,17 @@ void FindTankSelection()
 void FindTankifier()
 {
 	bTankifier = LibraryExists("witch_and_tankifier");
+}
+
+void LoadPluginTranslations()
+{
+	char sPath[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sPath, sizeof sPath, "translations/"...TRANSLATION_FILE... ".txt");
+	if (!FileExists(sPath))
+	{
+		SetFailState("Missing translation file \""...TRANSLATION_FILE...".txt\"");
+	}
+	LoadTranslations(TRANSLATION_FILE);
 }
 
 // ======================================================================
