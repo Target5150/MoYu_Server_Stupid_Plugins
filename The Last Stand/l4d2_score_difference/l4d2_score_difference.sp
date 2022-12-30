@@ -18,7 +18,7 @@
  native int LGO_BuildConfigPath(char[] buffer, int maxlength, const char[] sFileName);
 #endif
 
-#define PLUGIN_VERSION "1.5"
+#define PLUGIN_VERSION "1.5.1"
 
 public Plugin myinfo = 
 {
@@ -32,7 +32,7 @@ public Plugin myinfo =
 #define ABS(%0) (((%0) < 0) ? -(%0) : (%0))
 
 float g_flDelay;
-bool g_bLateLoad, g_bLeft4Dead2;
+bool g_bLeft4Dead2;
 char g_sNextMap[64];
 int g_iMapDistance, g_iNextMapDistance, g_iNextMapInfoDistance;
 
@@ -60,8 +60,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 			return APLRes_SilentFailure;
 		}
 	}
-	
-	g_bLateLoad = late;
 	return APLRes_Success;
 }
 
@@ -72,17 +70,6 @@ public void OnPluginStart()
 	ConVar cv = CreateConVar("l4d2_scorediff_print_delay", "5.0", "Delay in printing score difference.", FCVAR_SPONLY|FCVAR_NOTIFY, true, 0.0);
 	OnConVarChanged(cv, "", "");
 	cv.AddChangeHook(OnConVarChanged);
-	
-	if (g_bLateLoad)
-	{
-		L4D_OnFirstSurvivorLeftSafeArea_Post(-1);
-		
-		if (GetFeatureStatus(FeatureType_Native, "InfoEditor_ReloadData") == FeatureStatus_Available)
-		{
-			OnMapEnd();
-			InfoEditor_ReloadData();
-		}
-	}
 }
 
 void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
