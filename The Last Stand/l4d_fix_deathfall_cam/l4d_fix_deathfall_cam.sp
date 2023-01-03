@@ -5,7 +5,7 @@
 #include <sdktools_engine>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "1.6"
+#define PLUGIN_VERSION "1.6.1"
 
 public Plugin myinfo = 
 {
@@ -69,7 +69,7 @@ void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
 	if (!g_aDeathFallClients.Length) return;
 	
-	// view locked for approximately 6.0s when survivors die
+	// the player's view locks for approximately 6.0s after died
 	CreateTimer(6.0, Timer_ReleaseView, event.GetInt("userid"), TIMER_FLAG_NO_MAPCHANGE);
 }
 
@@ -87,6 +87,9 @@ Action Timer_ReleaseView(Handle timer, any userid)
 
 public Action L4D_OnFatalFalling(int client, int camera)
 {
+	if (!client)
+		return Plugin_Continue;
+	
 	if (!AllowDamage())
 		return Plugin_Handled;
 	
