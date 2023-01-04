@@ -43,13 +43,18 @@
 // - Client preference is now saved only when command is used, won't be overridden with default setting ever.
 //
 //-------------------------------------------------------------------------------------------------------------------
+// Version 4.3: Configurable primary switch
+//-------------------------------------------------------------------------------------------------------------------
+// - Because this is how it was like.
+//
+//-------------------------------------------------------------------------------------------------------------------
 // DONE:
 //-------------------------------------------------------------------------------------------------------------------
 // - Be a nice guy and less lazy, allow the plugin to work flawlessly with other's peoples needs.. It doesn't require much attention.
 // - Find cleaner methods to detect and handle functions.
 */
 
-#define PLUGIN_VERSION "4.2.1"
+#define PLUGIN_VERSION "4.3"
 
 #pragma semicolon 1
 #pragma newdecls required
@@ -75,6 +80,7 @@ public Plugin myinfo =
 
 #define FLAGS_SWITCH_MELEE                1
 #define FLAGS_SWITCH_PILLS                2
+#define FLAGS_SWITCH_GUNS                 4
 
 #define FLAGS_INCAP_SPIT                  1
 #define FLAGS_INCAP_TANKPUNCH             2
@@ -90,8 +96,8 @@ bool
 	g_bCantSwitchGun[MAXPLAYERS+1],
 	g_bContinueValveSwitch[MAXPLAYERS+1];
 
-bool
-	g_bSwitchOnPickup[MAXPLAYERS+1];
+int
+	g_iSwitchOnPickup[MAXPLAYERS+1];
 
 int
 	g_iSwitchFlags,
@@ -108,11 +114,14 @@ Cookie
 	g_hSwitchCookie;
 
 #define GAMEDATA_FILE "l4d2_pickup"
-#define COOKIE_NAME "l4d2_pickup_switch_cookie"
 #define KEY_FUNCTION "CTerrorGun::EquipSecondWeapon"
 #define KEY_FUNCTION_2 "CTerrorGun::RemoveSecondWeapon"
 #define KEY_FUNCTION_3 "CBaseCombatWeapon::SetViewModel"
 #define KEY_PATCH_SURFIX "__SkipWeaponDeploy"
+
+#define TRANSLATION_FILE "l4d2_pickup.phrases.txt"
+
+#define COOKIE_NAME "l4d2_pickup_switch_cookie"
 
 void LoadSDK()
 {
@@ -161,6 +170,17 @@ void LoadSDK()
 	delete conf;
 }
 
+void LoadPluginTranslations()
+{
+	char sPath[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sPath, sizeof(sPath), "translations/"...TRANSLATION_FILE);
+	if (!FileExists(sPath))
+	{
+		SetFailState("Missing translations \""...TRANSLATION_FILE..."\"");
+	}
+	LoadTranslations(TRANSLATION_FILE);
+}
+
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
 	switch (GetEngineVersion())
@@ -177,18 +197,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	return APLRes_Success;
 }
 
-#define TRANSLATION_FILE "l4d2_pickup.phrases.txt"
-void LoadPluginTranslations()
-{
-	char sPath[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sPath, sizeof(sPath), "translations/"...TRANSLATION_FILE);
-	if (!FileExists(sPath))
-	{
-		SetFailState("Missing translations \""...TRANSLATION_FILE..."\"");
-	}
-	LoadTranslations(TRANSLATION_FILE);
-}
-
 public void OnPluginStart()
 {
 	LoadSDK();
@@ -196,10 +204,11 @@ public void OnPluginStart()
 	
 	CreateConVar("l4d2_pickup_version", PLUGIN_VERSION, "l4d2_pickup version cvar.", FCVAR_DONTRECORD|FCVAR_NOTIFY|FCVAR_REPLICATED|FCVAR_SPONLY);
 	
-	ConVar cv = CreateConVar("pickup_switch_flags", "3", "Flags for Switching from current item (1:Weapons, 2: Passed Pills)", _, true, 0.0, true, 3.0);
+	ConVar cv = CreateConVar("pickup_switch_flags", "7", "Flags for Switching from current item (1:Secondary, 2: Passed Pills, 4: Primary)", _, true, 0.0, true, 7.0);
 	SwitchCVarChanged(cv, "", "");
 	cv.AddChangeHook(SwitchCVarChanged);
 	
+	RegConsoleCmd("sm_primary", ChangePrimaryFlags);
 	RegConsoleCmd("sm_secondary", ChangeSecondaryFlags);
 	
 	if (g_bLeft4Dead2)
@@ -244,8 +253,8 @@ public void OnClientPutInServer(int client)
 {
 	HookValidClient(client, true);
 	
-	if (!QuerySwitchCookie(client, g_bSwitchOnPickup[client]))
-		g_bSwitchOnPickup[client] = ((g_iSwitchFlags & FLAGS_SWITCH_MELEE) ? false : true);
+	if (!QuerySwitchCookie(client, g_iSwitchOnPickup[client]))
+		g_iSwitchOnPickup[client] = g_iSwitchFlags & (FLAGS_SWITCH_MELEE|FLAGS_SWITCH_GUNS);
 }
 
 public void OnClientDisconnect(int client)
@@ -253,12 +262,26 @@ public void OnClientDisconnect(int client)
 	HookValidClient(client, false);
 }
 
+Action ChangePrimaryFlags(int client, int args)
+{
+	if (client && IsClientInGame(client)) {
+		int temp = (~g_iSwitchOnPickup[client] & FLAGS_SWITCH_GUNS);
+		g_iSwitchOnPickup[client] &= ~FLAGS_SWITCH_GUNS; // reset bit first
+		g_iSwitchOnPickup[client] |= temp;
+		SetSwitchCookie(client, g_iSwitchOnPickup[client]);
+		
+		CPrintToChat(client, "%t", temp ? "Command_SwitchPrimaryOn" : "Command_SwitchPrimaryOff");
+	}
+	return Plugin_Handled;
+}
+
 Action ChangeSecondaryFlags(int client, int args)
 {
 	if (client && IsClientInGame(client)) {
-		bool temp = !g_bSwitchOnPickup[client];
-		g_bSwitchOnPickup[client] = temp;
-		SetSwitchCookie(client, temp);
+		int temp = (~g_iSwitchOnPickup[client] & FLAGS_SWITCH_MELEE);
+		g_iSwitchOnPickup[client] &= ~FLAGS_SWITCH_MELEE; // reset bit first
+		g_iSwitchOnPickup[client] |= temp;
+		SetSwitchCookie(client, g_iSwitchOnPickup[client]);
 		
 		CPrintToChat(client, "%t", temp ? "Command_SwitchOn" : "Command_SwitchOff");
 	}
@@ -298,6 +321,9 @@ void Event_PlayerHurt(Event event, const char[] name, bool dontBroadcast)
 	int attacker = GetClientOfUserId(event.GetInt("attacker"));
 	
 	if (!client || !IsClientInGame(client) || !attacker)
+		return;
+	
+	if (GetClientHealth(client) < 0) // dead
 		return;
 	
 	char weapon[64];
@@ -359,7 +385,10 @@ Action SDK_OnWeaponCanSwitchTo(int client, int weapon)
 	}
 	
 	//Weapons.
-	if (!g_bSwitchOnPickup[client] && (wepslot == L4D2WeaponSlot_Primary || wepslot == L4D2WeaponSlot_Secondary) && g_bCantSwitchGun[client]) {
+	if (((wepslot == L4D2WeaponSlot_Primary && (~g_iSwitchOnPickup[client] & FLAGS_SWITCH_GUNS))
+		  || (wepslot == L4D2WeaponSlot_Secondary && (~g_iSwitchOnPickup[client] & FLAGS_SWITCH_MELEE)))
+		&& g_bCantSwitchGun[client]
+	) {
 		return Plugin_Stop;
 	}
 	
@@ -483,7 +512,7 @@ MRESReturn DTR_OnEquipSecondWeapon(int weapon, DHookReturn hReturn)
 	if (client == -1 || !IsClientInGame(client))
 		return MRES_Ignored;
 	
-	if (g_bSwitchOnPickup[client])
+	if (g_iSwitchOnPickup[client] & FLAGS_SWITCH_MELEE)
 		return MRES_Ignored;
 	
 	if (!IsSwitchingToDualCase(client, weapon))
@@ -513,7 +542,7 @@ MRESReturn DTR_OnRemoveSecondWeapon_Ev(int weapon, DHookReturn hReturn)
 	if (active_weapon == -1 || active_weapon == weapon)
 		return MRES_Ignored;
 	
-	if (g_bSwitchOnPickup[client])
+	if (g_iSwitchOnPickup[client] & FLAGS_SWITCH_MELEE)
 		return MRES_Ignored;
 	
 	SetEntProp(weapon, Prop_Send, "m_isDualWielding", 0);
@@ -544,7 +573,7 @@ MRESReturn DTR_OnRemoveSecondWeapon_Eb(int weapon, DHookReturn hReturn, DHookPar
 MRESReturn DTR_OnSetViewModel(int weapon)
 {
 	int client = GetEntPropEnt(weapon, Prop_Send, "m_hOwner");
-	if (client == -1)
+	if (client == -1 || !IsClientInGame(client))
 		return MRES_Ignored;
 	
 	if (GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon") == weapon)
@@ -569,7 +598,7 @@ void InitSwitchCookie()
 	}
 }
 
-bool QuerySwitchCookie(int client, bool &val)
+bool QuerySwitchCookie(int client, int &val)
 {
 	char buffer[8] = "";
 	g_hSwitchCookie.Get(client, buffer, sizeof(buffer));
@@ -577,14 +606,14 @@ bool QuerySwitchCookie(int client, bool &val)
 	int temp = 0;
 	if (StringToIntEx(buffer, temp))
 	{
-		val = (temp == 1 ? true : false);
+		val = temp;
 		return true;
 	}
 	
 	return false;
 }
 
-void SetSwitchCookie(int client, bool val)
+void SetSwitchCookie(int client, int val)
 {
 	char buffer[8];
 	IntToString(val, buffer, sizeof(buffer));

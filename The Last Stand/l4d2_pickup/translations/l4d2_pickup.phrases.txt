@@ -2,11 +2,21 @@
 {
 	"Command_SwitchOff"
 	{
-		"en"		"{blue}[{default}ItemSwitch{blue}] {default}Switch to Weapon on pick-up: {blue}OFF"
+		"en"		"{blue}[{default}ItemSwitch{blue}] {default}Switch to {olive}Secondary {default}on pick-up: {blue}OFF"
 	}
 	
 	"Command_SwitchOn"
 	{
-		"en"		"{blue}[{default}ItemSwitch{blue}] {default}Switch to Weapon on pick-up: {blue}ON"
+		"en"		"{blue}[{default}ItemSwitch{blue}] {default}Switch to {olive}Secondary {default}on pick-up: {blue}ON"
+	}
+	
+	"Command_SwitchPrimaryOff"
+	{
+		"en"		"{blue}[{default}ItemSwitch{blue}] {default}Switch to {olive}Primary {default}on pick-up: {blue}OFF"
+	}
+	
+	"Command_SwitchPrimaryOn"
+	{
+		"en"		"{blue}[{default}ItemSwitch{blue}] {default}Switch to {olive}Primary {default}on pick-up: {blue}ON"
 	}
 }
