@@ -51,7 +51,7 @@
 #undef REQUIRE_PLUGIN
 #include <godframecontrol>
 
-#define PLUGIN_VERSION "4.13"
+#define PLUGIN_VERSION "4.14"
 
 public Plugin myinfo = 
 {
@@ -413,7 +413,14 @@ void Event_ChargerKilled(Event event, const char[] name, bool dontBroadcast)
 			if ((pAnim.GetFlag(AnimState_GroundSlammed) && cvar_keepLongChargeLongGetUp.BoolValue)
 				|| (pAnim.GetFlag(AnimState_WallSlammed) && cvar_keepWallSlamLongGetUp.BoolValue))
 			{
-				SetInvulnerableForSlammed(victim, g_hLongChargeDuration.FloatValue);
+				float flElaspedAnimTime = 0.0;
+				if (pAnim.GetFlag(AnimState_WallSlammed)) // no issue for ground slam
+				{
+					// ACT_TERROR_SLAMMED_WALL
+					// frames: 116, fps: 30
+					flElaspedAnimTime = GetEntPropFloat(victim, Prop_Send, "m_flCycle") * 116 / 30.0;
+				}
+				SetInvulnerableForSlammed(victim, g_hLongChargeDuration.FloatValue - flElaspedAnimTime);
 			}
 			else
 			{
