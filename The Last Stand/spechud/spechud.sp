@@ -19,7 +19,7 @@
 #include <lerpmonitor>
 #include <witch_and_tankifier>
 
-#define PLUGIN_VERSION	"3.8.1"
+#define PLUGIN_VERSION	"3.8.2"
 
 public Plugin myinfo = 
 {
@@ -708,7 +708,7 @@ void FillSurvivorInfo(Panel hSpecHud)
 	
 	int total = 0;
 	int[] clients = new int[MaxClients];
-	for (int i = 0; i <= MaxClients; ++i)
+	for (int i = 1; i <= MaxClients; ++i)
 	{
 		if (!IsClientInGame(i) || GetClientTeam(i) != 2)
 			continue;
@@ -914,7 +914,7 @@ void FillInfectedInfo(Panel hSpecHud)
 	DrawPanelText(hSpecHud, info);
 
 	int infectedCount = 0;
-	for (int client = 0; client <= MaxClients; ++client)
+	for (int client = 1; client <= MaxClients; ++client)
 	{
 		if (!IsClientInGame(client) || GetClientTeam(client) != 2)
 			continue;
