@@ -19,7 +19,7 @@
 #include <lerpmonitor>
 #include <witch_and_tankifier>
 
-#define PLUGIN_VERSION	"3.8"
+#define PLUGIN_VERSION	"3.8.1"
 
 public Plugin myinfo = 
 {
@@ -1272,7 +1272,7 @@ stock bool ValvePanel_ShiftInvalidString(char[] str, int maxlen)
 			strcopy(str[1], maxlen-1, temp);
 			str[0] = ' ';
 			
-			str[maxlen < termIndex ? maxlen : termIndex] = '0';
+			str[maxlen < termIndex ? maxlen : termIndex] = '\0';
 			
 			return true;
 		}
