@@ -5,7 +5,7 @@
 #include <dhooks>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo = 
 {
@@ -47,6 +47,7 @@ public void OnPluginStart()
 				true, 0.0, true, 1.0,
 				CvarChg_ChargerCollision);
 	
+	HookEvent("round_start", Event_RoundStart);
 	HookEvent("charger_pummel_end", Event_ChargerPummelEnd);
 	HookEvent("charger_killed", Event_ChargerKilled);
 	HookEvent("player_bot_replace", Event_PlayerBotReplace);
@@ -79,6 +80,22 @@ MRESReturn DTR_CCharge__HandleCustomCollision(int ability, DHookReturn hReturn, 
 void CvarChg_ChargerCollision(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	g_bChargerCollision = convar.BoolValue;
+}
+
+void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
+{
+	for (int i = 1; i <= MaxClients; ++i)
+	{
+		if (IsClientInGame(i))
+		{
+			SetEntPropEnt(i, Prop_Send, "m_pummelVictim", -1);
+			SetEntPropEnt(i, Prop_Send, "m_pummelAttacker", -1);
+			
+			L4D2_SetQueuedPummelStartTime(i, -1.0);
+			L4D2_SetQueuedPummelVictim(i, -1);
+			L4D2_SetQueuedPummelAttacker(i, -1);
+		}
+	}
 }
 
 void Event_ChargerPummelEnd(Event event, const char[] name, bool dontBroadcast)
@@ -168,6 +185,8 @@ public Action L4D2_OnJockeyRide(int victim, int attacker)
 
 public void L4D2_OnStartCarryingVictim_Post(int victim, int attacker)
 {
+	g_iChargeVictim[attacker] = victim;
+	g_iChargeAttacker[victim] = attacker;
 	TeleportEntity(victim, NULL_VECTOR, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
 }
 

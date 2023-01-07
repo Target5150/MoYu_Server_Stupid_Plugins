@@ -12,7 +12,7 @@
 <hr>
 
 ### Requirement
-- **[Left 4 DHooks Direct (1.121+)](https://forums.alliedmods.net/showthread.php?t=321696)**
+- **[Left 4 DHooks Direct (1.127+)](https://forums.alliedmods.net/showthread.php?t=321696)**
 
 <hr>
 
