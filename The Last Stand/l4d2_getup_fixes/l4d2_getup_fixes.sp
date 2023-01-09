@@ -51,7 +51,7 @@
 #undef REQUIRE_PLUGIN
 #include <godframecontrol>
 
-#define PLUGIN_VERSION "4.16"
+#define PLUGIN_VERSION "4.17"
 
 public Plugin myinfo = 
 {
@@ -410,16 +410,15 @@ void Event_ChargerKilled(Event event, const char[] name, bool dontBroadcast)
 		else
 		{
 			// long charged get-up
-			if ((pAnim.GetFlag(AnimState_GroundSlammed) && cvar_keepLongChargeLongGetUp.BoolValue)
-				|| (pAnim.GetFlag(AnimState_WallSlammed) && cvar_keepWallSlamLongGetUp.BoolValue))
+			float flElaspedAnimTime = 0.0;
+			if ((pAnim.GetFlag(AnimState_GroundSlammed)
+			  && (flElaspedAnimTime = 119 / 30.0), // ACT_TERROR_SLAMMED_GROUND - frames: 119, fps: 30
+				cvar_keepLongChargeLongGetUp.BoolValue)
+			|| (pAnim.GetFlag(AnimState_WallSlammed)
+			  && (flElaspedAnimTime = 116 / 30.0), // ACT_TERROR_SLAMMED_WALL - frames: 116, fps: 30
+				cvar_keepWallSlamLongGetUp.BoolValue))
 			{
-				float flElaspedAnimTime = 0.0;
-				if (pAnim.GetFlag(AnimState_WallSlammed)) // no issue for ground slam
-				{
-					// ACT_TERROR_SLAMMED_WALL
-					// frames: 116, fps: 30
-					flElaspedAnimTime = GetEntPropFloat(victim, Prop_Send, "m_flCycle") * 116 / 30.0;
-				}
+				flElaspedAnimTime *= GetEntPropFloat(victim, Prop_Send, "m_flCycle");
 				SetInvulnerableForSlammed(victim, g_hLongChargeDuration.FloatValue - flElaspedAnimTime);
 			}
 			else
