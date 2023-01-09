@@ -5,7 +5,7 @@
 #include <dhooks>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "1.1"
+#define PLUGIN_VERSION "1.2"
 
 public Plugin myinfo = 
 {
@@ -101,15 +101,22 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 void Event_ChargerPummelEnd(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
+	if (!client)
+		return;
+	
 	int victim = GetClientOfUserId(event.GetInt("victim"));
-	if (client && victim)
+	if (!victim || !IsClientInGame(victim))
+		return;
+	
+	if (!g_bChargerCollision)
 	{
-		if (IsPlayerAlive(client))
-		{
-			g_iChargeVictim[client] = -1;
-			g_iChargeAttacker[victim] = -1;
-		}
+		SetEntProp(victim, Prop_Send, "m_knockdownReason", KNOCKDOWN_CHARGER);
+		SetEntPropFloat(victim, Prop_Send, "m_knockdownTimer", GetGameTime(), 0);
 	}
+	
+	// Normal processes don't need special care
+	g_iChargeVictim[client] = -1;
+	g_iChargeAttacker[victim] = -1;
 }
 
 void Event_ChargerKilled(Event event, const char[] name, bool dontBroadcast)
@@ -122,6 +129,10 @@ void Event_ChargerKilled(Event event, const char[] name, bool dontBroadcast)
 	if (victim == -1)
 		return;
 	
+	// TODO:
+	// Need something to check the get-up being played for extending the knockdown duration.
+	// Request of activity stuff to Left4DHooks? Native / Forwards from l4d2_getup_fixes?
+	// Or include all those AnimState stuff again? aughhhhhh
 	if (!g_bChargerCollision)
 	{
 		SetEntProp(victim, Prop_Send, "m_knockdownReason", KNOCKDOWN_CHARGER);
