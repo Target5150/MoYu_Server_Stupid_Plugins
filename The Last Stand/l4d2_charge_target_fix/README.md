@@ -11,6 +11,22 @@
 
 <hr>
 
+### ConVars
+```
+// Enable/Disable collision to Infected Team on Survivors pinned by charger.
+// -
+// Default: "1"
+z_charge_pinned_collision "1"
+
+// Duration between knockdown timer ends and get-up finishes.
+// The higher value is set, the earlier Survivors become collideable when getting up from charger.
+// -
+// Default: "0.1" | Range: [0.0, 4.0]
+charger_knockdown_getup_window "0.1"
+```
+
+<hr>
+
 ### Requirement
 - **[Left 4 DHooks Direct (1.127+)](https://forums.alliedmods.net/showthread.php?t=321696)**
 

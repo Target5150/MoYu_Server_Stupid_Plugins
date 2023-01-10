@@ -5,7 +5,7 @@
 #include <dhooks>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "1.2"
+#define PLUGIN_VERSION "1.3"
 
 public Plugin myinfo = 
 {
@@ -19,17 +19,54 @@ public Plugin myinfo =
 #define GAMEDATA_FILE "l4d2_charge_target_fix"
 #define FUNCTION_NAME "CCharge::HandleCustomCollision"
 
+#define KEY_ANIMSTATE "CTerrorPlayer::m_PlayerAnimState"
+#define KEY_FLAG_CHARGED "CTerrorPlayerAnimState::m_bCharged"
+
+int
+	m_PlayerAnimState,
+	m_bCharged;
+
+enum AnimStateFlag // mid-way start from m_bCharged
+{
+	AnimState_WallSlammed		= 2,
+	AnimState_GroundSlammed		= 3,
+}
+
+methodmap AnimState
+{
+	public AnimState(int client) {
+		int ptr = GetEntData(client, m_PlayerAnimState, 4);
+		if (ptr == 0)
+			ThrowError("Invalid pointer to \"CTerrorPlayer::CTerrorPlayerAnimState\" (client %d).", client);
+		return view_as<AnimState>(ptr);
+	}
+	public bool GetFlag(AnimStateFlag flag) {
+		return view_as<bool>(LoadFromAddress(view_as<Address>(this) + view_as<Address>(m_bCharged) + view_as<Address>(flag), NumberType_Int8));
+	}
+}
+
+static const float kChargerKnockdownDuration = 2.5;
+
 int 
 	g_iChargeVictim[MAXPLAYERS+1] = {-1, ...},
 	g_iChargeAttacker[MAXPLAYERS+1] = {-1, ...};
 
 bool g_bChargerCollision;
+float g_flKnockdownWindow;
 
 public void OnPluginStart()
 {
 	GameData gd = new GameData(GAMEDATA_FILE);
 	if (!gd)
 		SetFailState("Missing gamedata \""...GAMEDATA_FILE..."\"");
+	
+	m_PlayerAnimState = GameConfGetOffset(gd, KEY_ANIMSTATE);
+	if (m_PlayerAnimState == -1)
+		SetFailState("Missing offset \""...KEY_ANIMSTATE..."\"");
+	
+	m_bCharged = GameConfGetOffset(gd, KEY_FLAG_CHARGED);
+	if (m_bCharged == -1)
+		SetFailState("Missing offset \""...KEY_FLAG_CHARGED..."\"");
 	
 	DynamicDetour hDetour = DynamicDetour.FromConf(gd, FUNCTION_NAME);
 	if (!hDetour)
@@ -46,6 +83,14 @@ public void OnPluginStart()
 				FCVAR_SPONLY,
 				true, 0.0, true, 1.0,
 				CvarChg_ChargerCollision);
+	
+	CreateConVarHook("charger_knockdown_getup_window",
+				"0.1",
+				"Duration between knockdown timer ends and get-up finishes.\n"
+			...	"The higher value is set, the earlier Survivors become collideable when getting up from charger.",
+				FCVAR_SPONLY,
+				true, 0.0, true, 4.0,
+				CvarChg_KnockdownWindow);
 	
 	HookEvent("round_start", Event_RoundStart);
 	HookEvent("charger_pummel_end", Event_ChargerPummelEnd);
@@ -82,6 +127,11 @@ void CvarChg_ChargerCollision(ConVar convar, const char[] oldValue, const char[]
 	g_bChargerCollision = convar.BoolValue;
 }
 
+void CvarChg_KnockdownWindow(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	g_flKnockdownWindow = convar.FloatValue;
+}
+
 void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {
 	for (int i = 1; i <= MaxClients; ++i)
@@ -104,14 +154,15 @@ void Event_ChargerPummelEnd(Event event, const char[] name, bool dontBroadcast)
 	if (!client)
 		return;
 	
-	int victim = GetClientOfUserId(event.GetInt("victim"));
+	int victimId = event.GetInt("victim");
+	int victim = GetClientOfUserId(victimId);
 	if (!victim || !IsClientInGame(victim))
 		return;
 	
 	if (!g_bChargerCollision)
 	{
-		SetEntProp(victim, Prop_Send, "m_knockdownReason", KNOCKDOWN_CHARGER);
-		SetEntPropFloat(victim, Prop_Send, "m_knockdownTimer", GetGameTime(), 0);
+		KnockdownPlayer(client, KNOCKDOWN_CHARGER);
+		ExtendKnockdown(victim, false);
 	}
 	
 	// Normal processes don't need special care
@@ -129,18 +180,63 @@ void Event_ChargerKilled(Event event, const char[] name, bool dontBroadcast)
 	if (victim == -1)
 		return;
 	
-	// TODO:
-	// Need something to check the get-up being played for extending the knockdown duration.
-	// Request of activity stuff to Left4DHooks? Native / Forwards from l4d2_getup_fixes?
-	// Or include all those AnimState stuff again? aughhhhhh
 	if (!g_bChargerCollision)
 	{
-		SetEntProp(victim, Prop_Send, "m_knockdownReason", KNOCKDOWN_CHARGER);
-		SetEntPropFloat(victim, Prop_Send, "m_knockdownTimer", GetGameTime(), 0);
+		KnockdownPlayer(client, KNOCKDOWN_CHARGER);
+		RequestFrame(OnNextFrame_LongChargeKnockdown, GetClientUserId(victim));
 	}
 	
 	g_iChargeVictim[client] = -1;
 	g_iChargeAttacker[victim] = -1;
+}
+
+void OnNextFrame_LongChargeKnockdown(int userid)
+{
+	int client = GetClientOfUserId(userid);
+	if (!client || !IsClientInGame(client))
+		return;
+	
+	ExtendKnockdown(client, true);
+}
+
+void ExtendKnockdown(int client, bool isLongCharge)
+{
+	float flExtendTime = 0.0;
+	
+	if (!isLongCharge)
+	{
+		float flAnimTime = 85 / 30.0;
+		flExtendTime = flAnimTime - kChargerKnockdownDuration - g_flKnockdownWindow;
+	}
+	else
+	{
+		AnimState pAnim = AnimState(client);
+		
+		float flAnimTime = 0.0;
+		if (((flAnimTime = 116 / 30.0), !pAnim.GetFlag(AnimState_WallSlammed))
+		  && ((flAnimTime = 119 / 30.0), !pAnim.GetFlag(AnimState_GroundSlammed)))
+		{
+			ExtendKnockdown(client, false);
+			return;
+		}
+		
+		float flElaspedAnimTime = flAnimTime * GetEntPropFloat(client, Prop_Send, "m_flCycle");
+		flExtendTime = flAnimTime - flElaspedAnimTime - kChargerKnockdownDuration - g_flKnockdownWindow;
+	}
+	
+	if (flExtendTime >= 0.1)
+		CreateTimer(flExtendTime, Timer_ExtendKnockdown, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+}
+
+Action Timer_ExtendKnockdown(Handle timer, int userid)
+{
+	int client = GetClientOfUserId(userid);
+	if (!client || !IsClientInGame(client))
+		return Plugin_Stop;
+	
+	KnockdownPlayer(client, KNOCKDOWN_CHARGER);
+	
+	return Plugin_Stop;
 }
 
 void Event_PlayerBotReplace(Event event, const char[] name, bool dontBroadcast)
@@ -233,10 +329,15 @@ Action Timer_KnockdownRepeat(Handle timer, int userid)
 			return Plugin_Stop;
 	}
 	
-	SetEntProp(client, Prop_Send, "m_knockdownReason", KNOCKDOWN_CHARGER);
-	SetEntPropFloat(client, Prop_Send, "m_knockdownTimer", GetGameTime(), 0);
+	KnockdownPlayer(client, KNOCKDOWN_CHARGER);
 	
 	return Plugin_Continue;
+}
+
+void KnockdownPlayer(int client, int reason)
+{
+	SetEntProp(client, Prop_Send, "m_knockdownReason", reason);
+	SetEntPropFloat(client, Prop_Send, "m_knockdownTimer", GetGameTime(), 0);
 }
 
 ConVar CreateConVarHook(const char[] name,
