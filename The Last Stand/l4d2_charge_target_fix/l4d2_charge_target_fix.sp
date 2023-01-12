@@ -175,6 +175,7 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 }
 
 // Remove collision on Survivor going incapped because `CTerrorPlayer::IsGettingUp` returns false in this case
+// Thanks to @Alan on discord for reporting.
 void Event_PlayerIncap(Event event, const char[] name, bool dontBroadcast)
 {
 	if (g_iChargerCollision & CHARGER_COLLISION_PUMMEL)
