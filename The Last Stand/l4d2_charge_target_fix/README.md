@@ -13,9 +13,10 @@
 
 ### ConVars
 ```
-// Enable/Disable collision to Infected Team on Survivors pinned by charger.
+// Enable collision to Infected Team on Survivors pinned by charger.
+// 1 = Enable collision during pummel, 2 = Enable collision during get-up, 3 = Both, 0 = No collision at all.
 // -
-// Default: "1"
+// Default: "3" | Range: [0.0, 3.0]
 z_charge_pinned_collision "1"
 
 // Duration between knockdown timer ends and get-up finishes.
