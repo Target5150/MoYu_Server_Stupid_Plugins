@@ -51,7 +51,7 @@
 #undef REQUIRE_PLUGIN
 #include <godframecontrol>
 
-#define PLUGIN_VERSION "4.18"
+#define PLUGIN_VERSION "4.19"
 
 public Plugin myinfo = 
 {
@@ -166,6 +166,7 @@ public void OnPluginStart()
 	HookEvent("lunge_pounce", Event_LungePounce);
 	HookEvent("jockey_ride", Event_JockeyRide);
 	HookEvent("jockey_ride_end", Event_JockeyRideEnd);
+	HookEvent("player_death", Event_PlayerDeath);
 	HookEvent("charger_carry_start", Event_ChargerCarryStart);
 	HookEvent("charger_pummel_start", Event_ChargerPummelStart);
 	HookEvent("charger_pummel_end", Event_ChargerPummelEnd);
@@ -352,6 +353,20 @@ void Event_JockeyRideEnd(Event event, const char[] name, bool dontBroadcast)
 /**
  * Charger
  */
+void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
+{
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	if (!client || !IsClientInGame(client))
+		return;
+	
+	int attacker = g_iChargeAttacker[client];
+	if (attacker == -1)
+		return;
+	
+	g_iChargeVictim[attacker] = -1;
+	g_iChargeAttacker[client] = -1;
+}
+
 void Event_ChargerCarryStart(Event event, const char[] name, bool dontBroadcast)
 {
 	int victim = GetClientOfUserId(event.GetInt("victim"));
