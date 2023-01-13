@@ -51,7 +51,7 @@
 #undef REQUIRE_PLUGIN
 #include <godframecontrol>
 
-#define PLUGIN_VERSION "4.17.1"
+#define PLUGIN_VERSION "4.18"
 
 public Plugin myinfo = 
 {
@@ -476,26 +476,40 @@ void Event_ChargerPummelEnd(Event event, const char[] name, bool dontBroadcast)
 	}
 }
 
-public Action L4D2_OnSlammedSurvivor(int victim, int attacker, bool &bWallSlam, bool &bDeadlyCharge)
+public void L4D2_OnSlammedSurvivor_Post(int victim, int attacker, bool bWallSlam, bool bDeadlyCharge)
 {
-	if (victim > 0)
-	{
-		g_iChargeVictim[attacker] = victim;
-		g_iChargeAttacker[victim] = attacker;
-		
-		AnimState pAnim = AnimState(victim);
-		pAnim.SetFlag(AnimState_Pounded, false);
-		pAnim.SetFlag(AnimState_Charged, false);
-		pAnim.SetFlag(AnimState_TankPunched, false);
-		pAnim.SetFlag(AnimState_Pounced, false);
-		pAnim.ResetMainActivity();
-	}
+	if (!victim || !IsClientInGame(victim))
+		return;
 	
-	return Plugin_Continue;
+	if (!IsPlayerAlive(victim))
+		return;
+	
+	g_iChargeVictim[attacker] = victim;
+	g_iChargeAttacker[victim] = attacker;
+	
+	AnimState pAnim = AnimState(victim);
+	pAnim.SetFlag(AnimState_Pounded, false);
+	pAnim.SetFlag(AnimState_Charged, false);
+	pAnim.SetFlag(AnimState_TankPunched, false);
+	pAnim.SetFlag(AnimState_Pounced, false);
+	pAnim.ResetMainActivity();
+	
+	if (!IsPlayerAlive(attacker)) // compatibility with competitive 1v1
+	{
+		Event event = CreateEvent("charger_killed");
+		event.SetInt("userid", GetClientUserId(attacker));
+		
+		Event_ChargerKilled(event, "charger_killed", false);
+		
+		event.Cancel();
+	}
 }
 
 void SetInvulnerableForSlammed(int client, float duration)
 {
+	if (!IsPlayerAlive(client))
+		return;
+	
 	if (g_bGodframeControl)
 	{
 		GiveClientGodFrames(client, duration, 8); // 1 - Hunter. 2 - Smoker. 4 - Jockey. 8 - Charger. fk u
