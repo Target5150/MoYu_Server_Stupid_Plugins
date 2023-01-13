@@ -5,7 +5,7 @@
 #include <dhooks>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "1.4"
+#define PLUGIN_VERSION "1.5"
 
 public Plugin myinfo = 
 {
@@ -103,6 +103,7 @@ public void OnPluginStart()
 	
 	HookEvent("round_start", Event_RoundStart);
 	HookEvent("player_incapacitated", Event_PlayerIncap);
+	HookEvent("player_death", Event_PlayerDeath);
 	HookEvent("charger_pummel_end", Event_ChargerPummelEnd);
 	HookEvent("charger_killed", Event_ChargerKilled);
 	HookEvent("player_bot_replace", Event_PlayerBotReplace);
@@ -197,6 +198,26 @@ void Event_PlayerIncap(Event event, const char[] name, bool dontBroadcast)
 	
 	SetPlayerSolid(client, false);
 	g_bNotSolid[client] = true;
+}
+
+void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
+{
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	if (!client || !IsClientInGame(client))
+		return;
+	
+	int attacker = g_iChargeAttacker[client];
+	if (attacker == -1)
+		return;
+	
+	if (g_bNotSolid[client])
+	{
+		SetPlayerSolid(client, true);
+		g_bNotSolid[client] = false;
+	}
+	
+	g_iChargeVictim[attacker] = -1;
+	g_iChargeAttacker[client] = -1;
 }
 
 // Calls if charger has started pummelling.
@@ -373,6 +394,12 @@ public Action L4D_OnGrabWithTongue(int victim, int attacker)
 
 public void L4D2_OnStartCarryingVictim_Post(int victim, int attacker)
 {
+	if (!victim || !IsClientInGame(victim))
+		return;
+	
+	if (!IsPlayerAlive(victim))
+		return;
+	
 	g_iChargeVictim[attacker] = victim;
 	g_iChargeAttacker[victim] = attacker;
 	TeleportEntity(victim, NULL_VECTOR, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
@@ -380,6 +407,12 @@ public void L4D2_OnStartCarryingVictim_Post(int victim, int attacker)
 
 public void L4D2_OnSlammedSurvivor_Post(int victim, int attacker, bool bWallSlam, bool bDeadlyCharge)
 {
+	if (!victim || !IsClientInGame(victim))
+		return;
+	
+	if (!IsPlayerAlive(victim))
+		return;
+	
 	g_iChargeVictim[attacker] = victim;
 	g_iChargeAttacker[victim] = attacker;
 	TeleportEntity(victim, NULL_VECTOR, NULL_VECTOR, view_as<float>({0.0, 0.0, 0.0}));
@@ -388,6 +421,16 @@ public void L4D2_OnSlammedSurvivor_Post(int victim, int attacker, bool bWallSlam
 	{
 		Handle timer = CreateTimer(1.0, Timer_KnockdownRepeat, GetClientUserId(victim), TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 		TriggerTimer(timer);
+	}
+	
+	if (!IsPlayerAlive(attacker)) // compatibility with competitive 1v1
+	{
+		Event event = CreateEvent("charger_killed");
+		event.SetInt("userid", GetClientUserId(attacker));
+		
+		Event_ChargerKilled(event, "charger_killed", false);
+		
+		event.Cancel();
 	}
 }
 
