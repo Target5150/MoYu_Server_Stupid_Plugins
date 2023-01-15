@@ -4,7 +4,7 @@
 #include <sourcemod>
 #include <dhooks>
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo = 
 {
@@ -17,6 +17,7 @@ public Plugin myinfo =
 
 #define GAMEDATA_FILE "l4d2_scripted_tank_stage_fix"
 #define FUNCTION_NAME "CDirectorScriptedEventManager::UpdateScriptedTankStage"
+#define FUNCTION2_NAME "ZombieManager::ReplaceTank"
 #define OFFSET_SPAWN "CDirectorScriptedEventManager::m_tankSpawned"
 
 int g_iOffs_m_tankSpawned;
@@ -54,6 +55,12 @@ public void OnPluginStart()
 		SetFailState("Missing detour setup \""...FUNCTION_NAME..."\"");
 	if (!hDetour.Enable(Hook_Pre, DTR_UpdateScriptedTankStage) || !hDetour.Enable(Hook_Post, DTR_UpdateScriptedTankStage_Post))
 		SetFailState("Failed to detour \""...FUNCTION_NAME..."\"");
+	
+	hDetour = DynamicDetour.FromConf(gd, FUNCTION2_NAME);
+	if (!hDetour)
+		SetFailState("Missing detour setup \""...FUNCTION2_NAME..."\"");
+	if (!hDetour.Enable(Hook_Pre, DTR_ReplaceTank))
+		SetFailState("Failed to detour \""...FUNCTION2_NAME..."\"");
 	
 	delete hDetour;
 	delete gd;
@@ -128,4 +135,19 @@ MRESReturn DTR_UpdateScriptedTankStage_Post(Address pEventManager, DHookReturn h
 	}
 	
 	return MRES_Ignored;
+}
+
+MRESReturn DTR_ReplaceTank(DHookReturn hReturn, DHookParam hParams)
+{
+	int tank, newtank;
+	if (!hParams.IsNull(1))
+		tank = hParams.Get(1);
+	if (!hParams.IsNull(2))
+		newtank = hParams.Get(2);
+	
+	if (!tank || !newtank || tank != newtank)
+		return MRES_Ignored;
+	
+	hReturn.Value = 0;
+	return MRES_Supercede;
 }
