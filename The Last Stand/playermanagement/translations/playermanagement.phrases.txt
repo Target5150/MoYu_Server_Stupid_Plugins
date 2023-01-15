@@ -1,0 +1,25 @@
+"Phrases"
+{
+	"JoinTeam_Cooldown"
+	{
+		"#format"	"{1:.1f}"
+		"en"		"{blue}[{green}Team Manager{blue}] {default}Please wait for {olive}{1}s {default}before switching team!"
+	}
+	
+	"Announce_Spectate"
+	{
+		"#format"	"{1:N}"
+		"en"		"{olive}[{green}!{olive}] {teamcolor}{1}{default} has become a spectator!"
+	}
+	
+	"Disallowed_Spectate_Capped"
+	{
+		"en"		"{olive}[{green}!{olive}] {default}No spectating while capped!"
+	}
+	
+	"SwapTeam_ReplyFailure"
+	{
+		"#format"	"{1:N}"
+		"en"		"{olive}[{green}!{olive}] {teamcolor}{1} {default}could not be switched because {green}the target team was full or has no bot to take over"
+	}
+}
