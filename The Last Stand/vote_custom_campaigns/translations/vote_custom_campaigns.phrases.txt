@@ -1,0 +1,46 @@
+"Phrases" 
+{
+	"Command_ReloadSuccess"
+	{
+		"en"		"[VCC] Successfully reloaded custom campaign list."
+	}
+	
+	"Command_ReloadFailure"
+	{
+		"en"		"[VCC] Failed to reload custom campaign list. (See error logs)"
+	}
+	
+	"Command_VoteMenuTitle"
+	{
+		"#format"	"{1:d}"
+		"en"		"▲ Vote Custom Campaigns <{1} map(s)>"
+	}
+	
+	"VoteAccess_Spectator"
+	{
+		"en"		"{default}<{olive}VCC{default}> {olive}Spectators {default}cannot vote."
+	}
+	
+	"VoteAccess_InProgress"
+	{
+		"en"		"{default}<{olive}VCC{default}> There's a vote {olive}in progress{default}."
+	}
+	
+	"VoteAccess_Cooldown"
+	{
+		"#format"	"{1:d}"
+		"en"		"{default}<{olive}VCC{default}> Wait for {green}{1}s {default}to call another vote."
+	}
+	
+	"Announce_VotePass"
+	{
+		"#format"	"{1:s}"
+		"en"		"{default}<{olive}VCC{default}> Map changing... -> {green}{1}"
+	}
+	
+	"Announce_ChangeLevelFailure"
+	{
+		"#format"	"{1:s}"
+		"en"		"{default}<{olive}VCC{default}> {green}Failed {default}to change map ({lightgreen}{1}{default})"
+	}
+}

@@ -1,0 +1,46 @@
+"Phrases" 
+{
+	"Command_ReloadSuccess"
+	{
+		"chi"		"[VCC] 成功刷新三方图列表"
+	}
+	
+	"Command_ReloadFailure"
+	{
+		"chi"		"[VCC] 刷新三方图列表失败（请检查报错）"
+	}
+	
+	"Command_VoteMenuTitle"
+	{
+		"#format"	"{1:d}"
+		"chi"		"▲ 投票三方地图 <{1} 张图>"
+	}
+	
+	"VoteAccess_Spectator"
+	{
+		"chi"		"{default}<{olive}VCC{default}> {olive}旁观{default}不能投票."
+	}
+	
+	"VoteAccess_InProgress"
+	{
+		"chi"		"{default}<{olive}VCC{default}> 有投票{olive}正在进行{default}"
+	}
+	
+	"VoteAccess_Cooldown"
+	{
+		"#format"	"{1:d}"
+		"chi"		"{default}<{olive}VCC{default}> 请等待 {green}{1} {default}秒后再投票"
+	}
+	
+	"Announce_VotePass"
+	{
+		"#format"	"{1:s}"
+		"chi"		"{default}<{olive}VCC{default}> 即将切换地图... -> {green}{1}"
+	}
+	
+	"Announce_ChangeLevelFailure"
+	{
+		"#format"	"{1:s}"
+		"chi"		"{default}<{olive}VCC{default}> {green}无法更换地图 ({lightgreen}{1}{default})"
+	}
+}

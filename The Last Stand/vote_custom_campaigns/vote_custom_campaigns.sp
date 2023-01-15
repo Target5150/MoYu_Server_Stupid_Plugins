@@ -3,27 +3,28 @@
 
 #include <sourcemod>
 #include <builtinvotes>
+#include <colors>
 
 #undef REQUIRE_PLUGIN
 #tryinclude <l4d2_changelevel>
 #include <l4d2_mission_manager>
 #define REQUIRE_PLUGIN
 
-#define PLUGIN_VERSION "2.0"
+#define PLUGIN_VERSION "2.1"
 
 public Plugin myinfo =
 {
-	name = "Vote Custom Campaign",
+	name = "[L4D2] Vote Custom Campaign",
 	author = "Forgetest",
 	description = "ez",
 	version = PLUGIN_VERSION,
-	url = ""
+	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 };
 
 /**
  * Globals
  */
-#define PLURAL(%0) ((%0) > 1 ? "s" : "")
+#define TRANSLATION_FILE "vote_custom_campaigns.phrases"
 
 ArrayList g_aCampaignList;
 
@@ -57,6 +58,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
  */
 public void OnPluginStart()
 {
+	LoadPluginTranslations();
+	
 	g_cVotePercent =	CreateConVar(	"vcc_votes_percent",	"0.6",		"Votes more than this percent of non-spectator players can a vote result.", FCVAR_NOTIFY);
 	g_cPassPercent =	CreateConVar(	"vcc_pass_percent",		"0.6",		"Approvals greater than this percent of votes can a vote pass.", FCVAR_NOTIFY);
 	
@@ -87,9 +90,9 @@ public void OnConfigsExecuted()
 Action Command_ReloadCampaigns(int client, int args)
 {
 	if( ParseCampaigns() ) {
-		ReplyToCommand(client, "[VCC] Successfully reloaded custom campaign list.");
+		CReplyToCommand(client, "%t", "Command_ReloadSuccess");
 	} else {
-		ReplyToCommand(client, "[VCC] Failed to reload custom campaign list. (See error logs)");
+		CReplyToCommand(client, "%t", "Command_ReloadFailure");
 	}
 	
 	return Plugin_Handled;
@@ -103,7 +106,7 @@ Action Command_VoteCampaign(int client, int args)
 	if( !arraysize ) { return Plugin_Handled; }
 	
 	Menu menu = new Menu(MapMenuHandler);
-	menu.SetTitle( "▲ Vote Custom Campaigns <%d map%s>", arraysize, PLURAL(arraysize) );
+	menu.SetTitle( "%T", "Command_VoteMenuTitle", client, arraysize );
 	
 	LMM_GAMEMODE gamemode = LMM_GetCurrentGameMode();
 	
@@ -179,17 +182,17 @@ bool CheckVoteAccess(int client)
 {
 	if( GetClientTeam(client) == 1 ) // 1 -> Spectator
 	{
-		PrintToChat(client, "\x01<\x05VCC\x01> \x05Spectators \x01cannot vote.");
+		CPrintToChat(client, "%t", "VoteAccess_Spectator");
 		return false;
 	}
 	if( IsBuiltinVoteInProgress() )
 	{
-		PrintToChat(client, "\x01<\x05VCC\x01> There's a vote \x05in progress\x01.");
+		CPrintToChat(client, "%t", "VoteAccess_InProgress");
 		return false;
 	}
 	if( CheckBuiltinVoteDelay() > 0 )
 	{
-		PrintToChat(client, "\x01<\x05VCC\x01> Wait for \x04%ds \x01to call another vote.", CheckBuiltinVoteDelay());
+		CPrintToChat(client, "%t", "VoteAccess_Cooldown", CheckBuiltinVoteDelay());
 		return false;
 	}
 	
@@ -203,14 +206,6 @@ int CampaignVoteHandler(Handle vote, BuiltinVoteAction action, int param1, int p
 {
 	switch( action )
 	{
-		case BuiltinVoteAction_Select:
-		{
-			switch( param2 )
-			{
-				case 0: PrintToConsoleAll("<VCC> Player %N vote against the campaign change.", param1);
-				case 1: PrintToConsoleAll("<VCC> Player %N vote for the campaign change.", param1);
-			}
-		}
 		case BuiltinVoteAction_Cancel:
 		{
 			DisplayBuiltinVoteFail(vote, BuiltinVoteFail_Generic);
@@ -243,7 +238,26 @@ int CampaignVoteResult(Handle vote, int num_votes, int num_clients, const int[][
 	{
 		DisplayBuiltinVotePass2(vote, TRANSLATION_L4D_VOTE_CHANGECAMPAIGN_PASSED, g_sVoteCampaignName);
 		
-		PrintToChatAll("\x01<\x05VCC\x01> Map changing... -> \x04%s", g_sVoteCampaignName);
+		int missionIndex;
+		char buffer[256];
+		LMM_GAMEMODE gamemode = LMM_GetCurrentGameMode();
+		LMM_FindMapIndexByName(gamemode, missionIndex, g_sVoteCampaign);
+		
+		for (int i = 1; i <= MaxClients; ++i)
+		{
+			if (!IsClientInGame(i) || IsFakeClient(i))
+				continue;
+			
+			if (LMM_GetMissionLocalizedName(gamemode, missionIndex, buffer, sizeof(buffer), i) == 1)
+			{
+				CPrintToChat(i, "%t", "Announce_VotePass", buffer);
+			}
+			else
+			{
+				CPrintToChat(i, "%t", "Announce_VotePass", g_sVoteCampaignName);
+			}
+		}
+		
 		CreateTimer(3.0, Timer_Changelevel, .flags = TIMER_FLAG_NO_MAPCHANGE);
 	}
 	else
@@ -262,7 +276,7 @@ Action Timer_Changelevel(Handle timer)
 {
 	if( !IsMapValid(g_sVoteCampaign) )
 	{
-		PrintToChatAll("\x01<\x05VCC\x01> \x04Failed \x01to change map (\x03%s\x01)", g_sVoteCampaignName);
+		CPrintToChatAll("%t", "Announce_ChangeLevelFailure", g_sVoteCampaignName);
 		return Plugin_Stop;
 	}
 	
@@ -316,3 +330,13 @@ bool ParseCampaigns()
 	return g_aCampaignList.Length > 0;
 }
 
+void LoadPluginTranslations()
+{
+	char sPath[PLATFORM_MAX_PATH];
+	BuildPath(Path_SM, sPath, sizeof sPath, "translations/"...TRANSLATION_FILE... ".txt");
+	if (!FileExists(sPath))
+	{
+		SetFailState("Missing translation file \""...TRANSLATION_FILE...".txt\"");
+	}
+	LoadTranslations(TRANSLATION_FILE);
+}
