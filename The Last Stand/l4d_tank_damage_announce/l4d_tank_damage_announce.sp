@@ -45,7 +45,7 @@
 * @Forgetest
 */
 
-#define PLUGIN_VERSION "2.3"
+#define PLUGIN_VERSION "2.4"
 
 public Plugin myinfo =
 {
@@ -286,7 +286,7 @@ public void OnClientDisconnect(int client)
 	
 	if (IsFakeClient(client))
 	{
-		PrintTankInfo(userid);
+		Timer_CheckTank(null, GetClientUserId(client));
 	}
 }
 
@@ -491,6 +491,9 @@ void Event_PlayerIncap(Event event, const char[] name, bool dontBroadcast)
 void Event_PlayerKilled(Event event, const char[] name, bool dontBroadcast)
 {
 	if (!g_bIsTankInPlay)			// No tank in play; no damage to record
+		return;
+	
+	if (event.GetBool("abort"))		// A Tank replace is happening
 		return;
 	
 	int victimid = event.GetInt("userid");
