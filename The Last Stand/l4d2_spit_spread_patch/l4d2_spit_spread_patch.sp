@@ -8,7 +8,7 @@
 #include <sourcescramble>
 #include <collisionhook>
 
-#define PLUGIN_VERSION "1.19"
+#define PLUGIN_VERSION "1.19.1"
 
 public Plugin myinfo = 
 {
@@ -266,7 +266,7 @@ void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 
 public void OnEntityCreated(int entity, const char[] classname)
 {
-	if (strcmp(classname, "insect_swarm") == 0)
+	if (classname[0] == 'i' && strcmp(classname, "insect_swarm") == 0)
 	{
 		SDKHook(entity, SDKHook_SpawnPost, SDK_OnSpawnPost);
 	}
@@ -472,7 +472,10 @@ public Action CH_PassFilter(int touch, int pass, bool &result)
 	else if (pass > 0)
 	{
 		// (pass = spitter): death spit
-		if (!IsClientInGame(pass) || !IsPlayerAlive(pass))
+		if (!IsClientInGame(pass))
+			return Plugin_Continue;
+		
+		if (IsPlayerAlive(pass))
 			return Plugin_Continue;
 		
 		if (GetClientTeam(pass) != 3)
