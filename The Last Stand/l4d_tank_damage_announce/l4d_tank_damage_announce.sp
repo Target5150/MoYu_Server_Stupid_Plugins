@@ -45,7 +45,7 @@
 * @Forgetest
 */
 
-#define PLUGIN_VERSION "2.4"
+#define PLUGIN_VERSION "2.5"
 
 public Plugin myinfo =
 {
@@ -360,6 +360,14 @@ void Event_PlayerBotReplace(Event event, const char[] name, bool dontBroadcast)
 void Event_BotPlayerReplace(Event event, const char[] name, bool dontBroadcast)
 {
 	HandlePlayerReplace(event.GetInt("player"), event.GetInt("bot"));
+}
+
+public void L4D_OnReplaceTank(int tank, int newtank)
+{
+	if (!tank || !newtank || tank == newtank)
+		return;
+	
+	HandlePlayerReplace(GetClientUserId(newtank), GetClientUserId(tank));
 }
 
 void HandlePlayerReplace(int replacer, int replacee)
