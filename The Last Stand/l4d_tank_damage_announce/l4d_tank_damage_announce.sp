@@ -45,7 +45,7 @@
 * @Forgetest
 */
 
-#define PLUGIN_VERSION "2.5"
+#define PLUGIN_VERSION "2.5.1"
 
 public Plugin myinfo =
 {
@@ -367,7 +367,22 @@ public void L4D_OnReplaceTank(int tank, int newtank)
 	if (!tank || !newtank || tank == newtank)
 		return;
 	
-	HandlePlayerReplace(GetClientUserId(newtank), GetClientUserId(tank));
+	DataPack dp = new DataPack();
+	dp.WriteCell(GetClientUserId(tank));
+	dp.WriteCell(GetClientUserId(newtank));
+	
+	RequestFrame(OnFrame_HandlePlayerReplace, dp);
+}
+
+void OnFrame_HandlePlayerReplace(DataPack dp)
+{
+	int tank, newtank;
+	
+	dp.Reset();
+	tank = dp.ReadCell();
+	newtank = dp.ReadCell();
+	
+	HandlePlayerReplace(newtank, tank);
 }
 
 void HandlePlayerReplace(int replacer, int replacee)
