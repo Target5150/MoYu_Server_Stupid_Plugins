@@ -8,7 +8,7 @@
 #include <sourcescramble>
 #include <collisionhook>
 
-#define PLUGIN_VERSION "1.19.1"
+#define PLUGIN_VERSION "1.19.2"
 
 public Plugin myinfo = 
 {
@@ -31,8 +31,6 @@ public Plugin myinfo =
 #define KEY_SPREAD_FLAG_PATCH "CInferno::Spread__TraceFlag_patch"
 #define KEY_SPREAD_PASS_PATCH "CInferno::Spread__PassEnt_patch"
 #define KEY_TRACEHEIGHT_PATCH "CTerrorPlayer::Event_Killed__TraceHeight_patch"
-
-MemoryBlock g_hAlloc_TraceHeight;
 
 //======================================================================================================
 // clean methodmap
@@ -208,7 +206,7 @@ void CvarChange_SaferoomSpread(ConVar convar, const char[] oldValue, const char[
 
 void CvarChange_TraceHeight(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	g_hAlloc_TraceHeight.StoreToOffset(0, view_as<int>(convar.FloatValue), NumberType_Int32);
+	g_flTraceHeight = convar.FloatValue;
 }
 
 void CvarChange_MaxFlames(ConVar convar, const char[] oldValue, const char[] newValue)
