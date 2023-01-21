@@ -6,7 +6,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.5"
+#define PLUGIN_VERSION "1.6"
 
 public Plugin myinfo = 
 {
@@ -120,24 +120,17 @@ void GetCvars()
 // Events
 // ===================================================================
 
-public void OnClientPostAdminCheck(int client)
-{
-	if (GetClientTeam(client) == L4D2Team_Spectator)
-	{
-		AddPrefix(client);
-	}
-}
-
-public void Event_NameChanged(Event event, const char[] name, bool dontBroadcast)
+void Event_NameChanged(Event event, const char[] name, bool dontBroadcast)
 {
 	int userid = event.GetInt("userid");
 	int client = GetClientOfUserId(userid);
 	
-	if (!client
+	if (!client 
+		|| !IsClientInGame(client)
 		|| IsFakeClient(client)
 		|| GetClientTeam(client) != L4D2Team_Spectator)
 		return;
-			
+	
 	char newname[MAX_NAME_LENGTH];
 	event.GetString("newname", newname, sizeof(newname));
 	
@@ -165,18 +158,17 @@ void OnNextFrame(DataPack dp)
 	delete dp;
 }
 
-public void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
+void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
 {
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	
-	if (!client
-		|| IsFakeClient(client))
+	if (!client || !IsClientInGame(client))
+		return;
+	
+	if (IsFakeClient(client))
 		return;
 	
 	int newteam = event.GetInt("team");
-	if (newteam == L4D2Team_None)
-		return;
-	
 	int oldteam = event.GetInt("oldteam");
 	if (newteam == oldteam)
 		return;
@@ -195,14 +187,14 @@ void AddPrefix(int client, const char[] newname = "")
 	if (!GetClientAuthId(client, AuthId_Steam2, authId, sizeof(authId)))
 		return;
 	
+	if (HasPrefix(authId))
+		return;
+	
 	char name[MAX_NAME_LENGTH];
 	if (strlen(newname) > 0)
 		strcopy(name, sizeof(name), newname);
 	else
-		GetClientName(client, name, sizeof(name));
-	
-	if (HasPrefix(name))
-		return;
+		GetEntPropString(client, Prop_Data, "m_szNetname", name, sizeof(name));
 	
 	g_triePrefixed.SetString(authId, name, true);
 	
@@ -271,7 +263,7 @@ void CS_SetClientName(int client, const char[] name)
 // Helpers
 // ===================================================================
 
-bool HasPrefix(const char[] name)
+bool HasPrefix(const char[] auth)
 {
-	return strncmp(name, g_sPrefixType, strlen(g_sPrefixType)) == 0 || strncmp(name, g_sPrefixTypeCaster, strlen(g_sPrefixTypeCaster)) == 0;
+	return g_triePrefixed.ContainsKey(auth);
 }
