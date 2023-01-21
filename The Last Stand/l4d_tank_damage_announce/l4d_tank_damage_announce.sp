@@ -45,7 +45,7 @@
 * @Forgetest
 */
 
-#define PLUGIN_VERSION "2.5.1"
+#define PLUGIN_VERSION "2.5.2"
 
 public Plugin myinfo =
 {
@@ -86,6 +86,8 @@ methodmap UserVector < ArrayList
 		
 		any[] array = new any[blocksize];
 		array[0] = value;
+		for (int i = 1; i < blocksize; ++i)
+			array[i] = 0;
 		
 		return this.PushArray(array);
 	}
