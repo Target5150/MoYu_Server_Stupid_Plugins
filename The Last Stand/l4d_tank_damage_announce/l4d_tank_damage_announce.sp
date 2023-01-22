@@ -364,11 +364,13 @@ void Event_BotPlayerReplace(Event event, const char[] name, bool dontBroadcast)
 	HandlePlayerReplace(event.GetInt("player"), event.GetInt("bot"));
 }
 
+// Tank passing between players
 public void L4D_OnReplaceTank(int tank, int newtank)
 {
 	if (!tank || !newtank || tank == newtank)
 		return;
 	
+	// A pre-hook here so make sure the replace actually happens via a delayed check.
 	DataPack dp = new DataPack();
 	dp.WriteCell(GetClientUserId(tank));
 	dp.WriteCell(GetClientUserId(newtank));
@@ -383,6 +385,8 @@ void OnFrame_HandlePlayerReplace(DataPack dp)
 	dp.Reset();
 	tank = dp.ReadCell();
 	newtank = dp.ReadCell();
+	
+	delete dp;
 	
 	HandlePlayerReplace(newtank, tank);
 }
