@@ -45,7 +45,7 @@
 * @Forgetest
 */
 
-#define PLUGIN_VERSION "2.5.2"
+#define PLUGIN_VERSION "2.5.3"
 
 public Plugin myinfo =
 {
