@@ -6,7 +6,7 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#define PLUGIN_VERSION "1.6"
+#define PLUGIN_VERSION "1.7"
 
 public Plugin myinfo = 
 {
@@ -187,11 +187,12 @@ void AddPrefix(int client, const char[] newname = "")
 	if (!GetClientAuthId(client, AuthId_Steam2, authId, sizeof(authId)))
 		return;
 	
-	if (HasPrefix(authId))
+	bool isNewName = strlen(newname) > 0;
+	if (HasPrefix(authId) && !isNewName)
 		return;
 	
 	char name[MAX_NAME_LENGTH];
-	if (strlen(newname) > 0)
+	if (isNewName)
 		strcopy(name, sizeof(name), newname);
 	else
 		GetEntPropString(client, Prop_Data, "m_szNetname", name, sizeof(name));
