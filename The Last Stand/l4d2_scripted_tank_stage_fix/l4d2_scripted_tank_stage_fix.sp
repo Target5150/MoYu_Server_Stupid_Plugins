@@ -5,7 +5,7 @@
 #include <dhooks>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "2.0"
+#define PLUGIN_VERSION "2.1"
 
 public Plugin myinfo = 
 {
@@ -172,10 +172,17 @@ public void OnGameFrame()
 		TheDirector.m_iTankCount++;
 }
 
+bool tankSpawnCencalled = false;
+public void L4D_OnSpawnTank_PostHandled(int client, const float vecPos[3], const float vecAng[3])
+{
+	tankSpawnCencalled = true;
+}
+
 int spawnCount = 0;
 MRESReturn DTR_UpdateScriptedTankStage(Address pEventManager, DHookReturn hReturn, DHookParam hParams)
 {
 	spawnCount = LoadFromAddress(hParams.Get(1), NumberType_Int32);
+	tankSpawnCencalled = false;
 	return MRES_Ignored;
 }
 
@@ -188,7 +195,7 @@ MRESReturn DTR_UpdateScriptedTankStage_Post(Address pEventManager, DHookReturn h
 	int count = LoadFromAddress(pCount, NumberType_Int32);
 	if (spawnCount == count + 1)
 	{
-		if (!eventMgr.m_tankSpawning)
+		if (!eventMgr.m_tankSpawning && !tankSpawnCencalled)
 		{
 			StoreToAddress(pCount, spawnCount, NumberType_Int32);
 		}
