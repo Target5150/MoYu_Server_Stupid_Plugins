@@ -7,7 +7,6 @@
 
 ### Installation
 1. Put the **l4d_fix_deathfall_cam.smx** to your _plugins_ folder.
-2. Put the **l4d_fix_deathfall_cam.txt** to your _gamedata_ folder.
 
 <hr>
 
