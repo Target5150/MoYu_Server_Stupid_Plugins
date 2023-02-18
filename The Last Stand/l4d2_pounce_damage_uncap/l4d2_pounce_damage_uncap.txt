@@ -1,0 +1,99 @@
+"Games"
+{
+	"left4dead2"
+	{
+		"MemPatches"
+		{
+			"CTerrorPlayer::OnPouncedOnSurvivor__MinRange_cond"
+			{
+				"signature"		"CTerrorPlayer::OnPouncedOnSurvivor"
+				"linux"
+				{
+					"offset"	"560h"
+					"verify"	"\x2A\x0F\x2F"
+					"preserve"	"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"
+					"patch"		"\x00\x00\x00\x00\x00\x00\x00\x00"
+				}
+				"windows"
+				{
+					"offset"	"4B9h"			
+					"verify"	"\xF3\x0F\x10"
+					"preserve"	"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"
+					"patch"		"\x00\x00\x00\x00\x00\x00\x00\x00"
+				}
+			}
+			
+			"CTerrorPlayer::OnPouncedOnSurvivor__MaxRange_cond"
+			{
+				"signature"		"CTerrorPlayer::OnPouncedOnSurvivor"
+				"linux"
+				{
+					"offset"	"572h"
+					"verify"	"\x2A\x0F\x2F"
+					"preserve"	"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"
+					"patch"		"\x00\x00\x00\x00\x00\x00\x00\x00"
+				}
+				"windows"
+				{
+					"offset"	"504h"			
+					"verify"	"\x2A\x0F\x2F"
+					"preserve"	"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"
+					"patch"		"\x00\x00\x00\x00\x00\x00\x00\x00"
+				}
+			}
+			
+			"CTerrorPlayer::OnPouncedOnSurvivor__MinRangeNegate_add"
+			{
+				"signature"		"CTerrorPlayer::OnPouncedOnSurvivor"
+				"linux"
+				{
+					"offset"	"C53h"
+					"verify"	"\xF3\x0F\x10"
+					"preserve"	"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"
+					"patch"		"\x00\x00\x00\x00\x00\x00\x00\x00"
+				}
+			}
+			
+			"CTerrorPlayer::OnPouncedOnSurvivor__RangeDiffFactor_mul"
+			{
+				"signature"		"CTerrorPlayer::OnPouncedOnSurvivor"
+				"linux"
+				{
+					"offset"	"C48h"
+					"verify"	"\xF3\x0F\x59"
+					"preserve"	"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"
+					"patch"		"\x00\x00\x00\x00\x00\x00\x00\x00"
+				}
+				"windows"
+				{
+					"offset"	"530h"			
+					"verify"	"\xF3\x0F\x59"
+					"preserve"	"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"
+					"patch"		"\x00\x00\x00\x00\x00\x00\x00\x00"
+				}
+			}
+		}
+		
+		"Offsets"
+		{
+			"OS"
+			{
+				"linux"			"1"
+				"windows"		"0"
+			}
+		}
+
+		"Signatures"
+		{
+			// Credit to Silvers
+			"CTerrorPlayer::OnPouncedOnSurvivor"
+			{
+				"library"		"server"
+				"linux"			"@_ZN13CTerrorPlayer19OnPouncedOnSurvivorEPS_"
+				"windows"		"\x2A\x2A\x2A\x2A\x2A\x2A\x83\x2A\x2A\x83\x2A\x2A\x55\x8B\x2A\x2A\x89\x2A\x2A\x2A\x8B\x2A\x81\x2A\x2A\x2A\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x33\x2A\x89\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x83\x2A\x2A\x00\x56\x57\x8B\x2A\x2A\x8B"
+				/* ? ? ? ? ? ? 83 ? ? 83 ? ? 55 8B ? ? 89 ? ? ? 8B ? 81 ? ? ? ? ? A1 ? ? ? ? 33 ? 89 ? ? A1 ? ? ? ? 83 ? ? 00 56 57 8B ? ? 8B */
+				/* Search: "Pounce by %s dealt" */
+			}
+		}
+	}
+}
