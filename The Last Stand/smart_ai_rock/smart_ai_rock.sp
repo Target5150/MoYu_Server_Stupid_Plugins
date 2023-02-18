@@ -26,6 +26,27 @@ methodmap PlayerBody
 	}
 }
 
+public void OnPluginStart()
+{
+	HookEvent("player_jump", Event_PlayerJump);
+}
+
+void Event_PlayerJump(Event event, const char[] name, bool dontBroadcast)
+{
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	if (!client || !IsClientInGame(client))
+		return;
+	
+	if (!IsFakeClient(client))
+		return;
+	
+	if (GetClientTeam(client) != 3)
+		return;
+	
+	PlayerBody pBody = GetInfectedBodyInterface(client);
+	CTimer_SetTimestamp(pBody.m_lookAtExpireTimer, GetGameTime() + 0.1);
+}
+
 public void L4D_TankRock_OnRelease_Post(int tank, int rock, const float vecPos[3], const float vecAng[3], const float vecVel[3], const float vecRot[3])
 {
 	if (!IsFakeClient(tank))
@@ -53,20 +74,20 @@ Action Timer_ExpireLookAt(Handle timer, int userid)
 	if (L4D_IsPlayerIncapacitated(client) || !IsPlayerAlive(client)) // dead
 		return Plugin_Stop;
 	
-	PlayerBody pBody = Tank__GetBodyInterface(client);
+	PlayerBody pBody = GetInfectedBodyInterface(client);
 	CTimer_SetTimestamp(pBody.m_lookAtExpireTimer, GetGameTime());
 	
 	return Plugin_Stop;
 }
 
-PlayerBody Tank__GetBodyInterface(int tank)
+PlayerBody GetInfectedBodyInterface(int client)
 {
 	static int s_iOffs_m_playerBody = -1;
 	if (s_iOffs_m_playerBody == -1)
 		s_iOffs_m_playerBody = FindSendPropInfo("SurvivorBot"/* lol */, "m_humanSpectatorEntIndex") + 12 - 4 * view_as<int>(L4D_IsEngineLeft4Dead2());
 	
 	return view_as<PlayerBody>(
-		LoadFromAddress(GetEntityAddress(tank) + view_as<Address>(s_iOffs_m_playerBody), NumberType_Int32)
+		LoadFromAddress(GetEntityAddress(client) + view_as<Address>(s_iOffs_m_playerBody), NumberType_Int32)
 	);
 }
 
