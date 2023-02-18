@@ -1,0 +1,25 @@
+"Games"
+{
+	"left4dead2"
+	{
+		"Functions"
+		{
+			"CInsectSwarm::GetFlameLifetime"
+			{
+				"offset"		"CInsectSwarm::GetFlameLifetime"
+				"hooktype"		"entity"
+				"return"		"float"
+				"this"			"ignore"
+			}
+		}
+		
+		"Offsets"
+		{
+			"CInsectSwarm::GetFlameLifetime"
+			{
+				"linux"			"206"
+				"windows"		"205"
+			}
+		}
+	}
+}
