@@ -5,9 +5,13 @@
 
 <hr>
 
+### Requirement
+- **[Left 4 DHooks Direct (1.128+)](https://forums.alliedmods.net/showthread.php?t=321696)**
+
+<hr>
+
 ### Installation
 1. Put the **l4d2_fix_firsthit.smx** to your _plugins_ folder.
-2. Put the **l4d2_fix_firsthit.txt** to your _gamedata_ folder.
 
 <hr>
 
