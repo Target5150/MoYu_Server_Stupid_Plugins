@@ -6,7 +6,7 @@
 #include <sdktools_gamerules>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "2.3"
+#define PLUGIN_VERSION "2.4"
 
 public Plugin myinfo =
 {
@@ -106,7 +106,6 @@ void SDK_OnSpawn_Post(int client)
 {
 	if (IsClientInGame(client))
 	{
-		ForcePlayerSuicide(client);
 		SetEntProp(client, Prop_Send, "m_zombieClass", 9);
 	}
 }
