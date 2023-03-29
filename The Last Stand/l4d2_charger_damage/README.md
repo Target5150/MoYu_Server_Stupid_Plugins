@@ -1,4 +1,4 @@
-# [L4D & 2] Charger Damage
+# [L4D2] Charger Damage
 
 ### Introduction
 - Adds several convars to control over charge-related damages.
