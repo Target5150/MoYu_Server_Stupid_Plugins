@@ -1,0 +1,108 @@
+"Games"
+{
+	"left4dead2"
+	{
+		"MemPatches"
+		{
+			"CTerrorPlayer::OnSlammedSurvivor__advanced_damage"
+			{
+				"signature"		"CTerrorPlayer::OnSlammedSurvivor"
+				"linux"
+				{
+					"offset"	"49h"
+					"verify"	"\xF3\x0F\x10"
+					"preserve"	"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"
+					"patch"		"\x00\x00\x00\x00\x00\x00\x00\x00"
+				}
+				"windows"
+				{
+					"offset"	"40h"
+					"verify"	"\xF3\x0F\x10"
+					"preserve"	"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"
+					"patch"		"\x00\x00\x00\x00\x00\x00\x00\x00"
+				}
+			}
+			"CTerrorPlayer::OnSlammedSurvivor__normal_damage"
+			{
+				"signature"		"CTerrorPlayer::OnSlammedSurvivor"
+				"linux"
+				{
+					"offset"	"250h"
+					"verify"	"\xF3\x0F\x10"
+					"preserve"	"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"
+					"patch"		"\x00\x00\x00\x00\x00\x00\x00\x00"
+				}
+				"windows"
+				{
+					"offset"	"1Ch"
+					"verify"	"\xF3\x0F\x10"
+					"preserve"	"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"
+					"patch"		"\x00\x00\x00\x00\x00\x00\x00\x00"
+				}
+			}
+			"CTerrorPlayer::OnSlammedSurvivor__expert_damage"
+			{
+				"signature"		"CTerrorPlayer::OnSlammedSurvivor"
+				"linux"
+				{
+					"offset"	"59h"
+					"verify"	"\xF3\x0F\x10"
+					"preserve"	"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"
+					"patch"		"\x00\x00\x00\x00\x00\x00\x00\x00"
+				}
+				"windows"
+				{
+					"offset"	"36h"
+					"verify"	"\xF3\x0F\x10"
+					"preserve"	"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"
+					"patch"		"\x00\x00\x00\x00\x00\x00\x00\x00"
+				}
+			}
+			
+			"ChargeImpactDistributor::operator()__damage"
+			{
+				"signature"		"ChargeImpactDistributor::operator()"
+				"linux"
+				{
+					"offset"	"3BDh"
+					"verify"	"\xC7\x44\x24"
+					"preserve"	"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"
+					"patch"		"\x00\x00\x00\x00\x00\x00\x00\x00"
+				}
+				"windows"
+				{
+					"offset"	"130h"
+					"verify"	"\x2A\x2A\xD9\x05"
+					"preserve"	"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"
+					"patch"		"\x00\x00\x00\x00\x00\x00\x00\x00"
+				}
+			}
+		}
+		
+		"Signatures"
+		{
+			// From left4dhooks
+			"CTerrorPlayer::OnSlammedSurvivor"
+			{
+				"library"		"server"
+				"linux"			"@_ZN13CTerrorPlayer17OnSlammedSurvivorEPS_bb"
+				"windows"		"\x2A\x2A\x2A\x2A\x2A\x2A\xD9\xEE\x56\x57\x6A\x00\x51\xD9\x2A\x24\x68\x2A\x2A\x2A\x2A\x8B\x2A\xE8\x2A\x2A\x2A\x2A\xF3\x0F"
+				/* ? ? ? ? ? ? D9 EE 56 57 6A 00 51 D9 ? 24 68 ? ? ? ? 8B ? E8 ? ? ? ? F3 0F */
+				/* Search "ChargerZombie.ImpactHard" */ // Found by "Forgetest"
+			}
+			
+			"ChargeImpactDistributor::operator()"
+			{
+				"library"		"server"
+				"linux"			"@_Z13ForEachPlayerI23ChargeImpactDistributorEbRT_" // not the same function
+				"windows"		"\x53\x8B\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x81\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x8B\x2A\x2A\x8B\x2A\x89"
+				/* 53 8B ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? ? 81 ? ? ? ? ? ? ? 8B ? ? 8B ? 89 */
+				/**
+				 1. Search "charger_wall_impact" and one of the xref is "CCharge::DoImpactProbe"
+				 2. Generate pesudocode, click in the 2nd function called below the string
+				 3. Now we're in a `ForEachPlayer` template, the function called after several checks is it.
+				 */
+			}
+		}
+	}
+}
