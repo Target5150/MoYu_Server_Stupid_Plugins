@@ -3,7 +3,7 @@
 
 #include <sourcemod>
 
-#define PLUGIN_VERSION "2.0"
+#define PLUGIN_VERSION "2.0.1"
 
 public Plugin myinfo = 
 {
@@ -35,25 +35,30 @@ public void OnPluginStart()
 
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
-	static char sPubChatTrigger[8] = "!", sPrivChatTrigger[8] = "/";
+	static char s_sPubChatTrigger[8] = "!", s_sPrivChatTrigger[8] = "/";
+	static int s_iPubTriggerLen = 1, s_iPrivTriggerLen = 1;
 
 // 1.12.0.6944
 // https://github.com/alliedmodders/sourcemod/commit/3b4a343274286b31a9b3cf33c64f7ef
-#if SOURCEMOD_V_MAJOR >= 1 && SOURCEMOD_V_MINOR >= 12 && SOURCEMOD_V_REV >= 6944
+#if SOURCEMOD_V_MAJOR > 1
+  || (SOURCEMOD_V_MAJOR == 1 && SOURCEMOD_V_MINOR >= 12 && SOURCEMOD_V_REV >= 6944)
 	static bool bInit = false;
 	if (!bInit)
 	{
-		if (GetPublicChatTriggers(sPubChatTrigger, sizeof(sPubChatTrigger)) == 0)
-			strcopy(sPubChatTrigger, sizeof(sPubChatTrigger), "!");
-		if (GetSilentChatTriggers(sPrivChatTrigger, sizeof(sPrivChatTrigger)) == 0)
-			strcopy(sPrivChatTrigger, sizeof(sPrivChatTrigger), "/");
+		s_iPubTriggerLen = GetPublicChatTriggers(s_sPubChatTrigger, sizeof(s_sPubChatTrigger));
+		s_iPrivTriggerLen = GetSilentChatTriggers(s_sPrivChatTrigger, sizeof(s_sPrivChatTrigger));
+		
+		if (!s_iPubTriggerLen)
+			s_iPubTriggerLen = strcopy(s_sPubChatTrigger, sizeof(s_sPubChatTrigger), "!");
+		if (!s_iPrivTriggerLen)
+			s_iPrivTriggerLen = strcopy(s_sPrivChatTrigger, sizeof(s_sPrivChatTrigger), "/");
 		
 		bInit = true;
 	}
 #endif
 
-	if (strncmp(sArgs, sPubChatTrigger, strlen(sPubChatTrigger)) == 0
-	  || strncmp(sArgs, sPrivChatTrigger, strlen(sPrivChatTrigger)) == 0)
+	if (strncmp(sArgs, s_sPubChatTrigger, s_iPubTriggerLen) == 0
+	  || strncmp(sArgs, s_sPrivChatTrigger, s_iPrivTriggerLen) == 0)
 		return Plugin_Handled;
 	
 	return Plugin_Continue;
@@ -114,7 +119,7 @@ Action UserMsg_OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int p
 	msg.ReadByte(); // Skip the second byte
 	
 	// Read the message
-	char sMessage[128];
+	static char sMessage[128];
 	msg.ReadString(sMessage, sizeof(sMessage), true);
 	
 	if (GetClientTeam(client) == 1)
@@ -146,10 +151,26 @@ stock void UTIL_SayText2Filter( int entity, const int[] recipients, int numRecip
 	bf.WriteByte( entity );
 	bf.WriteByte( bChat );
 	bf.WriteString( msg_name );
-	bf.WriteString( param1 );
-	bf.WriteString( param2 );
-	bf.WriteString( param3 );
-	bf.WriteString( param4 );
+	
+	if ( !IsNullString(param1) )
+		bf.WriteString( param1 );
+	else
+		bf.WriteString( "" );
+	
+	if ( !IsNullString(param2) )
+		bf.WriteString( param2 );
+	else
+		bf.WriteString( "" );
+	
+	if ( !IsNullString(param3) )
+		bf.WriteString( param3 );
+	else
+		bf.WriteString( "" );
+	
+	if ( !IsNullString(param4) )
+		bf.WriteString( param4 );
+	else
+		bf.WriteString( "" );
 	
 	EndMessage();
 }
