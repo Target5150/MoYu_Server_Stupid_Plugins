@@ -2,15 +2,6 @@
 {
 	"#default"
 	{
-		"Offsets"
-		{
-			"OS"
-			{
-				"linux"			"1"
-				"windows"		"0"
-			}
-		}
-		
 		"Functions"
 		{
 			"CTongue::UpdateTongueTarget"
@@ -138,7 +129,7 @@
 				{
 					"signature"	"CTongue::OnUpdateExtendingState"
 					"read"		"235"
-					"offset"	"8"
+					"read"		"8"
 				}
 			}
 		}
@@ -247,7 +238,7 @@
 				{
 					"signature"	"CTongue::OnUpdateExtendingState"
 					"read"		"259"
-					"offset"	"8"
+					"read"		"8"
 				}
 			}
 		}
