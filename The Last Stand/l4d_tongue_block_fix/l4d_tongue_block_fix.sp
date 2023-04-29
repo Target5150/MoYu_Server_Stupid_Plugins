@@ -6,7 +6,7 @@
 #include <sourcescramble>
 #include <dhooks>
 
-#define PLUGIN_VERSION "1.3"
+#define PLUGIN_VERSION "1.4"
 
 public Plugin myinfo = 
 {
@@ -27,6 +27,7 @@ public Plugin myinfo =
 #define PATCH_ARG "__AddEntityToIgnore_argpatch"
 #define PATCH_PASSENT "__TraceFilterTongue_passentpatch"
 #define PATCH_DUMMY "__AddEntityToIgnore_dummypatch"
+#define PATCH_COOP_DUMMY "__AddEntityToIgnore_noncompetitive_dummypatch"
 
 DynamicDetour g_hDetour;
 
@@ -79,9 +80,15 @@ public void OnPluginStart()
 	MemoryPatch hPatch = CreateEnabledPatch(conf, KEY_ONUPDATEEXTENDINGSTATE...PATCH_DUMMY);
 	PatchNearJump(0xE8, hPatch.Address, pfnSetPassEntity);
 	
+	hPatch = CreateEnabledPatch(conf, KEY_ONUPDATEEXTENDINGSTATE...PATCH_COOP_DUMMY);
+	PatchNearJump(0xE8, hPatch.Address, pfnSetPassEntity);
+	
 	if (GetEngineVersion() == Engine_Left4Dead)
 	{
 		hPatch = CreateEnabledPatch(conf, KEY_ISTARGETVISIBLE...PATCH_DUMMY);
+		PatchNearJump(0xE8, hPatch.Address, pfnSetPassEntity);
+		
+		hPatch = CreateEnabledPatch(conf, KEY_ISTARGETVISIBLE...PATCH_COOP_DUMMY);
 		PatchNearJump(0xE8, hPatch.Address, pfnSetPassEntity);
 	}
 	

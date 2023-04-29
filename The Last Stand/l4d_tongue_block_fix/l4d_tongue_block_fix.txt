@@ -60,6 +60,25 @@
 				}
 			}
 			
+			"TongueTargetScan<CTerrorPlayer>::IsTargetVisible__AddEntityToIgnore_noncompetitive_dummypatch"
+			{
+				"signature"		"TongueTargetScan<CTerrorPlayer>::IsTargetVisible"
+				"linux"
+				{
+					"offset"	"A5h"
+					"verify"	"\xE8"
+					"preserve"	"\xFF\xFF\xFF\xFF\xFF"
+					"patch"		"\x90\x90\x90\x90\x90"
+				}
+				"windows"
+				{
+					"offset"	"6Dh"
+					"verify"	"\xE8"
+					"preserve"	"\xFF\xFF\xFF\xFF\xFF"
+					"patch"		"\x90\x90\x90\x90\x90"
+				}
+			}
+			
 			"CTongue::OnUpdateExtendingState__TraceFilterTongue_passentpatch"
 			{
 				"signature"		"CTongue::OnUpdateExtendingState"
@@ -107,6 +126,25 @@
 				"windows"
 				{
 					"offset"	"113h"
+					"verify"	"\xE8"
+					"preserve"	"\xFF\xFF\xFF\xFF\xFF"
+					"patch"		"\x90\x90\x90\x90\x90"
+				}
+			}
+			
+			"CTongue::OnUpdateExtendingState__AddEntityToIgnore_noncompetitive_dummypatch"
+			{
+				"signature"		"CTongue::OnUpdateExtendingState"
+				"linux"
+				{
+					"offset"	"3A1h"
+					"verify"	"\xE8"
+					"preserve"	"\xFF\xFF\xFF\xFF\xFF"
+					"patch"		"\x90\x90\x90\x90\x90"
+				}
+				"windows"
+				{
+					"offset"	"123h"
 					"verify"	"\xE8"
 					"preserve"	"\xFF\xFF\xFF\xFF\xFF"
 					"patch"		"\x90\x90\x90\x90\x90"
@@ -216,6 +254,25 @@
 				"windows"
 				{
 					"offset"	"129h"
+					"verify"	"\xE8"
+					"preserve"	"\xFF\xFF\xFF\xFF\xFF"
+					"patch"		"\x90\x90\x90\x90\x90"
+				}
+			}
+			
+			"CTongue::OnUpdateExtendingState__AddEntityToIgnore_noncompetitive_dummypatch"
+			{
+				"signature"		"CTongue::OnUpdateExtendingState"
+				"linux"
+				{
+					"offset"	"6ABh"
+					"verify"	"\xE8"
+					"preserve"	"\xFF\xFF\xFF\xFF\xFF"
+					"patch"		"\x90\x90\x90\x90\x90"
+				}
+				"windows"
+				{
+					"offset"	"140h"
 					"verify"	"\xE8"
 					"preserve"	"\xFF\xFF\xFF\xFF\xFF"
 					"patch"		"\x90\x90\x90\x90\x90"
