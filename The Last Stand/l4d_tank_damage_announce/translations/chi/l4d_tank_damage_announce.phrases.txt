@@ -1,0 +1,150 @@
+"Phrases"
+{
+	/**
+	 * Remaining Health Title
+	 * ------------------------------
+	 * 1: Player name of the Tank
+	 * 2: Remaining health of the Tank
+	 * 3: Number of the Tank spawned on this map
+	 */
+	"RemainingHealth_Frustrated"
+	{
+		"#format"	"{1:s},{2:d},{3:d}"
+		"chi"		"{default}[{green}!{default}] {blue}坦克 {default}({olive}AI [{1}]{default}) 还剩 {green}{2} {default}血"
+	}
+	"RemainingHealth_AI"
+	{
+		"#format"	"{1:s},{2:d},{3:d}"
+		"chi"		"{default}[{green}!{default}] {blue}坦克 {default}({olive}AI{default}) 还剩 {green}{2} {default}血"
+	}
+	"RemainingHealth_HumanControlled"
+	{
+		"#format"	"{1:s},{2:d},{3:d}"
+		"chi"		"{default}[{green}!{default}] {blue}坦克 {default}({olive}{1}{default}) 还剩 {green}{2} {default}血"
+	}
+	
+	
+	/**
+	 * Generic Title
+	 * ------------------------------
+	 * 1: Player name of the Tank
+	 * 2: Number of the Tank spawned on this map
+	 */
+	"DamageDealt_Frustrated"
+	{
+		"#format"	"{1:s},{2:d}"
+		"chi"		"{default}[{green}!{default}] {default}对 {blue}坦克 {default}({olive}AI [{1}]{default}) 输出的{blue}伤害{default}:"
+	}
+	"DamageDealt_AI"
+	{
+		"#format"	"{1:s},{2:d}"
+		"chi"		"{default}[{green}!{default}] {default}对 {blue}坦克 {default}({olive}AI{default}) 输出的{blue}伤害{default}:"
+	}
+	"DamageDealt_HumanControlled"
+	{
+		"#format"	"{1:s},{2:d}"
+		"chi"		"{default}[{green}!{default}] {default}对 {blue}坦克 {default}({olive}{1}{default}) 输出的{blue}伤害{default}:"
+	}
+	
+	
+	/**
+	 * Damage Info Lines
+	 * ------------------------------
+	 * 1: Damage to the Tank
+	 * 2: Damage percentage of total done to Tank
+	 * 3: Player name of the Survivor
+	 *
+	 * 4: Number of punches received
+	 * 5: Number of rocks received
+	 * 6: Number of hittables received
+	 * 7: Total damage received
+	 */
+	"DamageToTank"
+	{
+		"#format"	"{1:d},{2:d},{3:s}"
+		"chi"		"{blue}[{default}{1}{blue}] ({default}{2}%%{blue}) {olive}{3}"
+	}
+	"DamageToTank_Combined"
+	{
+		"#format"	"{1:d},{2:d},{3:s},{4:d},{5:d},{6:d},{7:d}"
+		"chi"		"{blue}[{default}{1}{blue}] ({default}{2}%%{blue}) {olive}{3} {blue}[{default}{4}{olive}/{default}{5}{olive}/{default}{6} {blue}@ {olive}{7}{blue}]"
+	}
+	
+	
+	/**
+	 * Tank Facts/Skill Title
+	 * ------------------------------
+	 * 1: Player name of the Tank
+	 * 2: Number of the Tank spawned on this map
+	 */
+	"FactsTitle_Frustrated"
+	{
+		"#format"	"{1:s},{2:d}"
+		"chi"		"[{green}!{default}] {blue}坦克 {default}({olive}AI [{1}]{default}) {blue}数据{default}统计:"
+	}
+	"FactsTitle_AI"
+	{
+		"#format"	"{1:s},{2:d}"
+		"chi"		"[{green}!{default}] {blue}坦克 {default}({olive}AI{default}) {blue}数据{default}统计:"
+	}
+	"FactsTitle_HumanControlled"
+	{
+		"#format"	"{1:s},{2:d}"
+		"chi"		"[{green}!{default}] {blue}坦克 {default}({olive}{1}{default}) {blue}数据{default}统计:"
+	}
+	
+	
+	// CSayText appears to be async or via text stream?, whatever it costs random amount of time.
+	// For unknown reason stacking color tags can slow certain processing of message.
+	// To print messages in a proper order, extra tags should be added in front.
+	
+	/**
+	 * Facts of the Tank
+	 * ------------------------------
+	 * 1: Number of punches done to Survivors
+	 * 2: Number of rocks done to Survivors
+	 * 3: Number of hittables done to Survivors
+	 */
+	"Announce_TankAttack"
+	{
+		"#format"	"{1:d},{2:d},{3:d}"
+		"chi"		"{red}坦克{green}> {default}拳: {red}{1} {green}/ {default}饼: {red}{2} {green}/ {default}铁: {red}{3}"
+	}
+	
+	/**
+	 * Facts of Survivors
+	 * ------------------------------
+	 * 1: Number of incaps from Survivors
+	 * 2: Number of death from Survivors
+	 */
+	"Announce_AttackResult"
+	{
+		"#format"	"{1:d},{2:d}"
+		"chi"		"{blue}生还{blue}{green}> {default}倒地: {olive}{1} {green}/ {default}死亡: {olive}{2}"
+	}
+	
+	/**
+	 * Facts of the Tank phase
+	 * ------------------------------
+	 * 1: Duration in minute of the Tank phase
+	 * 2: Duration in second leaving minutes of the Tank phase
+	 * 3: Total damage done to Survivors
+	 */
+	"Announce_Summary_WithMinute"
+	{
+		"#format"	"{1:d},{2:d},{3:d}"
+		"chi"		"{green}> {default}存活时间: {lightgreen}{1}分钟 {2}秒 {green}/ {default}造成伤害: {lightgreen}{3}"
+	}
+	
+	/**
+	 * Facts of the Tank phase
+	 * ------------------------------
+	 * 1: Duration in second of the Tank phase
+	 * 2: Total damage done to Survivors
+	 */
+	"Announce_Summary_WithoutMinute"
+	{
+		"#format"	"{1:d},{2:d}"
+		"chi"		"{green}> {default}存活时间: {lightgreen}{1}秒 {green}/ {default}造成伤害: {lightgreen}{2}"
+	}
+}

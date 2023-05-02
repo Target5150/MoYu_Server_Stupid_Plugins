@@ -3,7 +3,7 @@
 	"Announce_Title"
 	{
 		"#format"	"{1:s}"
-		"chi"		"[{green}!{default}] {blue}Tank {default} ({olive}{1}{default}) 造成的{blue}伤害{default}统计"
+		"chi"		"[{green}!{default}] {blue}Tank {default} ({olive}{1}{default}) {blue}数据{default}统计:"
 	}
 	
 	// CSayText appears to be async or via text stream?, whatever it costs random amount of time.
@@ -26,12 +26,12 @@
 	"Announce_Summary_WithMinute"
 	{
 		"#format"	"{1:d},{2:d},{3:d}"
-		"chi"		"{green}生存时间: {lightgreen}{1}分钟 {2}秒 {green}/ {default}造成伤害: {lightgreen}{3}"
+		"chi"		"{green}存活时间: {lightgreen}{1}分钟 {2}秒 {green}/ {default}造成伤害: {lightgreen}{3}"
 	}
 	
 	"Announce_Summary_WithoutMinute"
 	{
 		"#format"	"{1:d},{2:d}"
-		"chi"		"{green}生存时间: {lightgreen}{1}秒 {green}/ {default}造成伤害: {lightgreen}{2}"
+		"chi"		"{green}存活时间: {lightgreen}{1}秒 {green}/ {default}造成伤害: {lightgreen}{2}"
 	}
 }
