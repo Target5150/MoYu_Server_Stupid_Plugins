@@ -1,0 +1,32 @@
+"Games"
+{
+	"left4dead2"
+	{
+		"Offsets"
+		{
+			"OS"
+			{
+				"linux"			"1"
+				"windows"		"0"
+			}
+			
+			"SpecialInfectedAssault__offset"
+			{
+				"windows"		"14"
+			}
+		}
+		
+		"Signatures"
+		{
+			"SpecialInfectedAssault"
+			{
+				"windows"		"SpecialInfectedAssault"
+			}
+			
+			"CDirectorChallengeMode::SpecialsShouldAssault"
+			{
+				"linux"			"@_ZNK22CDirectorChallengeMode21SpecialsShouldAssaultEv"
+			}
+		}
+	}
+}
