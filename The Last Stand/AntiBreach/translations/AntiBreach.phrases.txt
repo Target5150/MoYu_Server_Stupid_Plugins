@@ -1,0 +1,13 @@
+"Phrases"
+{
+	"AlertAllToExploits"
+	{
+		"#format"	"{1:N}"
+		"en"		"{red}[{default}Exploit{red}] {olive}{1} {default}tried to spawn near end saferoom door"
+	}
+	
+	"AlertPlayerToExploits"
+	{
+		"en"		"{red}[{default}Exploit{red}] {green}You can't spawn near end saferoom doors"
+	}
+}
