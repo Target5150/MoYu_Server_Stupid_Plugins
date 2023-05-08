@@ -6,7 +6,7 @@
 #include <actions>
 #include <l4d2util>
 
-#define PLUGIN_VERSION "2.0"
+#define PLUGIN_VERSION "2.0.1"
 
 public Plugin myinfo =
 {
@@ -80,12 +80,18 @@ public void OnEntityCreated(int entity, const char[] classname)
 		}
 		else if (strcmp(classname, "info_goal_infected_chase") == 0)
 		{
-			SDKHook(entity, SDKHook_Think, SDK_OnThink);
+			SDKHook(entity, SDKHook_Think, SDK_OnThink_Once);
 		}
 	}
 }
 
-Action SDK_OnThink(int entity)
+Action SDK_OnThink_Once(int entity)
+{
+	SDKUnhook(entity, SDKHook_Think, SDK_OnThink_Once);
+	return __OnThink(entity);
+}
+
+Action __OnThink(int entity)
 {
 	int parent = GetEntPropEnt(entity, Prop_Data, "m_pParent");
 	if (!IsValidEntity(parent))
@@ -107,8 +113,6 @@ Action SDK_OnThink(int entity)
 	if (bDisableAttraction)
 	{
 		AcceptEntityInput(entity, "Disable");
-		
-		SDKUnhook(entity, SDKHook_Think, SDK_OnThink);
 		return Plugin_Handled;
 	}
 	
