@@ -1,0 +1,40 @@
+"Games"
+{
+	"left4dead2"
+	{
+		"Functions"
+		{
+			"CTerrorGun::GetRateOfFire"
+			{
+				"offset"		"CTerrorGun::GetRateOfFire"
+				"hooktype"		"entity"
+				"return"		"float"
+				"this"			"entity"
+			}
+		}
+	}
+	
+	"left4dead"
+	{
+		"Offsets"
+		{
+			"CTerrorGun::GetRateOfFire"
+			{
+				"linux"			"411"
+				"windows"		"410"
+			}
+		}
+	}
+	
+	"left4dead2"
+	{
+		"Offsets"
+		{
+			"CTerrorGun::GetRateOfFire"
+			{
+				"linux"			"454"
+				"windows"		"452"
+			}
+		}
+	}
+}
