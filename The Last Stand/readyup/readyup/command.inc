@@ -87,7 +87,7 @@ Action ForceStart_Cmd(int client, int args)
 
 Action Hide_Cmd(int client, int args)
 {
-	if (ReadyManager.InReadyUp())
+	if (ReadyPanel.IsActive())
 	{
 		ReadyPanel.SetHiddenTo(client, true);
 		CPrintToChat(client, "%t", "PanelHide");
@@ -98,7 +98,7 @@ Action Hide_Cmd(int client, int args)
 
 Action Show_Cmd(int client, int args)
 {
-	if (ReadyManager.InReadyUp())
+	if (ReadyPanel.IsActive())
 	{
 		ReadyPanel.SetHiddenTo(client, false);
 		CPrintToChat(client, "%t", "PanelShow");
@@ -110,6 +110,7 @@ Action Show_Cmd(int client, int args)
 Action Return_Cmd(int client, int args)
 {
 	if (ReadyManager.InReadyUp()
+			&& !ReadyManager.IsCustomReadyUp()
 			&& client > 0
 			&& GetClientTeam(client) == L4D2Team_Survivor)
 	{
