@@ -3,108 +3,322 @@
 #endif
 #define _readyup_action_included
 
-#include "sound.inc"
+#pragma semicolon 1
+#pragma newdecls required
 
-static int
-	s_readyDelay,
-	s_autoStartDelay,
-	s_expireTime;
+#include "readyup/forward.inc"
 
-static Handle
-	s_readyCountdownTimer,
-	s_autoStartTimer;
-
-void InitiateReadyUp(bool real = true)
+enum AutoStartState
 {
-	if (real)
+	AutoStartState_PreCheck,
+	AutoStartState_Wait,
+	AutoStartState_Countdown,
+};
+
+static bool s_inReadyUp, s_inLiveCountdown, s_isForceStart;
+static int s_readyDelay, s_autoStartDelay;
+static ReadyMode s_readyMode;
+static Handle s_readyCountdownTimer, s_autoStartTimer;
+static bool s_isPlayerReady[MAXPLAYERS+1], s_isTeamReady[ReadyTeam];
+static AutoStartState s_autoStartState;
+static Handle s_customReadyUpOwner;
+static ConVar l4d_ready_delay, l4d_ready_force_extra, l4d_ready_autostart_delay, l4d_ready_autostart_wait;
+
+methodmap ReadyManager
+{
+	public static void Init()
 	{
-		readyUpMode = l4d_ready_enabled.IntValue;
-		if (!readyUpMode) return;
+		static bool s_bInit = false;
+		if (s_bInit)
+			return;
 		
-		UTIL_WrapperForward(g_hPreInitiateForward);
+		l4d_ready_delay				= CreateConVar("l4d_ready_delay", "3", "Number of seconds to count down before the round goes live.", FCVAR_NOTIFY, true, 0.0);
+		l4d_ready_force_extra		= CreateConVar("l4d_ready_force_extra", "2", "Number of seconds added to the duration of live count down.", FCVAR_NOTIFY, true, 0.0);
+		l4d_ready_autostart_delay	= CreateConVar("l4d_ready_autostart_delay", "5", "Number of seconds to count down before auto-start kicks in.", FCVAR_NOTIFY, true, 0.0);
+		l4d_ready_autostart_wait	= CreateConVar("l4d_ready_autostart_wait", "20", "Number of seconds to wait for connecting players before auto-start is forced.", FCVAR_NOTIFY, true, 0.0);
 		
-		for (int i = 1; i <= MaxClients; i++)
-		{
-			SetPlayerReady(i, false);
-		}
-		
-		InitPanel();
-		UpdatePanel();
+		s_bInit = true;
 	}
 	
-	inReadyUp = true;
-	inLiveCountdown = false;
-	isForceStart = false;
-	s_readyCountdownTimer = null;
-	
-	fStartTimestamp = GetGameTime();
-	
-	SetAllowSpawns(l4d_ready_disable_spawns.BoolValue);
-	CreateTimer(0.3, Timer_RestartCountdowns, false, TIMER_FLAG_NO_MAPCHANGE);
-	
-	sv_infinite_primary_ammo.SetBool(true, .notify = false);
-	god.SetBool(true, .notify = false);
-	sb_stop.SetBool(true, .notify = false);
-	
-	if (real)
+	public static void Create(ReadyMode mode)
 	{
-		nativeFooter.Clear();
+		if (s_inReadyUp)
+			return;
+		
+		EventDispatcher.OnReadyUpInitiatePre();
+		
+		s_readyMode = mode;
+		s_inReadyUp = true;
+		s_inLiveCountdown = false;
+		s_isForceStart = false;
+		
+		s_readyCountdownTimer = null;
+		s_autoStartTimer = null;
 		
 		ToggleCommandListeners(true);
 		
-		if (readyUpMode == ReadyMode_AutoStart)
+		InitiateReadyMode();
+		
+		EventDispatcher.OnReadyUpInitiate();
+	}
+	
+	public static void Finish()
+	{
+		if (!s_inReadyUp)
+			return;
+		
+		s_inReadyUp = false;
+		s_inLiveCountdown = false;
+		s_isForceStart = false;
+		
+		delete s_readyCountdownTimer;
+		delete s_autoStartTimer;
+		
+		s_customReadyUpOwner = null;
+		EventDispatcher.SetRecipient(null);
+		
+		ToggleCommandListeners(false);
+		
+		EventDispatcher.OnReadyUpFinished();
+	}
+	
+	public static bool AdminForceStart(int client)
+	{
+		if (!s_inReadyUp)
+			return false;
+		
+		if (s_readyMode == ReadyMode_AutoStart)
+			return true;
+		
+		s_isForceStart = true;
+		InitiateLiveCountdown();
+		EventDispatcher.OnAdminForceStart(client);
+		return true;
+	}
+	
+	public static bool PlayerReady(int client)
+	{
+		if (!s_inReadyUp)
+			return false;
+		
+		if (!IsPlayer(client))
+			return false;
+		
+		switch (s_readyMode)
 		{
-			s_expireTime = l4d_ready_autostart_wait.IntValue;
-			CreateTimer(1.0, Timer_AutoStartHelper, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
+			case ReadyMode_PlayerReady:
+			{
+				if (SetPlayerReady(client, true) == false)
+				{
+					EventDispatcher.OnPlayerReady(client);
+				}
+			}
+			case ReadyMode_TeamReady:
+			{
+				ReadyTeam team = GetPlayerTeam(client);
+				if (team == ReadyTeam_Invalid)
+					return false;
+				
+				if (SetTeamReady(team, true) == false)
+				{
+					EventDispatcher.OnTeamReady(team, client);
+				}
+			}
 		}
 		
-		UTIL_WrapperForward(g_hInitiateForward);
-	}
-}
-
-void InitiateLive(bool real = true)
-{
-	if (real)
-	{
-		UTIL_WrapperForward(g_hPreLiveForward);
-	}
-	
-	inReadyUp = false;
-	inLiveCountdown = false;
-	isForceStart = false;
-	
-	SetTeamFrozen(L4D2Team_Survivor, false);
-	
-	sv_infinite_primary_ammo.SetBool(false, .notify = false);
-	god.SetBool(false, .notify = false);
-	sb_stop.SetBool(false, .notify = false);
-	
-	ToggleCommandListeners(false);
-	
-	if (real)
-	{
-		ClearSurvivorProgress();
-		RestartCountdowns(true);
+		if (CheckFullReady())
+		{
+			InitiateLiveCountdown();
+		}
 		
-		UTIL_WrapperForward(g_hLiveForward);
+		return true;
 	}
 	
-	s_readyCountdownTimer = null;
+	public static bool PlayerUnready(int client, DisruptType type)
+	{
+		if (!s_inReadyUp)
+			return false;
+		
+		if (!IsPlayer(client) && !IsAdmin(client))
+			return false;
+		
+		switch (s_readyMode)
+		{
+			case ReadyMode_PlayerReady:
+			{
+				if (IsPlayer(client) && SetPlayerReady(client, false) == true)
+				{
+					EventDispatcher.OnPlayerUnready(client);
+				}
+			}
+			case ReadyMode_TeamReady:
+			{
+				ReadyTeam team = GetPlayerTeam(client);
+				if (team != ReadyTeam_Invalid)
+				{
+					if (SetTeamReady(team, false) == true)
+					{
+						EventDispatcher.OnTeamUnready(team, client);
+					}
+				}
+				else if (!IsAdmin(client))
+				{
+					return false;
+				}
+			}
+		}
+		
+		if (s_isForceStart)
+		{
+			if (!IsAdmin(client) || type != readyStatus)
+				return true;
+			
+			type = adminAbort;
+			s_isForceStart = false;
+		}
+		
+		CancelFullReady(client, type);
+		
+		return true;
+	}
+	
+	public static bool IsCustomReadyUp()
+	{
+		return s_customReadyUpOwner != null;
+	}
+	
+	public static Handle GetCustomReadyUpOwner()
+	{
+		return s_customReadyUpOwner;
+	}
+	
+	public static bool SetCustomReadyUpOwner(Handle plugin)
+	{
+		if (s_inReadyUp)
+			return false;
+		
+		s_customReadyUpOwner = plugin;
+		EventDispatcher.SetRecipient(plugin);
+		
+		return true;
+	}
+	
+	public static bool InReadyUp()
+	{
+		return s_inReadyUp;
+	}
+	
+	public static bool InLiveCountdown()
+	{
+		return s_inLiveCountdown;
+	}
+	
+	public static ReadyMode GetReadyMode()
+	{
+		return s_readyMode;
+	}
+	
+	public static bool IsPlayerReady(int client)
+	{
+		if (s_readyMode == ReadyMode_PlayerReady)
+			return s_isPlayerReady[client];
+		
+		return false;
+	}
+	
+	public static bool IsTeamReady(ReadyTeam team)
+	{
+		if (s_readyMode == ReadyMode_TeamReady)
+			return s_isTeamReady[team];
+		
+		return false;
+	}
 }
 
-void InitiateLiveCountdown()
+static void InitiateReadyMode()
+{
+	ResetPlayerReady();
+	ResetTeamReady();
+	
+	if (s_readyMode == ReadyMode_AutoStart)
+	{
+		InitiateAutoStart();
+	}
+}
+
+static void InitiateAutoStart()
+{
+	if (s_autoStartTimer == null)
+	{
+		s_autoStartState = AutoStartState_PreCheck;
+		s_autoStartTimer = CreateTimer(1.0, AutoStartDelay_Timer, _, TIMER_REPEAT);
+	}
+}
+
+static Action AutoStartDelay_Timer(Handle timer)
+{
+	switch (s_autoStartState)
+	{
+		case AutoStartState_PreCheck:
+		{
+			if (CheckAutoStart())
+			{
+				s_autoStartState = AutoStartState_Wait;
+				s_autoStartDelay = l4d_ready_autostart_wait.IntValue;
+			}
+			return Plugin_Continue;
+		}
+		
+		case AutoStartState_Wait:
+		{
+			if (s_autoStartDelay > 0)
+			{
+				s_autoStartDelay--;
+				return Plugin_Continue;
+			}
+			
+			EventDispatcher.OnAutoStartCountdown();
+			s_autoStartState = AutoStartState_Countdown;
+			s_autoStartDelay = l4d_ready_autostart_delay.IntValue;
+			return Plugin_Continue;
+		}
+		
+		case AutoStartState_Countdown:
+		{
+			if (s_autoStartDelay == 0)
+			{
+				s_autoStartTimer = null;
+				InitiateLiveCountdown();
+				return Plugin_Stop;
+			}
+			
+			EventDispatcher.OnAutoStartCountdownTick(s_autoStartDelay);
+			s_autoStartDelay--;
+			return Plugin_Continue;
+		}
+	}
+	
+	return Plugin_Stop;
+}
+
+static void InitiateLive()
+{
+	EventDispatcher.OnRoundIsLivePre();
+	ReadyManager.Finish();
+	EventDispatcher.OnRoundIsLive();
+}
+
+static void InitiateLiveCountdown()
 {
 	if (s_readyCountdownTimer == null)
 	{
-		UTIL_WrapperForward(g_hPreCountdownForward);
+		EventDispatcher.OnRoundLiveCountdownPre();
 		
-		ReturnTeamToSaferoom(L4D2Team_Survivor);
-		PrintHintTextToAll("%t", "LiveCountdownBegin");
-		inLiveCountdown = true;
-		s_readyDelay = l4d_ready_delay.IntValue + l4d_ready_force_extra.IntValue * view_as<int>(isForceStart);
-		s_readyCountdownTimer = CreateTimer(1.0, ReadyCountdownDelay_Timer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+		s_inLiveCountdown = true;
+		s_readyDelay = l4d_ready_delay.IntValue + (s_isForceStart ? l4d_ready_force_extra.IntValue : 0);
+		s_readyCountdownTimer = CreateTimer(1.0, ReadyCountdownDelay_Timer, _, TIMER_REPEAT);
 	
-		UTIL_WrapperForward(g_hCountdownForward);
+		EventDispatcher.OnRoundLiveCountdown();
 	}
 }
 
@@ -112,144 +326,136 @@ static Action ReadyCountdownDelay_Timer(Handle timer)
 {
 	if (s_readyDelay == 0)
 	{
-		PrintHintTextToAll("%t", "RoundIsLive");
 		InitiateLive();
-		PlayLiveSound();
 		s_readyCountdownTimer = null;
 		return Plugin_Stop;
 	}
 	
-	PrintHintTextToAll("%t", "LiveCountdown", s_readyDelay);
-	PlayCountdownSound();
+	EventDispatcher.OnRoundLiveCountdownTick(s_readyDelay);
+	
 	s_readyDelay--;
 	return Plugin_Continue;
 }
 
-static Action Timer_AutoStartHelper(Handle timer)
+static bool CheckAutoStart()
 {
-	if (GetSeriousClientCount(true) <= GetMaxAllowedPlayers() * l4d_ready_autostart_min.FloatValue)
+	bool ret = false;
+	EventDispatcher.OnCheckAutoStart(ret);
+	return ret;
+}
+
+static bool CheckFullReady()
+{
+	if (s_readyMode == ReadyMode_AutoStart)
+		return false;
+	
+	bool ret = false;
+	EventDispatcher.OnCheckFullReady(ret);
+	return ret;
+}
+
+static void CancelFullReady(int client, DisruptType type)
+{
+	if (s_readyMode == ReadyMode_AutoStart)
+		return;
+	
+	if (s_readyMode == ReadyMode_TeamReady)
 	{
-		// not enough players in game
-		s_expireTime = l4d_ready_autostart_wait.IntValue;
-		PrintHintTextToAll("%t", "AutoStartNotEnoughPlayers");
-		return Plugin_Continue;
+		if (type == teamShuffle || type == playerDisconn)
+			return;
 	}
 	
-	if (IsAnyPlayerLoading())
+	if (s_readyCountdownTimer != null)
 	{
-		if (s_expireTime > 0)
+		s_inLiveCountdown = false;
+		s_isForceStart = false;
+		delete s_readyCountdownTimer;
+		
+		EventDispatcher.OnReadyCountdownCancelled(client, g_sDisruptReason[type]);
+		EventDispatcher.OnReadyCountdownCancelled2(client, type);
+	}
+}
+
+static void ResetPlayerReady()
+{
+	for (int i = 1; i <= MaxClients; i++)
+	{
+		SetPlayerReady(i, false);
+	}
+}
+
+static void ResetTeamReady()
+{
+	FOR_EACH_READY_TEAM(i)
+	{
+		SetTeamReady(i, false);
+	}
+}
+
+static bool SetPlayerReady(int client, bool ready)
+{
+	bool prev = s_isPlayerReady[client];
+	s_isPlayerReady[client] = ready;
+	
+	return prev;
+}
+
+static bool SetTeamReady(ReadyTeam team, bool ready)
+{
+	bool prev = s_isTeamReady[team];
+	s_isTeamReady[team] = ready;
+	
+	return prev;
+}
+
+static ReadyTeam GetPlayerTeam(int client)
+{
+	switch (GetClientTeam(client))
+	{
+		case 2: { return ReadyTeam_Survivor; }
+		case 3: { return ReadyTeam_Infected; }
+	}
+	
+	return ReadyTeam_Invalid;
+}
+
+static void ToggleCommandListeners(bool hook)
+{
+	static bool hooked = false;
+	if (hooked && !hook)
+	{
+		RemoveCommandListener(Vote_Callback, "Vote");
+		hooked = false;
+	}
+	else if (!hooked && hook)
+	{
+		AddCommandListener(Vote_Callback, "Vote");
+		hooked = true;
+	}
+}
+
+static Action Vote_Callback(int client, const char[] command, int argc)
+{
+	// Fast ready / unready through default keybinds for voting
+	if (!client) return Plugin_Continue;
+	if (BuiltinVote_IsVoteInProgress() && IsClientInBuiltinVotePool(client)) return Plugin_Continue;
+	
+	if (Game_IsVoteInProgress())
+	{
+		int voteteam = Game_GetVoteTeam();
+		if (voteteam == -1 || voteteam == GetClientTeam(client))
 		{
-			s_expireTime--;
-			PrintHintTextToAll("%t", "AutoStartWaiting");
 			return Plugin_Continue;
 		}
 	}
 	
-	CreateTimer(8.0, Timer_InitiateAutoStart, _, TIMER_FLAG_NO_MAPCHANGE);
-	return Plugin_Stop;
-}
+	char sArg[8];
+	GetCmdArg(1, sArg, sizeof(sArg));
+	if (strcmp(sArg, "Yes", false) == 0)
+		Ready_Cmd(client, 0);
+	else if (strcmp(sArg, "No", false) == 0)
+		Unready_Cmd(client, 0);
 
-static Action Timer_InitiateAutoStart(Handle timer)
-{
-	InitiateAutoStart();
-	return Plugin_Stop;
-}
-
-void InitiateAutoStart(bool real = true)
-{
-	if (!real)
-	{
-		s_autoStartTimer = null;
-		return;
-	}
-	
-	if (s_autoStartTimer == null)
-	{
-		PrintHintTextToAll("%t", "InitiateAutoStart");
-		s_autoStartDelay = l4d_ready_autostart_delay.IntValue;
-		s_autoStartTimer = CreateTimer(1.0, AutoStartDelay_Timer, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
-	}
-}
-
-static Action AutoStartDelay_Timer(Handle timer)
-{
-	if (s_autoStartDelay == 0)
-	{
-		s_autoStartTimer = null;
-		InitiateLiveCountdown();
-		return Plugin_Stop;
-	}
-	
-	PrintHintTextToAll("%t", "AutoStartCountdown", s_autoStartDelay);
-	PlayAutoStartSound();
-	s_autoStartDelay--;
 	return Plugin_Continue;
 }
 
-bool CheckFullReady()
-{
-	if (readyUpMode == ReadyMode_AutoStart)
-		return false;
-	
-	int survReadyCount = 0, infReadyCount = 0;
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientInGame(i) && IsPlayerReady(i))
-		{
-			switch (GetClientTeam(i))
-			{
-				case L4D2Team_Survivor: survReadyCount++;
-				case L4D2Team_Infected: infReadyCount++;
-			}
-		}
-	}
-	
-	if (readyUpMode == ReadyMode_TeamReady)
-		return survReadyCount && infReadyCount;
-	
-	int survLimit = survivor_limit.IntValue;
-	int zombLimit = z_max_player_zombies.IntValue;
-	
-	if (l4d_ready_unbalanced_start.BoolValue)
-	{
-		int iBaseline = l4d_ready_unbalanced_min.IntValue;
-		
-		if (iBaseline > survLimit) iBaseline = survLimit;
-		if (iBaseline > zombLimit) iBaseline = zombLimit;
-		
-		int survCount = GetTeamHumanCount(L4D2Team_Survivor);
-		int infCount = GetTeamHumanCount(L4D2Team_Infected);
-		
-		return (iBaseline <= survCount && survCount <= survReadyCount)
-			&& (iBaseline <= infCount && infCount <= infReadyCount);
-	}
-	
-	return (survReadyCount + infReadyCount) >= survLimit + zombLimit;
-}
-
-void CancelFullReady(int client, disruptType type)
-{
-	if (readyUpMode == ReadyMode_AutoStart)
-		return;
-	
-	if (s_readyCountdownTimer != null)
-	{
-		delete s_readyCountdownTimer;
-		InitiateReadyUp(false);
-		
-		SetTeamFrozen(L4D2Team_Survivor, l4d_ready_survivor_freeze.BoolValue);
-		if (type == teamShuffle) // fix spectating
-			SetClientFrozen(client, false);
-		
-		PrintHintTextToAll("%t", "LiveCountdownCancelled");
-		CPrintToChatAllEx(client, "%t", g_sDisruptReason[type], client);
-		
-		if (g_hCountdownCancelledForward.FunctionCount)
-		{
-			Call_StartForward(g_hCountdownCancelledForward);
-			Call_PushCell(client);
-			Call_PushString(g_sDisruptReason[type]);
-			Call_Finish();
-		}
-	}
-}

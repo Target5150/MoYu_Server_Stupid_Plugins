@@ -96,11 +96,6 @@
 		"en"		"Game starts in: {1}"
 	}
 	
-	"AutoStartWaiting"
-	{
-		"en"		"Waiting for loading players..."
-	}
-	
 	"AutoStartNotEnoughPlayers"
 	{
 		"en"		"More players are required..."

@@ -3,21 +3,41 @@
 #endif
 #define _readyup_panel_included
 
+#include "readyup/footer.inc"
 static Footer
-	cmdFooter;
+	cmdFooter,
+	nativeFooter;
 	
 static int
 	curCmd;
+
+static bool
+	hiddenPanel[MAXPLAYERS+1];
+
+static float 
+	fStartTimestamp;
+
+static Handle
+	s_panelTimer,
+	s_cmdTimer;
 
 static const char 
 	hintPhrase[2][] = {"HintUnready", "HintReady"},
 	readySymbol[2][] = {"☐", "☑"},
 	teamReadySymbol[2][] = {" [X]", " [√]"};
 
-void InitPanel()
+static ConVar g_cvServerNamer;
+static ConVar l4d_ready_cfg_name, l4d_ready_server_cvar, l4d_ready_max_players;
+static bool casterSystemAvailable;
+
+methodmap ReadyPanel
 {
-	if (cmdFooter == null)
+	public static void Init()
 	{
+		static bool s_bInit = false;
+		if (s_bInit)
+			return;
+		
 		cmdFooter = new Footer();
 		cmdFooter.Add("->1. !ready|!r / !unready|!nr");
 		cmdFooter.Add("->2. !slots #");
@@ -28,39 +48,133 @@ void InitPanel()
 		cmdFooter.Add("->7. !lerps");
 		cmdFooter.Add("->8. !secondary");
 		cmdFooter.Add("->9. !forcestart / !fs");
+		
+		nativeFooter = new Footer();
+		
+		l4d_ready_cfg_name		= CreateConVar("l4d_ready_cfg_name", "", "Configname to display on the ready-up panel", FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
+		l4d_ready_server_cvar	= CreateConVar("l4d_ready_server_cvar", "sn_main_name", "ConVar to retrieve the server name for displaying on the ready-up panel", FCVAR_NOTIFY|FCVAR_PRINTABLEONLY);
+		l4d_ready_max_players	= CreateConVar("l4d_ready_max_players", "12", "Maximum number of players to show on the ready-up panel.", FCVAR_NOTIFY, true, 0.0, true, MAXPLAYERS+1.0);
+		
+		l4d_ready_server_cvar.AddChangeHook(CvarChg_ServerCvar);
+		
+		s_bInit = true;
 	}
 	
-	curCmd = 0;
-	CreateTimer(1.0, MenuRefresh_Timer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
-	CreateTimer(4.0, MenuCmd_Timer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
-}
-
-int DummyHandler(Handle menu, MenuAction action, int param1, int param2) { return 1; }
-
-Action MenuRefresh_Timer(Handle timer)
-{
-	if (inReadyUp)
+	public static void OnPotentialLibraryUpdate()
 	{
-		UpdatePanel();
-		return Plugin_Continue;
+		FillServerNamer();
+		FindCasterSystem()
 	}
-	return Plugin_Stop;
+	
+	public static void Create()
+	{
+		curCmd = 0;
+		s_panelTimer = CreateTimer(1.0, MenuRefresh_Timer, _, TIMER_REPEAT);
+		s_cmdTimer = CreateTimer(4.0, MenuCmd_Timer, _, TIMER_REPEAT);
+		
+		fStartTimestamp = GetGameTime();
+	}
+	
+	public static void Destroy()
+	{
+		nativeFooter.Clear();
+		
+		delete s_panelTimer;
+		delete s_cmdTimer;
+	}
+	
+	public static Footer GetFooter()
+	{
+		return nativeFooter;
+	}
+	
+	public static bool IsActive()
+	{
+		return s_panelTimer != null;
+	}
+	
+	public static bool IsHiddenTo(int client)
+	{
+		return hiddenPanel[client];
+	}
+	
+	public static bool SetHiddenTo(int client, bool hidden)
+	{
+		bool prev = hiddenPanel[client];
+		hiddenPanel[client] = hidden;
+		return prev;
+	}
 }
 
-Action MenuCmd_Timer(Handle timer)
+static void FillServerNamer()
 {
-	if (inReadyUp)
+	char buffer[64];
+	l4d_ready_server_cvar.GetString(buffer, sizeof buffer);
+	if ((g_cvServerNamer = FindConVar(buffer)) == null)
+		g_cvServerNamer = FindConVar("hostname");
+}
+
+static void FindCasterSystem()
+{
+	casterSystemAvailable = LibraryExists("caster_system");
+}
+
+static void CvarChg_ServerCvar(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	FillServerNamer();
+}
+
+static int DummyHandler(Handle menu, MenuAction action, int param1, int param2) { return 1; }
+
+static Action MenuRefresh_Timer(Handle timer)
+{
+	for (int client = 1; client <= MaxClients; client++)
 	{
-		if (cmdFooter.Length)
+		if (!IsClientInGame(client) || IsFakeClient(client)) 
+			continue;
+		
+		if (hiddenPanel[client])
+			continue;
+		
+		if (BuiltinVote_IsVoteInProgress() && IsClientInBuiltinVotePool(client))
+			continue;
+		
+		if (Game_IsVoteInProgress())
 		{
-			curCmd = (curCmd + 1) % cmdFooter.Length;
+			int voteteam = Game_GetVoteTeam();
+			if (voteteam == -1 || voteteam == GetClientTeam(client))
+			{
+				continue;
+			}
 		}
-		return Plugin_Continue;
+			
+		switch (GetClientMenu(client))
+		{
+			case MenuSource_External, MenuSource_Normal: continue;
+		}
+			
+		Panel menuPanel = new Panel();
+		
+		SetGlobalTransTarget(client);
+		UpdatePanel(menuPanel);
+		menuPanel.Send(client, DummyHandler, 1);
+		
+		delete menuPanel;
 	}
-	return Plugin_Stop;
+	
+	return Plugin_Continue;
 }
 
-void UpdatePanel()
+static Action MenuCmd_Timer(Handle timer)
+{
+	if (cmdFooter.Length)
+	{
+		curCmd = (curCmd + 1) % cmdFooter.Length;
+	}
+	return Plugin_Continue;
+}
+
+static void UpdatePanel(Panel menuPanel)
 {
 	char survivorBuffer[400] = "";
 	char infectedBuffer[400] = "";
@@ -70,31 +184,30 @@ void UpdatePanel()
 	int casterCount = 0;
 	int specCount = 0;
 
-	Panel menuPanel = new Panel();
-
 	char ServerBuffer[128];
 	char ServerName[32];
 	char cfgName[32];
 
 	int iPassTime = RoundToFloor(GetGameTime() - fStartTimestamp);
 	
+	ReadyMode readyUpMode = ReadyManager.GetReadyMode();
 	bool isTeamReadyMode = readyUpMode == ReadyMode_TeamReady;
-	int survivorReady = IsTeamReady(L4D2Team_Survivor);
-	int infectedReady = IsTeamReady(L4D2Team_Infected);
+	int survivorReady = ReadyManager.IsTeamReady(ReadyTeam_Survivor);
+	int infectedReady = ReadyManager.IsTeamReady(ReadyTeam_Infected);
 
 	g_cvServerNamer.GetString(ServerName, sizeof(ServerName));
 	
 	l4d_ready_cfg_name.GetString(cfgName, sizeof(cfgName));
-	Format(ServerBuffer, sizeof(ServerBuffer), "▸ Server: %s \n▸ Slots: %d/%d\n▸ Config: %s", ServerName, GetSeriousClientCount(), FindConVar("sv_maxplayers").IntValue, cfgName);
+	Format(ServerBuffer, sizeof(ServerBuffer), "▸ Server: %s \n▸ Slots: %d/%d\n▸ Config: %s", ServerName, GetSeriousClientCount(), GetMaxPlayers(), cfgName);
 	menuPanel.DrawText(ServerBuffer);
 	
-	FormatTime(ServerBuffer, sizeof(ServerBuffer), "▸ %m/%d/%Y - %I:%M%p");
-	Format(ServerBuffer, sizeof(ServerBuffer), "%s (%02d:%02d)", ServerBuffer, iPassTime / 60, iPassTime % 60);
+	FormatTime(ServerBuffer, sizeof(ServerBuffer), NULL_STRING);
+	Format(ServerBuffer, sizeof(ServerBuffer), "▸ %s (%02d:%02d)", ServerBuffer, iPassTime / 60, iPassTime % 60);
 	menuPanel.DrawText(ServerBuffer);
 	
 	menuPanel.DrawText(" ");
 	menuPanel.DrawText("▸ Commands:");
-	menuPanel.DrawText(cmdFooter.Get(curCmd));
+	menuPanel.DrawText(FooterGet(cmdFooter, curCmd));
 	menuPanel.DrawText(" ");
 	
 	char nameBuf[64];
@@ -109,13 +222,13 @@ void UpdatePanel()
 			if (IsPlayer(client))
 			{
 				bool type = (GetClientTeam(client) == L4D2Team_Survivor);
-				int isReady = view_as<int>(IsPlayerReady(client));
+				int isReady = view_as<int>(ReadyManager.IsPlayerReady(client));
 				
 				switch (readyUpMode)
 				{
 					case ReadyMode_PlayerReady:
 					{
-						if (!inLiveCountdown) PrintHintText(client, "%t", hintPhrase[isReady]);
+						if (!ReadyManager.InLiveCountdown()) PrintHintText(client, "%t", hintPhrase[isReady]);
 						Format(nameBuf, sizeof(nameBuf), "%s %s%s\n", readySymbol[isReady], nameBuf, IsPlayerAfk(client) ? " [AFK]" : "");
 					}
 					case ReadyMode_AutoStart:
@@ -124,7 +237,7 @@ void UpdatePanel()
 					}
 					case ReadyMode_TeamReady:
 					{
-						if (!inLiveCountdown) PrintHintText(client, "%t", hintPhrase[type ? survivorReady : infectedReady]);
+						if (!ReadyManager.InLiveCountdown()) PrintHintText(client, "%t", hintPhrase[type ? survivorReady : infectedReady]);
 						Format(nameBuf, sizeof(nameBuf), "%s%s\n", nameBuf, IsPlayerAfk(client) ? " [AFK]" : "");
 					}
 				}
@@ -204,36 +317,7 @@ void UpdatePanel()
 		menuPanel.DrawText(" ");
 		for (int i = 0; i < nativeFooter.Length; i++)
 		{
-			menuPanel.DrawText(nativeFooter.Get(i));
+			menuPanel.DrawText(FooterGet(nativeFooter, i));
 		}
 	}
-
-	for (int client = 1; client <= MaxClients; client++)
-	{
-		if (IsClientInGame(client) && !IsFakeClient(client) && !IsPlayerHiddenPanel(client)) 
-		{
-			if (BuiltinVote_IsVoteInProgress() && IsClientInBuiltinVotePool(client))
-			{
-				continue;
-			}
-			
-			if (Game_IsVoteInProgress())
-			{
-				int voteteam = Game_GetVoteTeam();
-				if (voteteam == -1 || voteteam == GetClientTeam(client))
-				{
-					continue;
-				}
-			}
-			
-			switch (GetClientMenu(client))
-			{
-				case MenuSource_External, MenuSource_Normal: continue;
-			}
-			
-			menuPanel.Send(client, DummyHandler, 1);
-		}
-	}
-	
-	delete menuPanel;
 }
