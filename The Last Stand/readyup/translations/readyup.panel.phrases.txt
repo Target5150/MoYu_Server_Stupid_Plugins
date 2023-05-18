@@ -1,0 +1,97 @@
+"Phrases"
+{
+	"Panel_Title"
+	{
+		"#format"	"{1:s},{2:d},{3:d},{4:s}"
+		"en"		"▸ Server: {1} \n▸ Slots: {2}/{3}\n▸ Config: {4}"
+	}
+	
+	"Panel_CmdFooter_Title"
+	{
+		"en"		"▸ Commands:"
+	}
+	
+	"Panel_PlayerName_Afk"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1} [AFK]"
+	}
+	
+	"Panel_Player_Ready"
+	{
+		"#format"	"{1:d},{2:s}"
+		"en"		"☑ {2}"
+	}
+	
+	"Panel_Player_Unready"
+	{
+		"#format"	"{1:d},{2:s}"
+		"en"		"☐ {2}"
+	}
+	
+	"Panel_Player_AutoStart"
+	{
+		"#format"	"{1:d},{2:s}"
+		"en"		"{2}"
+	}
+	
+	"Panel_Player_TeamReady"
+	{
+		"#format"	"{1:d},{2:s}"
+		"en"		"{2}"
+	}
+	
+	"Survivors"
+	{
+		"en"		"Survivors"
+	}
+	
+	"Infected"
+	{
+		"en"		"Infected"
+	}
+	
+	"Casters"
+	{
+		"en"		"Casters"
+	}
+	
+	"Caster"
+	{
+		"en"		"Caster"
+	}
+	
+	"Spectators"
+	{
+		"en"		"Spectators"
+	}
+	
+	"Spectator"
+	{
+		"en"		"Spectator"
+	}
+	
+	"Panel_TeamRaw"
+	{
+		"#format"	"{1:d},{2:t}"
+		"en"		"->{1}. {2}"
+	}
+	
+	"Panel_TeamReady"
+	{
+		"#format"	"{1:d},{2:t}"
+		"en"		"->{1}. {2} ☑"
+	}
+	
+	"Panel_TeamUnready"
+	{
+		"#format"	"{1:d},{2:t}"
+		"en"		"->{1}. {2} ☐"
+	}
+	
+	"Panel_Spectator_TooMany"
+	{
+		"#format"	"{1:d}"
+		"en"		"**Many** ({1})"
+	}
+}

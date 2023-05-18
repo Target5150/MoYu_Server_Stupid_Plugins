@@ -3,6 +3,9 @@
 #endif
 #define _readyup_command_included
 
+#pragma semicolon 1
+#pragma newdecls required
+
 void SetupCommands()
 {
 	// Ready Commands
@@ -22,6 +25,21 @@ void SetupCommands()
 	RegConsoleCmd("sm_return",			Return_Cmd, "Return to a valid saferoom spawn if you get stuck during an unfrozen ready-up period");
 }
 
+void ToggleCommandListeners(bool hook)
+{
+	static bool hooked = false;
+	if (hooked && !hook)
+	{
+		RemoveCommandListener(Vote_Callback, "Vote");
+		hooked = false;
+	}
+	else if (!hooked && hook)
+	{
+		AddCommandListener(Vote_Callback, "Vote");
+		hooked = true;
+	}
+}
+
 // ========================
 //  Command Listener
 // ========================
@@ -29,6 +47,31 @@ void SetupCommands()
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
 {
 	SetButtonTime(client);
+	return Plugin_Continue;
+}
+
+static Action Vote_Callback(int client, const char[] command, int argc)
+{
+	// Fast ready / unready through default keybinds for voting
+	if (!client) return Plugin_Continue;
+	if (BuiltinVote_IsVoteInProgress() && IsClientInBuiltinVotePool(client)) return Plugin_Continue;
+	
+	if (Game_IsVoteInProgress())
+	{
+		int voteteam = Game_GetVoteTeam();
+		if (voteteam == -1 || voteteam == GetClientTeam(client))
+		{
+			return Plugin_Continue;
+		}
+	}
+	
+	char sArg[8];
+	GetCmdArg(1, sArg, sizeof(sArg));
+	if (strcmp(sArg, "Yes", false) == 0)
+		ReadyManager.PlayerReady(client);
+	else if (strcmp(sArg, "No", false) == 0)
+		ReadyManager.PlayerUnready(client, readyStatus);
+
 	return Plugin_Continue;
 }
 

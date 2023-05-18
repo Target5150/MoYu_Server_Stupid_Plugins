@@ -3,6 +3,9 @@
 #endif
 #define _readyup_footer_included
 
+#pragma semicolon 1
+#pragma newdecls required
+
 #define MAX_FOOTER_LEN 65
 
 methodmap Footer < ArrayList {

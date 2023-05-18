@@ -64,6 +64,16 @@
 		"chi"		"你还没有准备\n输入 !ready / 按 F1 确认准备"
 	}
 	
+	"HintTeamReady"
+	{
+		"chi"		"你的队伍已经准备了\n输入 !unready / 按 F2 取消准备"
+	}
+	
+	"HintTeamUnready"
+	{
+		"chi"		"你的队伍还没有准备\n输入 !ready / 按 F1 确认准备"
+	}
+	
 	"LiveCountdownBegin"
 	{
 		"chi"		"比赛即将开始！\n输入 !unready / 按 F2 中断倒数"

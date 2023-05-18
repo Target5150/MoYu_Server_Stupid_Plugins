@@ -19,14 +19,14 @@ void SetupNatives()
 	CreateNative("IsInLiveCountdown",		Native_IsInLiveCountdown);
 	CreateNative("IsReady",					Native_IsPlayerReady);
 	CreateNative("IsPlayerReady",			Native_IsPlayerReady);
-	CreateNative("IsPlayerReady",			Native_IsTeamReady);
+	CreateNative("IsTeamReady",				Native_IsTeamReady);
 	CreateNative("ToggleReadyPanel",		Native_ToggleReadyPanel);
 	CreateNative("StartCustomReadyUp",		Native_StartCustomReadyUp);
 }
 
 any Native_AddStringToReadyFooter(Handle plugin, int numParams)
 {
-	Footer nativeFooter = ReadyPanel.GetFooter();
+	Footer nativeFooter = ReadyPanel.GetNativeFooter();
 	if (nativeFooter)
 	{
 		char buffer[MAX_FOOTER_LEN];
@@ -38,7 +38,7 @@ any Native_AddStringToReadyFooter(Handle plugin, int numParams)
 
 any Native_EditFooterStringAtIndex(Handle plugin, int numParams)
 {
-	Footer nativeFooter = ReadyPanel.GetFooter();
+	Footer nativeFooter = ReadyPanel.GetNativeFooter();
 	if (nativeFooter)
 	{
 		char buffer[MAX_FOOTER_LEN];
@@ -51,7 +51,7 @@ any Native_EditFooterStringAtIndex(Handle plugin, int numParams)
 
 any Native_FindIndexOfFooterString(Handle plugin, int numParams)
 {
-	Footer nativeFooter = ReadyPanel.GetFooter();
+	Footer nativeFooter = ReadyPanel.GetNativeFooter();
 	if (nativeFooter)
 	{
 		char buffer[MAX_FOOTER_LEN];
@@ -63,7 +63,7 @@ any Native_FindIndexOfFooterString(Handle plugin, int numParams)
 
 any Native_GetFooterStringAtIndex(Handle plugin, int numParams)
 {
-	Footer nativeFooter = ReadyPanel.GetFooter();
+	Footer nativeFooter = ReadyPanel.GetNativeFooter();
 	if (nativeFooter)
 	{
 		int index = GetNativeCell(1), maxlen = GetNativeCell(3);

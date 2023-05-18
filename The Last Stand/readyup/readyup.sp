@@ -323,6 +323,8 @@ public void OnReadyUpInitiate()
 	
 	CreateTimer(0.3, Timer_RestartCountdowns, false, TIMER_FLAG_NO_MAPCHANGE);
 	
+	ToggleCommandListeners(true);
+	
 	if (L4D_IsSurvivalMode())
 	{
 		LockUnlockSurvivalStart(true);
@@ -341,6 +343,8 @@ public void OnReadyUpFinished()
 	sb_stop.SetBool(false, .notify = false);
 	
 	RestartCountdowns(true);
+	
+	ToggleCommandListeners(false);
 	
 	if (L4D_IsSurvivalMode())
 	{
@@ -457,7 +461,6 @@ public void OnPlayerReady(int client)
 public void OnPlayerUnready(int client)
 {
 	ReadyEffect.PlayNotifySound(client);
-	ReadyEffect.DoSecrets(client);
 	SetButtonTime(client);
 }
 

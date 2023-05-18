@@ -7,6 +7,7 @@
 #pragma newdecls required
 
 #include "readyup/forward.inc"
+#include "readyup/player.inc"
 
 enum AutoStartState
 {
@@ -55,8 +56,6 @@ methodmap ReadyManager
 		s_readyCountdownTimer = null;
 		s_autoStartTimer = null;
 		
-		ToggleCommandListeners(true);
-		
 		InitiateReadyMode();
 		
 		EventDispatcher.OnReadyUpInitiate();
@@ -76,8 +75,6 @@ methodmap ReadyManager
 		
 		s_customReadyUpOwner = null;
 		EventDispatcher.SetRecipient(null);
-		
-		ToggleCommandListeners(false);
 		
 		EventDispatcher.OnReadyUpFinished();
 	}
@@ -418,44 +415,3 @@ static ReadyTeam GetPlayerTeam(int client)
 	
 	return ReadyTeam_Invalid;
 }
-
-static void ToggleCommandListeners(bool hook)
-{
-	static bool hooked = false;
-	if (hooked && !hook)
-	{
-		RemoveCommandListener(Vote_Callback, "Vote");
-		hooked = false;
-	}
-	else if (!hooked && hook)
-	{
-		AddCommandListener(Vote_Callback, "Vote");
-		hooked = true;
-	}
-}
-
-static Action Vote_Callback(int client, const char[] command, int argc)
-{
-	// Fast ready / unready through default keybinds for voting
-	if (!client) return Plugin_Continue;
-	if (BuiltinVote_IsVoteInProgress() && IsClientInBuiltinVotePool(client)) return Plugin_Continue;
-	
-	if (Game_IsVoteInProgress())
-	{
-		int voteteam = Game_GetVoteTeam();
-		if (voteteam == -1 || voteteam == GetClientTeam(client))
-		{
-			return Plugin_Continue;
-		}
-	}
-	
-	char sArg[8];
-	GetCmdArg(1, sArg, sizeof(sArg));
-	if (strcmp(sArg, "Yes", false) == 0)
-		Ready_Cmd(client, 0);
-	else if (strcmp(sArg, "No", false) == 0)
-		Unready_Cmd(client, 0);
-
-	return Plugin_Continue;
-}
-

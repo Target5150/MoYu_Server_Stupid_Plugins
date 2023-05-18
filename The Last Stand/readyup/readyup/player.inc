@@ -6,8 +6,6 @@
 #pragma semicolon 1
 #pragma newdecls required
 
-#include "readyup/forward.inc"
-
 static float
 	buttonTime[MAXPLAYERS+1];
 
@@ -16,7 +14,7 @@ void SetButtonTime(int client)
 	buttonTime[client] = GetEngineTime();
 }
 
-#define AFK_DURATION 15.0
+#define AFK_DURATION 7.7
 bool IsPlayerAfk(int client)
 {
 	return GetEngineTime() - buttonTime[client] > AFK_DURATION;

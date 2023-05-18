@@ -3,6 +3,9 @@
 #endif
 #define _readyup_util_included
 
+#pragma semicolon 1
+#pragma newdecls required
+
 #include "readyup/player.inc"
 
 void LoadPluginTranslations(const char[] file)

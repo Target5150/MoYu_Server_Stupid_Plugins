@@ -7,6 +7,7 @@
 #pragma newdecls required
 
 #define TRANSLATION_READYUP "readyup.phrases"
+#define TRANSLATION_READYUP_PANEL "readyup.panel.phrases"
 
 #define NULL_VELOCITY view_as<float>({0.0, 0.0, 0.0})
 
