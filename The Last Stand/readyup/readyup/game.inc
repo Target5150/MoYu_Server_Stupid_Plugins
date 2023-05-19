@@ -101,7 +101,7 @@ static CountdownTimer GetSurvivalSetupTimer()
 	static Address s_pSetupTimer = Address_Null;
 	if (s_pSetupTimer == Address_Null)
 	{
-		Address pSurvivalMode = LoadFromAddress(L4D_GetPointer(POINTER_DIRECTOR) + view_as<Address>(1408), NumberType_Int32); // >:(
+		Address pSurvivalMode = LoadFromAddress(L4D_GetPointer(POINTER_DIRECTOR) + view_as<Address>(1600), NumberType_Int32); // >:(
 		s_pSetupTimer = pSurvivalMode + view_as<Address>(68);
 	}
 	
@@ -113,7 +113,7 @@ static void SetSurvivalSetupNotifyTime(float time)
 	static Address s_pSetupNotifyTime = Address_Null;
 	if (s_pSetupNotifyTime == Address_Null)
 	{
-		Address pSurvivalMode = LoadFromAddress(L4D_GetPointer(POINTER_DIRECTOR) + view_as<Address>(1408), NumberType_Int32); // >:(
+		Address pSurvivalMode = LoadFromAddress(L4D_GetPointer(POINTER_DIRECTOR) + view_as<Address>(1600), NumberType_Int32); // >:(
 		s_pSetupNotifyTime = pSurvivalMode + view_as<Address>(156);
 	}
 	
