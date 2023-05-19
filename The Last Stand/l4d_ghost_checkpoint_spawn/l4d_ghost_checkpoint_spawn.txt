@@ -18,8 +18,8 @@
 		{
 			"CDirector::m_bLastSurvivorLeftStartArea"
 			{
-				"windows"		"161"
-				"linux"			"161"
+				"windows"		"353"
+				"linux"			"353"
 			}
 		}
 	}
