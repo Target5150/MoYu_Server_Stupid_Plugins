@@ -438,10 +438,10 @@ void PrintDebug(const char[] format, any ...)
 
 stock void ExtractColorBytes(int color, int &r, int &g, int &b, int &a)
 {
-	r = (color & 0xFF000000) >> 24;
-	g = (color & 0x00FF0000) >> 16;
-	b = (color & 0x0000FF00) >> 8;
-	a = (color & 0x000000FF);
+	r = (color >> 24) & 0xFF;
+	g = (color >> 16) & 0xFF;
+	b = (color >> 8) & 0xFF;
+	a = (color >> 0) & 0xFF;
 }
 
 stock void ThrowEntryError(alarmArray entry, int entity)
