@@ -5,7 +5,7 @@
 #include <dhooks>
 #include <sourcescramble>
 
-#define PLUGIN_VERSION "2.4"
+#define PLUGIN_VERSION "2.4.1"
 
 public Plugin myinfo =
 {
@@ -27,6 +27,9 @@ DynamicHook g_hDHook_PhysicsSolidMaskForEntity;
 
 public void OnPluginStart()
 {
+	if (GetEngineVersion() != Engine_Left4Dead)
+		SetFailState("Plugin supports L4D only");
+	
 	Handle conf = LoadGameConfigFile(GAMEDATA_FILE);
 	if (conf == null)
 		SetFailState("Missing gamedata \"" ... GAMEDATA_FILE ... "\"");
