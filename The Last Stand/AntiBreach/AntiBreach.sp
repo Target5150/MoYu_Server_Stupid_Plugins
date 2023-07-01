@@ -5,7 +5,7 @@
 #include <left4dhooks>
 #include <colors>
 
-#define PLUGIN_VERSION "2.0"
+#define PLUGIN_VERSION "2.0.1"
 
 public Plugin myinfo = 
 {
@@ -16,7 +16,7 @@ public Plugin myinfo =
 	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 }
 
-#define TRANSLATION_FILE "AntiBreach.phrases.txt"
+#define TRANSLATION_FILE "AntiBreach.phrases"
 float g_flLastExploitTime[MAXPLAYERS + 1];
 
 public void OnPluginStart()
