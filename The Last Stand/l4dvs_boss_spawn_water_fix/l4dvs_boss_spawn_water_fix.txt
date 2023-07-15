@@ -26,7 +26,7 @@
 				"signature"			"CDirectorVersusMode::UpdateVersusBossSpawning"
 				"linux"
 				{
-					"offset"		"2D2"
+					"offset"		"2D2h"
 					"verify"		"\x74"	// jz
 					"patch"			"\xEB"	// jmp
 				}
