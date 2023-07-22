@@ -3,7 +3,7 @@
 
 #include <sourcemod>
 
-#define PLUGIN_VERSION "2.0.1"
+#define PLUGIN_VERSION "2.0.2"
 
 public Plugin myinfo = 
 {
@@ -81,7 +81,7 @@ public void OnClientSayCommand_Post(int client, const char[] command, const char
 	};
 	
 	int idxTeam = GetClientTeam(client) - 2;
-	if (idxTeam != 0 || idxTeam != 1)
+	if (idxTeam != 0 && idxTeam != 1)
 		return;
 	
 	/*if (!IsPlayerAlive(client))
