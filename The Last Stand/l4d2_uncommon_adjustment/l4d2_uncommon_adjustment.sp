@@ -6,7 +6,7 @@
 #include <actions>
 #include <l4d2util>
 
-#define PLUGIN_VERSION "2.1"
+#define PLUGIN_VERSION "2.1.1"
 
 public Plugin myinfo =
 {
@@ -174,7 +174,7 @@ void SDK_OnSpawn_Post(int entity)
 
 public void OnActionCreated(BehaviorAction action, int owner, const char[] name)
 {
-	if (name[0] != 'I' && strncmp(name, "Infected", 8) != 0)
+	if (name[0] != 'I' || strncmp(name, "Infected", 8) != 0)
 		return;
 	
 	if (strcmp(name[8], "Attack") != 0 && strcmp(name[8], "Alert") != 0 && strcmp(name[8], "Wander") != 0)
