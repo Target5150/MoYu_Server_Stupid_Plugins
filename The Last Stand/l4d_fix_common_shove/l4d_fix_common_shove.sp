@@ -3,10 +3,11 @@
 
 #include <sourcemod>
 #include <sdktools>
+#include <sdkhooks>
 #include <left4dhooks_anim>
 #include <actions>
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo = 
 {
@@ -76,30 +77,69 @@ enum PendingShoveState
 	PendingShove_Callback,
 };
 
-char[] __CompileKey(int entity) {
-	static char key[16];
-	IntToString(EntIndexToEntRef(entity), key, sizeof(key));
-	return key;
+enum struct PendingShoveInfo
+{
+	int key;
+	PendingShoveState state;
+	float direction_x;
+	float direction_y;
+	float direction_z;
 }
 
-methodmap PendingShoveStore < StringMap
+int __CompileKey(int entity) {
+	return EntIndexToEntRef(entity);
+}
+
+methodmap PendingShoveStore < ArrayList
 {
 	public PendingShoveStore() {
-		return view_as<PendingShoveStore>(new StringMap());
+		return view_as<PendingShoveStore>(new ArrayList(sizeof(PendingShoveInfo) + 1));
 	}
 	
 	public PendingShoveState GetState(int entity) {
 		PendingShoveState state;
-		this.GetValue(__CompileKey(entity), state);
+		int idx = this.FindValue(__CompileKey(entity), PendingShoveInfo::key);
+		if (idx != -1)
+			state = this.Get(idx, PendingShoveInfo::state);
 		return state;
 	}
 	
 	public void SetState(int entity, PendingShoveState state) {
-		this.SetValue(__CompileKey(entity), state, true);
+		int key = __CompileKey(entity);
+		int idx = this.FindValue(key, PendingShoveInfo::key);
+		if (idx == -1)
+			idx = this.Push(key);
+		this.Set(idx, state, PendingShoveInfo::state);
+	}
+	
+	public bool GetDirection(int entity, float direction[3]) {
+		int idx = this.FindValue(__CompileKey(entity), PendingShoveInfo::key);
+		if (idx != -1) {
+			direction[0] = this.Get(idx, PendingShoveInfo::direction_x);
+			direction[1] = this.Get(idx, PendingShoveInfo::direction_y);
+			direction[2] = this.Get(idx, PendingShoveInfo::direction_z);
+			return true;
+		}
+		return false;
+	}
+	
+	public void SetDirection(int entity, const float direction[3]) {
+		int key = __CompileKey(entity);
+		int idx = this.FindValue(key, PendingShoveInfo::key);
+		if (idx == -1)
+			idx = this.Push(key);
+		this.Set(idx, direction[0], PendingShoveInfo::direction_x);
+		this.Set(idx, direction[1], PendingShoveInfo::direction_y);
+		this.Set(idx, direction[2], PendingShoveInfo::direction_z);
 	}
 	
 	public bool Delete(int entity) {
-		return this.Remove(__CompileKey(entity));
+		int idx = this.FindValue(__CompileKey(entity), PendingShoveInfo::key);
+		if (idx != -1) {
+			this.Erase(idx);
+			return true;
+		}
+		return false;
 	}
 }
 PendingShoveStore g_PendingShoveStore;
@@ -143,6 +183,12 @@ public void OnMapStart()
 	g_PendingShoveStore.Clear();
 }
 
+public void OnEntityDestroyed(int entity)
+{
+	if (IsInfected(entity))
+		g_PendingShoveStore.Delete(entity);
+}
+
 public void OnActionCreated(BehaviorAction action, int actor, const char[] name)
 {
 	if (name[0] == 'I' && strcmp(name, "InfectedShoved") == 0)
@@ -161,6 +207,15 @@ Action InfectedShoved_OnStart(BehaviorAction action, int actor, any priorAction,
 			result.type = CONTINUE; // do not exit
 			
 			g_PendingShoveStore.SetState(actor, PendingShove_Yes); // for later use in "InfectedShoved_OnLandOnGroundPost"
+			
+			float direction[3], pos[3];
+			direction[0] = action.Get(56, NumberType_Int32);
+			direction[1] = action.Get(60, NumberType_Int32);
+			direction[2] = action.Get(64, NumberType_Int32);
+			GetEntPropVector(actor, Prop_Data, "m_vecAbsOrigin", pos);
+			SubtractVectors(direction, pos, direction);
+			
+			g_PendingShoveStore.SetDirection(actor, direction);
 			
 			// almost certain that shove does nothing at the moment, just skip it
 			return Plugin_Handled; 
@@ -182,6 +237,15 @@ Action InfectedShoved_OnStart(BehaviorAction action, int actor, any priorAction,
 	
 	if (g_PendingShoveStore.GetState(actor) == PendingShove_Callback)
 	{
+		float direction[3], pos[3];
+		g_PendingShoveStore.GetDirection(actor, direction);
+		GetEntPropVector(actor, Prop_Data, "m_vecAbsOrigin", pos);
+		AddVectors(pos, direction, pos);
+		
+		action.Set(56, pos[0], NumberType_Int32);
+		action.Set(60, pos[1], NumberType_Int32);
+		action.Set(64, pos[2], NumberType_Int32);
+		
 		g_PendingShoveStore.Delete(actor);
 	}
 	
@@ -223,6 +287,13 @@ bool ForceActivityInterruptible(int infected)
 ZombieBotBody Infected__GetBodyInterface(int infected)
 {
 	return view_as<ZombieBotBody>(GetEntData(infected, g_iOffs_Infected__m_body, 4));
+}
+
+stock bool IsInfected(int entity)
+{
+	char cls[64];
+	GetEdictClassname(entity, cls, sizeof(cls));
+	return strcmp(cls, "infected") == 0;
 }
 
 ConVar CreateConVarHook(const char[] name,
