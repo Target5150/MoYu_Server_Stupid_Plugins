@@ -7,7 +7,7 @@
 #include <left4dhooks_anim>
 #include <actions>
 
-#define PLUGIN_VERSION "1.1"
+#define PLUGIN_VERSION "1.1.1"
 
 public Plugin myinfo = 
 {
@@ -291,9 +291,13 @@ ZombieBotBody Infected__GetBodyInterface(int infected)
 
 stock bool IsInfected(int entity)
 {
-	char cls[64];
-	GetEdictClassname(entity, cls, sizeof(cls));
-	return strcmp(cls, "infected") == 0;
+	if (entity > MaxClients && IsValidEdict(entity))
+	{
+		char cls[64];
+		GetEdictClassname(entity, cls, sizeof(cls));
+		return strcmp(cls, "infected") == 0;
+	}
+	return false;
 }
 
 ConVar CreateConVarHook(const char[] name,
