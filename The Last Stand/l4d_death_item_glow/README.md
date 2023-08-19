@@ -13,7 +13,8 @@
 // Default: "255 255 255"
 l4d_death_item_glow_color "255 255 255"
 
-// Glow color (RGB) for items drooped by dead survivors.
+// Glow time for items drooped by dead survivors.
+// Value: -1 = Forever, 0.0 = Glow disabled, others = Glow time.
 // -
 // Default: "-1"
 // Minimum: "-1.000000"
