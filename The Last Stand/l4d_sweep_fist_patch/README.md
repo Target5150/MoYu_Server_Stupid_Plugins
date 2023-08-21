@@ -2,13 +2,12 @@
 https://forums.alliedmods.net/showthread.php?t=332046
 
 ### Introduction
-- Patch memory bytes to allow multi-punch for tank in Coop Mode
+- Patch memory bytes to allow multi-punch for tanks in coop mode.
 
 <hr>
 
 ### Requirement
-- [DHooks](https://forums.alliedmods.net/showpost.php?p=2588686&postcount=589)
-- [Source Scramble (since v0.7.0)](https://forums.alliedmods.net/showthread.php?t=317175)
+- [Source Scramble](https://forums.alliedmods.net/showthread.php?t=317175)
 
 <hr>
 
@@ -19,13 +18,23 @@ https://forums.alliedmods.net/showthread.php?t=332046
 <hr>
 
 ### Special Thanks
-- **Crasher_3637**: for providing everything.
+- **Crasher_3637** (**Psykotikism**): for providing everything.
 - **HarryPotter**: for original idea.
 - **Dragokas**: for L4D1 testing and gamedata update.
 
 <hr>
 
 ### Changelog
+(v3.0 2023/8/23 UTC+8)
+- Rework
+	1. I have no idea why I came up with the update -> [9329f5f](https://github.com/Target5150/MoYu_Server_Stupid_Plugins/commit/9329f5fb05f18affdc67614e5bc9dd9b95e8181b)
+	When I finished reviewing the assembly, this doesn't appear to fix anything
+	2. So I just got myself confused when I ended up with only a single patch, of course on function "SweepFist".
+	3. I finally decide to blame the bad patching on "call" instruction, the only possible cause.
+	4. All those detours are unnecessary, lead to performance drop, and no safety issue without them.
+
+Good to realize I'm not that lazy to refuse reviewing my ass stuff when I was just a beginner.
+
 (v2.3 2021/8/18 UTC+8)
 - Add version ConVar for tracking and minor fix for compiling warnings.
 
