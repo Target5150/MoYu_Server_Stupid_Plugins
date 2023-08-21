@@ -1,37 +1,5 @@
 "Games"
 {
-	"#default"
-	{
-		"Functions"
-		{
-			/**
-			 * CTankClaw::DoSwing()
-			 *
-			 * Note: Detouring as a pre-hook for patching "CTankClaw::SweepFist" in "coop" modes.
-			 **/
-			"CTankClaw::DoSwing"
-			{
-				"signature"			"CTankClaw::DoSwing"
-				"callconv"			"thiscall"
-				"return"			"void"
-				"this"				"entity"
-			}
-			
-			/**
-			 * CTankClaw::GroundPound()
-			 *
-			 * Note: Detouring as a pre-hook for patching "CTankClaw::GroundPound" in "coop" modes.
-			 **/
-			"CTankClaw::GroundPound"
-			{
-				"signature"			"CTankClaw::GroundPound"
-				"callconv"			"thiscall"
-				"return"			"void"
-				"this"				"entity"
-			}
-		}
-	}
-	
 	"left4dead"
 	{
 		"MemPatches"
@@ -41,56 +9,15 @@
 				"signature"			"CTankClaw::SweepFist"
 				"linux"
 				{
-					"offset"		"1052"
-					"verify"		"\xE8" // make sure the 'call' instruction starts with E8
-					"patch"			"\x90\x90\x90\x90\x90" // patch the 'call' instruction with NOPs (5 bytes)
+					"offset"		"423h"
+					"verify"		"\x0F\x84" // make sure the 'jz' instruction starts with '0F 84'
+					"patch"			"\x90\x90\x90\x90\x90\x90" // patch the 'jz' instruction with NOPs (6 bytes)
 				}
-				
 				"windows"
 				{
-					"offset"		"1067"
-					"verify"		"\xE8" // make sure the 'call' instruction starts with E8
-					"patch"			"\x90\x90\x90\x90\x90" // patch the 'call' instruction with NOPs (5 bytes)
-				}
-			}
-			
-			"CTankClaw::SweepFist::Check2"
-			{
-				"signature"			"CTankClaw::SweepFist"
-				"linux"
-				{
-					"offset"		"3424"
-					"verify"		"\xE8" // make sure the 'call' instruction starts with E8
-					"patch"			"\x90\x90\x90\x90\x90" // patch the 'call' instruction with NOPs (5 bytes)
-				}
-				
-				"windows"
-				{
-					"offset"		"1076"
-					"verify"		"\xE8" // make sure the 'call' instruction starts with E8
-					"patch"			"\x90\x90\x90\x90\x90" // patch the 'call' instruction with NOPs (5 bytes)
-				}
-			}
-			
-			"CTankClaw::GroundPound::Check"
-			{
-				"signature"			"CTankClaw::GroundPound"
-				"linux"
-				{
-					"offset"		"1043"
-					"verify"		"\xE8\x2A\x2A\x2A\x2A\x84\x2A" // make sure the 'call' and 'test' instructions starts with E8 and 84
-					"patch"			"\x90\x90\x90\x90\x90\x90\x90" // patch the 'call' and 'test' instructions with NOPs (7 bytes)
-				}
-				
-				"windows"
-				{
-					"offset"		"761"
-					// make sure both `jz` instructions start with 74, and the middle `cmp` start with 80
-					"verify"		"\x74\x2A\x80\x2A\x2A\x2A\x2A\x74\x2A"
-					// preserve the middle `cmp` (maybe don't need to but better leave it be)
-					"preserve"		"\x00\x00\xFF\xFF\xFF\xFF\xFF\x00\x00"
-					// patch the 'jz's with NOPs (4 of 9 bytes)
-					"patch"			"\x90\x90\x90\x90\x90\x90\x90\x90\x90"
+					"offset"		"432h"
+					"verify"		"\x75" // make sure the 'jnz' instruction starts with '75'
+					"patch"			"\xEB" // replace the 'jnz' instruction with 'jmp'
 				}
 			}
 		}
@@ -98,46 +25,18 @@
 		"Signatures"
 		{
 			/**
-			 * CTankClaw::DoSwing()
-			 *
-			 * How to find on Windows:
-			 * 1a. Search for the "rhand" string.
-			 * 2a. The string can only be found in this function.
-			 * 1b. Search for the "ValveBiped.Bip01_R_Hand" string.
-			 * 2b. One of the functions that references that string should be this function.
-			 **/
-			"CTankClaw::DoSwing"
-			{
-				"library"			"server"
-				"linux"				"@_ZN9CTankClaw7DoSwingEv"
-				"windows"			"\x2A\x2A\x2A\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x8B\x2A\x85\x2A\x74\x2A\x8D\x2A\x2A\x2A\x50\x8D\x2A\x2A\x2A\x51\x68"
-									/* ? ? ? ? ? ? ? E8 ? ? ? ? 8B ? 85 ? 74 ? 8D ? ? ? 50 8D ? ? ? 51 68 */
-			}
-			
-			/**
 			 * CTankClaw::SweepFist(Vector const&, Vector const&)
 			 *
 			 * How to find on Windows:
-			 * 1. Locate the "CTankClaw::DoSwing" function.
-			 * 2. The last function call should be this function.
-			 **/
+			 * 1. Search string "tank_fist_radius" and go to its relative ConVar "HulkFistRadius".
+			 * 2. The only xref to the "HulkFistRadius.m_pParent" (usually present as "dword_xxxxxx" below) is the function we want.
+			 */
 			"CTankClaw::SweepFist"
 			{
 				"library"			"server"
 				"linux"				"@_ZN9CTankClaw9SweepFistERK6VectorS2_.constprop.246"
 				"windows"			"\x2A\x2A\x2A\x2A\x2A\x2A\x55\x56\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x8B\x2A\x85\x2A\x0F\x84\x2A\x2A\x2A\x2A\x8B\x0D"
 									/* ? ? ? ? ? ? 55 56 8B ? E8 ? ? ? ? 8B ? 85 ? 0F 84 ? ? ? ? 8B 0D */
-			}
-			
-			/**
-			 * CTankClaw::GroundPound()
-			 **/
-			"CTankClaw::GroundPound"
-			{
-				"library"			"server"
-				"linux"				"@_ZN9CTankClaw11GroundPoundEv"
-				"windows"			"\x2A\x2A\x2A\x2A\x2A\x2A\x81\xEC\x2A\x2A\x2A\x2A\x53\x56\x57\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x8B\x2A\x85"
-									/* ? ? ? ? ? ? 81 EC ? ? ? ? 53 56 57 8B ? E8 ? ? ? ? 8B ? 85 */
 			}
 		}
 	}
@@ -146,61 +45,20 @@
 	{
 		"MemPatches"
 		{
-			"CTankClaw::SweepFist::Check1"
+			"CTankClaw::SweepFist__HasPlayerControlledZombies_skip"
 			{
 				"signature"			"CTankClaw::SweepFist"
 				"linux"
 				{
-					"offset"		"2554"
-					"verify"		"\xE8" // make sure the 'call' instruction starts with E8
-					"patch"			"\x90\x90\x90\x90\x90" // patch the 'call' instruction with NOPs (5 bytes)
+					"offset"		"A01h"
+					"verify"		"\x0F\x84" // make sure the 'jz' instruction starts with '0F 84'
+					"patch"			"\x90\x90\x90\x90\x90\x90" // patch the 'jz' instruction with NOPs (6 bytes)
 				}
-				
 				"windows"
 				{
-					"offset"		"1382"
-					"verify"		"\xE8" // make sure the 'call' instruction starts with E8
-					"patch"			"\x90\x90\x90\x90\x90" // patch the 'call' instruction with NOPs (5 bytes)
-				}
-			}
-			
-			"CTankClaw::SweepFist::Check2"
-			{
-				"signature"			"CTankClaw::SweepFist"
-				"linux"
-				{
-					"offset"		"3488"
-					"verify"		"\xE8" // make sure the 'call' instruction starts with E8
-					"patch"			"\x90\x90\x90\x90\x90" // patch the 'call' instruction with NOPs (5 bytes)
-				}
-				
-				"windows"
-				{
-					"offset"		"1391"
-					"verify"		"\xE8" // make sure the 'call' instruction starts with E8
-					"patch"			"\x90\x90\x90\x90\x90" // patch the 'call' instruction with NOPs (5 bytes)
-				}
-			}
-			
-			"CTankClaw::GroundPound::Check"
-			{
-				"signature"			"CTankClaw::GroundPound"
-				"linux"
-				{
-					"offset"		"988"
-					"verify"		"\x0F\x85" // make sure the 'jnz' instruction starts with 0F 85
-					"patch"			"\x90\xE9" // patch the 'jnz' instruction with 1 NOP and 'jmp' (2 bytes)
-				}
-				
-				"windows"
-				{
-					"offset"		"923"
-					// make sure both `jz` instructions start with 74, and the middle `cmp` start with 80
-					"verify"		"\x74\x2A\x80\x2A\x2A\x2A\x74\x2A"
-					// preserve the middle `cmp` (maybe don't need to but better leave it be)
-					"preserve"		"\x00\x00\xFF\xFF\xFF\xFF\x00\x00"
-					// patch the 'jz's with NOPs (4 of 8 bytes)
-					"patch"			"\x90\x90\x90\x90\x90\x90\x90\x90"
+					"offset"		"56Dh"
+					"verify"		"\x75" // make sure the 'jnz' instruction starts with '75'
+					"patch"			"\xEB" // replace the 'jnz' instruction with 'jmp'
 				}
 			}
 		}
@@ -208,50 +66,18 @@
 		"Signatures"
 		{
 			/**
-			 * CTankClaw::DoSwing()
-			 *
-			 * How to find on Windows:
-			 * 1a. Search for any of the following strings (they can each only be found in this function):
-			 * - "rhand"
-			 * - "lhand"
-			 * - "ValveBiped.Bip01_L_Hand"
-			 * 1b. Search for the "ValveBiped.Bip01_R_Hand" string.
-			 * 2b. One of the functions that references that string should be this function.
-			 **/
-			"CTankClaw::DoSwing"
-			{
-				"library"			"server"
-				"linux"				"@_ZN9CTankClaw7DoSwingEv"
-				"windows"			"\x2A\x2A\x2A\x2A\x2A\x2A\x56\x89\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x8B\x2A\x85"
-									/* ? ? ? ? ? ? 56 89 ? ? E8 ? ? ? ? 8B ? 85 */
-			}
-			
-			/**
 			 * CTankClaw::SweepFist(Vector const&, Vector const&)
 			 *
 			 * How to find on Windows:
-			 * 1. Locate the "CTankClaw::DoSwing" function.
-			 * 2. The last function call should be this function.
-			 **/
+			 * 1. Search string "tank_fist_radius" and go to its relative ConVar "HulkFistRadius".
+			 * 2. The only xref to the "HulkFistRadius.m_pParent" (usually present as "dword_xxxxxx" below) is the function we want.
+			 */
 			"CTankClaw::SweepFist"
 			{
 				"library"			"server"
 				"linux"				"@_ZN9CTankClaw9SweepFistERK6VectorS2_"
 				"windows"			"\x2A\x2A\x2A\x2A\x2A\x2A\x83\x2A\x2A\x83\x2A\x2A\x55\x8B\x2A\x2A\x89\x2A\x2A\x2A\x8B\x2A\x81\xEC\x2A\x2A\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x33\x2A\x89\x2A\x2A\x8B\x2A\x2A\x56\x57\x8B\x2A\x2A\x89\x8D"
 									/* ? ? ? ? ? ? 83 ? ? 83 ? ? 55 8B ? ? 89 ? ? ? 8B ? 81 EC ? ? ? ? A1 ? ? ? ? 33 ? 89 ? ? 8B ? ? 56 57 8B ? ? 89 8D */
-			}
-			
-			/** CTankClaw::GroundPound(CTankClaw *__hidden this)
-			 * 1. Go to SweepFist sig, then click on the function and jump to the only x-ref (should be CTankClaw::DoSwing)
-			 * 2. Click on DoSwing sig, go to the data xref, the very last virtual call is CTankClaw::OnWindupFinished
-			 * 3. Generate pseudocode, the direct call (non-assignment), which is on the opposite to a virtual call, is the sig
-			 **/
-			"CTankClaw::GroundPound"
-			{
-				"library"			"server"
-				"linux"				"@_ZN9CTankClaw11GroundPoundEv"
-				"windows"			"\x2A\x2A\x2A\x2A\x2A\x2A\x83\x2A\x2A\x83\x2A\x2A\x55\x8B\x2A\x2A\x89\x2A\x2A\x2A\x8B\x2A\x81\xEC\x2A\x2A\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x33\x2A\x89\x2A\x2A\x56\x57\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x8B\x2A\x89"
-									/* ? ? ? ? ? ? 83 ? ? 83 ? ? 55 8B ? ? 89 ? ? ? 8B ? 81 EC ? ? ? ? A1 ? ? ? ? 33 ? 89 ? ? 56 57 8B ? E8 ? ? ? ? 8B ? 89 */
 			}
 		}
 	}
