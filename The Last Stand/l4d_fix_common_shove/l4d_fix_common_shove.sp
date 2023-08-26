@@ -7,7 +7,7 @@
 #include <left4dhooks_anim>
 #include <actions>
 
-#define PLUGIN_VERSION "1.1.1"
+#define PLUGIN_VERSION "1.2"
 
 public Plugin myinfo = 
 {
@@ -194,6 +194,7 @@ public void OnActionCreated(BehaviorAction action, int actor, const char[] name)
 	if (name[0] == 'I' && strcmp(name, "InfectedShoved") == 0)
 	{
 		action.OnStart = InfectedShoved_OnStart;
+		action.OnShoved = InfectedShoved_OnShoved;
 		action.OnLandOnGroundPost = InfectedShoved_OnLandOnGroundPost;
 	}
 }
@@ -247,6 +248,19 @@ Action InfectedShoved_OnStart(BehaviorAction action, int actor, any priorAction,
 		action.Set(64, pos[2], NumberType_Int32);
 		
 		g_PendingShoveStore.Delete(actor);
+	}
+	
+	return Plugin_Continue;
+}
+
+Action InfectedShoved_OnShoved(BehaviorAction action, int actor, int entity, ActionDesiredResult result)
+{
+	if (GetEntPropEnt(actor, Prop_Data, "m_hGroundEntity") != -1) // falling check
+	{
+		if (g_iShoveFlag & SHOVE_CROUCHING)
+		{
+			Infected__GetBodyInterface(actor).SetDesiredPosture(STAND); // force standing to activate shoves
+		}
 	}
 	
 	return Plugin_Continue;
