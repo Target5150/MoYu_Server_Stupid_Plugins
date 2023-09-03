@@ -5,7 +5,7 @@
 #include <sdkhooks>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo =
 {
@@ -16,9 +16,16 @@ public Plugin myinfo =
 	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 };
 
+methodmap EntKey {
+	public EntKey(int entity) { return view_as<EntKey>(EntIndexToEntRef(entity)); }
+	property int entity {
+		public get() { return EntRefToEntIndex(view_as<int>(this)); }
+	}
+}
+
 enum struct WeaponGlowInfo
 {
-	int key;
+	EntKey key;
 	int glowRef;
 }
 
@@ -43,7 +50,8 @@ public void OnPluginStart()
 					true, -1.0, false, 0.0,
 					CvarChg_GlowTime);
 	
-	g_WeaponGlowList = new ArrayList(sizeof(WeaponGlowInfo));
+	int size = L4D_IsEngineLeft4Dead() ? sizeof(WeaponGlowInfo) : 1;
+	g_WeaponGlowList = new ArrayList(size);
 	
 	HookEvent("round_start", Event_RoundStart);
 	
@@ -95,20 +103,22 @@ void SDK_OnWeaponEquip_Post(int client, int weapon)
 
 void AddWeaponGlow(int weapon)
 {
-	int glow = -1;
-	if (L4D_IsEngineLeft4Dead())
-		glow = CreateGlowEntity(weapon);
-	else
-		L4D2_SetEntityGlow(weapon, L4D2Glow_Constant, 0, 0, g_GlowColor, false);
+	int index = g_WeaponGlowList.Push(EntKey(weapon));
 	
-	int key = EntIndexToEntRef(weapon);
-	g_WeaponGlowList.Set(g_WeaponGlowList.Push(key), EntIndexToEntRef(glow), WeaponGlowInfo::glowRef);
+	if (L4D_IsEngineLeft4Dead())
+	{
+		int glow = CreateGlowEntity(weapon);
+		g_WeaponGlowList.Set(index, EntIndexToEntRef(glow), WeaponGlowInfo::glowRef);
+	}
+	else
+	{
+		L4D2_SetEntityGlow(weapon, L4D2Glow_Constant, 0, 0, g_GlowColor, false);
+	}
 }
 
 void RemoveWeaponGlow(int weapon)
 {
-	int key = EntIndexToEntRef(weapon);
-	int index = g_WeaponGlowList.FindValue(key);
+	int index = g_WeaponGlowList.FindValue(EntKey(weapon));
 	if (index != -1)
 	{
 		L4D2_RemoveEntityGlow(weapon);
@@ -135,14 +145,14 @@ void CheckGlowTime(int weapon)
 	}
 	else
 	{
-		CreateTimer(g_flGlowTIme, Timer_RemoveWeaponGlow, EntIndexToEntRef(weapon), TIMER_FLAG_NO_MAPCHANGE);
+		CreateTimer(g_flGlowTIme, Timer_RemoveWeaponGlow, EntKey(weapon), TIMER_FLAG_NO_MAPCHANGE);
 	}
 }
 
-Action Timer_RemoveWeaponGlow(Handle timer, int entRef)
+Action Timer_RemoveWeaponGlow(Handle timer, EntKey key)
 {
-	int weapon = EntRefToEntIndex(entRef);
-	if (IsValidEdict(weapon) && g_WeaponGlowList.FindValue(entRef) != -1)
+	int weapon = key.entity;
+	if (IsValidEdict(weapon) && g_WeaponGlowList.FindValue(key) != -1)
 	{
 		RemoveWeaponGlow(weapon);
 	}
