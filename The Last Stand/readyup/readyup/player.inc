@@ -3,63 +3,18 @@
 #endif
 #define _readyup_player_included
 
-static bool
-	isPlayerReady[MAXPLAYERS+1],
-	hiddenPanel[MAXPLAYERS+1];
+#pragma semicolon 1
+#pragma newdecls required
 
 static float
 	buttonTime[MAXPLAYERS+1];
-
-bool IsPlayerReady(int client)
-{
-	return isPlayerReady[client];
-}
-
-bool SetPlayerReady(int client, bool ready)
-{
-	bool prev = isPlayerReady[client];
-	isPlayerReady[client] = ready;
-	
-	if (prev && !ready)
-	{
-		if (g_hPlayerReadyForward.FunctionCount)
-		{
-			Call_StartForward(g_hPlayerReadyForward);
-			Call_PushCell(client);
-			Call_Finish();
-		}
-	}
-	else if (!prev && ready)
-	{
-		if (g_hPlayerUnreadyForward.FunctionCount)
-		{
-			Call_StartForward(g_hPlayerUnreadyForward);
-			Call_PushCell(client);
-			Call_Finish();
-		}
-	}
-	
-	return prev;
-}
-
-bool IsPlayerHiddenPanel(int client)
-{
-	return hiddenPanel[client];
-}
-
-bool SetPlayerHiddenPanel(int client, bool hidden)
-{
-	bool prev = hiddenPanel[client];
-	hiddenPanel[client] = hidden;
-	return prev;
-}
 
 void SetButtonTime(int client)
 {
 	buttonTime[client] = GetEngineTime();
 }
 
-#define AFK_DURATION 15.0
+#define AFK_DURATION 7.7
 bool IsPlayerAfk(int client)
 {
 	return GetEngineTime() - buttonTime[client] > AFK_DURATION;
@@ -88,6 +43,12 @@ bool IsPlayer(int client)
 {
 	int team = GetClientTeam(client);
 	return (team == L4D2Team_Survivor || team == L4D2Team_Infected);
+}
+
+bool IsAdmin(int client)
+{
+	AdminId id = GetUserAdmin(client);
+	return (id != INVALID_ADMIN_ID && GetAdminFlag(id, Admin_Ban)); // Check for specific admin flag
 }
 
 void ReturnPlayerToSaferoom(int client, bool flagsSet = true)

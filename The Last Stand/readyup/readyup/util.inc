@@ -3,7 +3,72 @@
 #endif
 #define _readyup_util_included
 
-#include "player.inc"
+#pragma semicolon 1
+#pragma newdecls required
+
+#include "readyup/player.inc"
+
+void LoadPluginTranslations(const char[] file)
+{
+	char sPath[PLATFORM_MAX_PATH];
+	
+	BuildPath(Path_SM, sPath, sizeof(sPath), "translations/%s.txt", file);
+	if (!FileExists(sPath))
+	{
+		SetFailState("Missing translation file \"%s.txt\"", file);
+	}
+	LoadTranslations(file);
+}
+
+stock void String_ToLower(char[] str, const int MaxSize)
+{
+	int iSize = strlen(str); //Сounts string length to zero terminator
+
+	for (int i = 0; i < iSize && i < MaxSize; i++) { //more security, so that the cycle is not endless
+		if (IsCharUpper(str[i])) {
+			str[i] = CharToLower(str[i]);
+		}
+	}
+
+	str[iSize] = '\0';
+}
+
+int GetDifficulty()
+{
+	char sDifficulty[11];
+	GetDifficultyString(sDifficulty, sizeof(sDifficulty));
+	
+	for (int i = 0; i < Difficulty_SIZE; ++i)
+	{
+		if (strcmp(sDifficulty, sDifficultyStrings[i]) == 0)
+		{
+			return i;
+		}
+	}
+	
+	return Difficulty_Normal;
+}
+
+void GetDifficultyString(char[] sDifficulty, int maxlength)
+{
+	static ConVar z_difficulty;
+	
+	if (!L4D2_HasConfigurableDifficultySetting())
+	{
+		if (z_difficulty == null)
+			z_difficulty = FindConVar("z_difficulty");
+		
+		z_difficulty.GetString(sDifficulty, maxlength);
+		String_ToLower(sDifficulty, maxlength);
+		
+		if (strcmp("impossible", sDifficulty) == 0)
+			strcopy(sDifficulty, maxlength, "expert");
+	}
+	else
+	{
+		strcopy(sDifficulty, maxlength, "normal");
+	}
+}
 
 int GetMaxAllowedPlayers()
 {
@@ -17,25 +82,20 @@ int GetMaxAllowedPlayers()
 	return survLimit;
 }
 
-bool IsTeamReady(int team)
+int GetMaxPlayers()
 {
-	for (int i = 1; i <= MaxClients; ++i)
+	static ConVar sv_maxplayers = null;
+	if (sv_maxplayers == null)
 	{
-		if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) == team && IsPlayerReady(i))
-		{
-			return true;
-		}
+		sv_maxplayers = FindConVar("sv_maxplayers");
 	}
-	return false;
-}
-
-void UTIL_WrapperForward(GlobalForward fw)
-{
-	if (fw.FunctionCount)
+	
+	if (sv_maxplayers != null)
 	{
-		Call_StartForward(fw);
-		Call_Finish();
+		return sv_maxplayers.IntValue;
 	}
+	
+	return GetMaxAllowedPlayers();
 }
 
 bool IsEmptyString(const char[] str, int maxlength)
@@ -61,7 +121,7 @@ bool IsEmptyString(const char[] str, int maxlength)
 	return true;
 }
 
-bool IsAnyPlayerLoading()
+stock bool IsAnyPlayerLoading()
 {
 	for (int i = 1; i <= MaxClients; i++)
 	{

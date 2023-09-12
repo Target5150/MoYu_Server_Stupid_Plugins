@@ -64,6 +64,16 @@
 		"en"		"You are not ready.\nSay !ready / Press F1 to ready up."
 	}
 	
+	"HintTeamReady"
+	{
+		"en"		"Your team is ready.\nSay !unready / Press F2 to unready."
+	}
+	
+	"HintTeamUnready"
+	{
+		"en"		"Your team is not ready.\nSay !ready / Press F1 to ready up."
+	}
+	
 	"LiveCountdownBegin"
 	{
 		"en"		"Going live!\nSay !unready / Press F2 to cancel"
@@ -94,11 +104,6 @@
 	{
 		"#format"	"{1:d}"
 		"en"		"Game starts in: {1}"
-	}
-	
-	"AutoStartWaiting"
-	{
-		"en"		"Waiting for loading players..."
 	}
 	
 	"AutoStartNotEnoughPlayers"

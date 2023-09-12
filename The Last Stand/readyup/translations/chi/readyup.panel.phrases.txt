@@ -1,0 +1,97 @@
+"Phrases"
+{
+	"Panel_Title"
+	{
+		"#format"	"{1:s},{2:d},{3:d},{4:s}"
+		"chi"		"▸ 服务器：{1} \n▸ 玩家：{2}/{3}\n▸ 模式：{4}"
+	}
+	
+	"Panel_CmdFooter_Title"
+	{
+		"chi"		"▸ 常用指令："
+	}
+	
+	"Panel_PlayerName_Afk"
+	{
+		"#format"	"{1:s}"
+		"chi"		"{1} [AFK]"
+	}
+	
+	"Panel_Player_Ready"
+	{
+		"#format"	"{1:d},{2:s}"
+		"chi"		"☑ {2}"
+	}
+	
+	"Panel_Player_Unready"
+	{
+		"#format"	"{1:d},{2:s}"
+		"chi"		"☐ {2}"
+	}
+	
+	"Panel_Player_AutoStart"
+	{
+		"#format"	"{1:d},{2:s}"
+		"chi"		"{2}"
+	}
+	
+	"Panel_Player_TeamReady"
+	{
+		"#format"	"{1:d},{2:s}"
+		"chi"		"{2}"
+	}
+	
+	"Survivors"
+	{
+		"chi"		"生还者"
+	}
+	
+	"Infected"
+	{
+		"chi"		"感染者"
+	}
+	
+	"Casters"
+	{
+		"chi"		"解说"
+	}
+	
+	"Caster"
+	{
+		"chi"		"解说"
+	}
+	
+	"Spectators"
+	{
+		"chi"		"旁观"
+	}
+	
+	"Spectator"
+	{
+		"chi"		"旁观"
+	}
+	
+	"Panel_TeamRaw"
+	{
+		"#format"	"{1:d},{2:t}"
+		"chi"		"->{1}. {2}"
+	}
+	
+	"Panel_TeamReady"
+	{
+		"#format"	"{1:d},{2:t}"
+		"chi"		"->{1}. {2} ☑"
+	}
+	
+	"Panel_TeamUnready"
+	{
+		"#format"	"{1:d},{2:t}"
+		"chi"		"->{1}. {2} ☐"
+	}
+	
+	"Panel_Spectator_TooMany"
+	{
+		"#format"	"{1:d}"
+		"chi"		"**省略** ({1})"
+	}
+}
