@@ -205,7 +205,12 @@ bool CheckFullReady()
 	}
 	
 	if (readyUpMode == ReadyMode_TeamReady)
-		return survReadyCount && infReadyCount;
+	{
+		if (L4D_GetGameModeType() == GAMEMODE_VERSUS || L4D_GetGameModeType() == GAMEMODE_SCAVENGE)
+			return survReadyCount && infReadyCount;
+		else
+			return survReadyCount >= 1;
+	}
 	
 	int survLimit = survivor_limit.IntValue;
 	int zombLimit = z_max_player_zombies.IntValue;
@@ -220,9 +225,15 @@ bool CheckFullReady()
 		int survCount = GetTeamHumanCount(L4D2Team_Survivor);
 		int infCount = GetTeamHumanCount(L4D2Team_Infected);
 		
-		return (iBaseline <= survCount && survCount <= survReadyCount)
-			&& (iBaseline <= infCount && infCount <= infReadyCount);
+		if (L4D_GetGameModeType() == GAMEMODE_VERSUS || L4D_GetGameModeType() == GAMEMODE_SCAVENGE)
+			return (iBaseline <= survCount && survCount <= survReadyCount)
+				&& (iBaseline <= infCount && infCount <= infReadyCount);
+		else
+			return iBaseline <= survCount && survCount <= survReadyCount;
 	}
+	
+	if (L4D_GetGameModeType() == GAMEMODE_COOP || L4D_GetGameModeType() == GAMEMODE_SURVIVAL)
+		return survReadyCount >= survLimit;
 	
 	return (survReadyCount + infReadyCount) >= survLimit + zombLimit;
 }
