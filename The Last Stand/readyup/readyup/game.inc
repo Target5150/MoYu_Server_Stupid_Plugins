@@ -123,33 +123,26 @@ void SetSurvivalPropsInvunerable(bool IsInReady)
 	CreateTimer(1.0, Timer_SetSurvivalPropsInvunerable, IsInReady);
 }
 
-void SetSurvivalGascansInvunerable(bool IsInReady)
+void SetSurvivalGascansInvunerable(bool IsInReady, int Entity, const char[] EntName)
 {
-	char sName[64];
-	int iCount = GetEntityCount();
-	for (int iEntity = MaxClients + 1; iEntity < iCount; iEntity++)
+	if (!IsValidEntity(Entity))
+		return;
+
+	if (StrEqual(EntName, "weapon_gascan"))
 	{
-		if (!IsValidEntity(iEntity))
-			continue;
-
-		GetEntityClassname(iEntity, sName, sizeof(sName));
-
-		if (StrEqual(sName, "weapon_gascan"))
+		if (IsInReady)
 		{
-			if (IsInReady)
-			{
-				SDKHook(iEntity, SDKHook_OnTakeDamage, OnTakeDamage);
-				#if DEBUG
-				PrintToConsoleAll("SDKHook Enabled, Entity: %d", iEntity);
-				#endif
-			}
-			else
-			{
-				SDKUnhook(iEntity, SDKHook_OnTakeDamage, OnTakeDamage);
-				#if DEBUG
-				PrintToConsoleAll("SDKHook Disabled, Entity: %d", iEntity);
-				#endif
-			}
+			SDKHook(Entity, SDKHook_OnTakeDamage, OnTakeDamage);
+			#if DEBUG
+			PrintToConsoleAll("SDKHook Enabled, Entity: %d", Entity);
+			#endif
+		}
+		else
+		{
+			SDKUnhook(Entity, SDKHook_OnTakeDamage, OnTakeDamage);
+			#if DEBUG
+			PrintToConsoleAll("SDKHook Disabled, Entity: %d", Entity);
+			#endif
 		}
 	}
 }

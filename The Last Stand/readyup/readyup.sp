@@ -322,7 +322,7 @@ public void OnMapStart()
 public void OnEntityCreated(int iEntity, const char[] sClassName)
 {
 	if (L4D_IsSurvivalMode())
-		SetSurvivalGascansInvunerable(inReadyUp);
+		SetSurvivalGascansInvunerable(inReadyUp, iEntity, sClassName);
 	else
 		return;
 }
