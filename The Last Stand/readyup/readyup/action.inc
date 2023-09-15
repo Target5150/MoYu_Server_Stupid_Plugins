@@ -45,6 +45,12 @@ void InitiateReadyUp(bool real = true)
 	sv_infinite_primary_ammo.SetBool(true, .notify = false);
 	god.SetBool(true, .notify = false);
 	sb_stop.SetBool(true, .notify = false);
+
+	if (L4D_GetGameModeType() == GAMEMODE_SURVIVAL)
+	{
+		SetSurvivalButtonStatus(true);
+		SetSurvivalPropsInvunerable(true);
+	}
 	
 	if (real)
 	{
@@ -57,7 +63,7 @@ void InitiateReadyUp(bool real = true)
 			s_expireTime = l4d_ready_autostart_wait.IntValue;
 			CreateTimer(1.0, Timer_AutoStartHelper, _, TIMER_FLAG_NO_MAPCHANGE | TIMER_REPEAT);
 		}
-		
+
 		UTIL_WrapperForward(g_hInitiateForward);
 	}
 }
@@ -85,7 +91,13 @@ void InitiateLive(bool real = true)
 	{
 		ClearSurvivorProgress();
 		RestartCountdowns(true);
-		
+
+		if (L4D_GetGameModeType() == GAMEMODE_SURVIVAL)
+		{
+			SetSurvivalButtonStatus(false);
+			SetSurvivalPropsInvunerable(false);
+		}
+			
 		UTIL_WrapperForward(g_hLiveForward);
 	}
 	

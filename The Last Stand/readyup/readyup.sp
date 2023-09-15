@@ -3,13 +3,14 @@
 
 #include <sourcemod>
 #include <sdktools>
+#include <sdkhooks>
 #include <left4dhooks>
 #include <builtinvotes>
 #include <colors>
 #undef REQUIRE_PLUGIN
 #include <caster_system>
 
-#define PLUGIN_VERSION "10.3"
+#define PLUGIN_VERSION "10.4"
 
 public Plugin myinfo =
 {
@@ -317,6 +318,15 @@ public void OnMapStart()
 	HookEntityOutput("info_director", "OnGameplayStart", EntO_OnGameplayStart);
 }
 
+/* For survival check. After we drop a gascan (originally known as prop_physics), weapon_gascan will be created as the dropped gascan*/
+public void OnEntityCreated(int iEntity, const char[] sClassName)
+{
+	if (L4D_IsSurvivalMode())
+		SetSurvivalGascansInvunerable(inReadyUp);
+	else
+		return;
+}
+
 /* This ensures all cvars are reset if the map is changed during ready-up */
 public void OnMapEnd()
 {
@@ -384,7 +394,7 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 
 public Action L4D_OnFirstSurvivorLeftSafeArea(int client)
 {
-	if (inReadyUp)
+	if (inReadyUp && !L4D_IsSurvivalMode())
 	{
 		CreateTimer(0.1, Timer_RestartCountdowns, false, TIMER_FLAG_NO_MAPCHANGE);
 		ReturnPlayerToSaferoom(client, false);
