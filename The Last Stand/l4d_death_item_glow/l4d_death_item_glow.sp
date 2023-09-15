@@ -32,6 +32,7 @@ enum struct WeaponGlowInfo
 ArrayList g_WeaponGlowList;
 int g_GlowColor[3];
 float g_flGlowTIme;
+int g_iGlowRange;
 
 public void OnPluginStart()
 {
@@ -49,6 +50,14 @@ public void OnPluginStart()
 					FCVAR_NONE,
 					true, -1.0, false, 0.0,
 					CvarChg_GlowTime);
+	
+	CreateConVarHook("l4d_death_item_glow_range",
+					"1200",
+					"Glow range for items drooped by dead survivors.\n"
+				...	"Value: 0 = Unlimited range, others = Glow range.",
+					FCVAR_NONE,
+					true, 0.0, false, 0.0,
+					CvarChg_GlowRange);
 	
 	int size = L4D_IsEngineLeft4Dead() ? sizeof(WeaponGlowInfo) : 1;
 	g_WeaponGlowList = new ArrayList(size);
@@ -73,6 +82,11 @@ void CvarChg_GlowColor(ConVar convar, const char[] oldValue, const char[] newVal
 void CvarChg_GlowTime(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	g_flGlowTIme = convar.FloatValue;
+}
+
+void CvarChg_GlowRange(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	g_iGlowRange = convar.IntValue;
 }
 
 void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
@@ -112,7 +126,7 @@ void AddWeaponGlow(int weapon)
 	}
 	else
 	{
-		L4D2_SetEntityGlow(weapon, L4D2Glow_Constant, 0, 0, g_GlowColor, false);
+		L4D2_SetEntityGlow(weapon, L4D2Glow_Constant, g_iGlowRange, 0, g_GlowColor, false);
 	}
 }
 
@@ -121,13 +135,15 @@ void RemoveWeaponGlow(int weapon)
 	int index = g_WeaponGlowList.FindValue(EntKey(weapon));
 	if (index != -1)
 	{
-		L4D2_RemoveEntityGlow(weapon);
-		
 		if (L4D_IsEngineLeft4Dead())
 		{
 			int glow = EntRefToEntIndex(g_WeaponGlowList.Get(index, WeaponGlowInfo::glowRef));
 			if (IsValidEdict(glow))
 				RemoveEntity(glow);
+		}
+		else
+		{
+			L4D2_RemoveEntityGlow(weapon);
 		}
 		
 		g_WeaponGlowList.Erase(index);
@@ -185,7 +201,7 @@ int CreateGlowEntity(int entity)
 	// Set outline glow color
 	SetEntProp(glow, Prop_Send, "m_CollisionGroup", 0);
 	SetEntProp(glow, Prop_Send, "m_nSolidType", 0);
-	SetEntProp(glow, Prop_Send, "m_nGlowRange", 0);
+	SetEntProp(glow, Prop_Send, "m_nGlowRange", g_iGlowRange);
 	SetEntProp(glow, Prop_Send, "m_nGlowRangeMin", 0);
 	SetEntProp(glow, Prop_Send, "m_iGlowType", L4D2Glow_Constant);
 	SetEntProp(glow, Prop_Send, "m_glowColorOverride", g_GlowColor[0] | g_GlowColor[1] << 8 | g_GlowColor[2] << 16);
