@@ -1,0 +1,49 @@
+"Games"
+{
+	"left4dead2"
+	{
+		"Offsets"
+		{
+			"Infected::m_body"
+			{
+				"linux"			"7328"
+				"windows"		"7332"
+			}
+			
+			"ZombieBotBody::m_desiredPosture"
+			{
+				"linux"			"64"
+				"windows"		"64"
+			}
+			
+			"ZombieBotBody::m_posture"
+			{
+				"linux"			"68"
+				"windows"		"68"
+			}
+			
+			"ZombieBotBody::m_bPostureChanging"
+			{
+				"linux"			"72"
+				"windows"		"72"
+			}
+			
+			"ZombieBotBody::m_arousal"
+			{
+				"linux"			"76"
+				"windows"		"76"
+			}
+		}
+		
+		"Signatures"
+		{
+			"ZombieBotBody::SetDesiredPosture"
+			{
+				"library"		"server"
+				"linux"			"@_ZN13ZombieBotBody17SetDesiredPostureEN5IBody11PostureTypeE"
+				"windows"		"\x55\x8B\x2A\x83\x2A\x2A\x2A\x8B\x2A\x2A\x2A\x2A\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x8B\x2A\x8B\x2A\x83\x2A\x2A\x74"
+								/* 55 8B ? 83 ? ? ? 8B ? ? ? ? 8B ? E8 ? ? ? ? 8B ? 8B ? 83 ? ? 74 */
+			}
+		}
+	}
+}
