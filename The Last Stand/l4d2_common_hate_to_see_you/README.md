@@ -27,7 +27,6 @@ z_never_fight_on_contact "1"
 
 ### Installation
 1. Put the **l4d2_common_hate_to_see_you.smx** to your _plugins_ folder.
-2. Put the **l4d2_common_hate_to_see_you.txt** to your _gamedata_ folder.
 
 <hr>
 
