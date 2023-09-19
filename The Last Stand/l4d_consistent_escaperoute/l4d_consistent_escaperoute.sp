@@ -5,7 +5,7 @@
 #include <sdktools>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "1.1.1"
+#define PLUGIN_VERSION "1.1.2"
 
 public Plugin myinfo =
 {
@@ -16,8 +16,26 @@ public Plugin myinfo =
 	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 };
 
-int g_iOffs_m_nMainPathAreaCount, g_iOffs_m_id, g_iOffs_m_flowToGoal, g_iOffs_m_flMapMaxFlowDistance;
-Handle g_hSDKCall_ResetPath, g_hSDKCall_AddArea, g_hSDKCall_FinishPath, g_hSDKCall_GetNavAreaByID;
+methodmap GameDataWrapper < GameData {
+	public GameDataWrapper(const char[] file) {
+		GameData gd = new GameData(file);
+		if (!gd) SetFailState("Missing gamedata \"%s\"", file);
+		return view_as<GameDataWrapper>(gd);
+	}
+	public Address GetAddressOrFail(const char[] key) {
+		Address addr = this.GetAddress(key);
+		if (addr == Address_Null) SetFailState("Missing address \"%s\"", key);
+		return addr;
+	}
+	public int GetOffsetOrFail(const char[] key) {
+		int offset = this.GetOffset(key);
+		if (offset == -1) SetFailState("Missing offset \"%s\"", key);
+		return offset;
+	}
+}
+
+int g_iOffs_m_nMainPathAreaCount, g_iOffs_m_flowToGoal, g_iOffs_m_flMapMaxFlowDistance;
+Handle g_hSDKCall_ResetPath, g_hSDKCall_AddArea, g_hSDKCall_FinishPath;
 
 methodmap CEscapeRoute
 {
@@ -80,9 +98,7 @@ methodmap TerrorNavArea
 	}
 	
 	public int GetID() {
-		return LoadFromAddress(view_as<Address>(this)
-							+ view_as<Address>(g_iOffs_m_id),
-							NumberType_Int32);
+		return L4D_GetNavAreaID(view_as<Address>(this));
 	}
 	
 	public void RemoveSpawnAttributes(int flag) {
@@ -104,7 +120,7 @@ methodmap TerrorNavArea
 methodmap TerrorNavMesh
 {
 	public TerrorNavArea GetNavAreaByID(int id) {
-		return SDKCall(g_hSDKCall_GetNavAreaByID, L4D_GetPointer(POINTER_NAVMESH), id);
+		return view_as<TerrorNavArea>(L4D_GetNavAreaByID(id));
 	}
 	
 	property float m_flMapMaxFlowDistance {
@@ -117,8 +133,6 @@ CEscapeRoute g_spawnPath;
 Address g_pSpawnPath;
 
 NavAreaVector TheNavAreas;
-Address g_pTheNavAreas;
-
 TerrorNavMesh TheNavMesh;
 
 ArrayList g_aSpawnPathAreas;
@@ -137,43 +151,23 @@ float g_flMapMaxFlowDistance;
 
 public void OnPluginStart()
 {
-	GameData conf = new GameData("l4d_consistent_escaperoute");
-	if (conf == null)
-		SetFailState("Missing gamedata \"l4d_consistent_escaperoute\"");
+	GameDataWrapper gd = new GameDataWrapper("l4d_consistent_escaperoute");
 	
-	g_pSpawnPath = conf.GetAddress("TheEscapeRoute");
-	if (g_pSpawnPath == Address_Null)
-		SetFailState("Missing address \"TheEscapeRoute\"");
+	g_pSpawnPath = gd.GetAddressOrFail("TheEscapeRoute");
 	
-	g_pTheNavAreas = conf.GetAddress("TheNavAreas");
-	if (g_pTheNavAreas == Address_Null)
-		SetFailState("Missing address \"TheNavAreas\"");
-	
-	g_iOffs_m_nMainPathAreaCount = conf.GetOffset("CEscapeRoute::m_nMainPathAreaCount");
-	if (g_iOffs_m_nMainPathAreaCount == -1)
-		SetFailState("Missing offset \"CEscapeRoute::m_nMainPathAreaCount\"");
-	
-	g_iOffs_m_id = conf.GetOffset("CNavArea::m_id");
-	if (g_iOffs_m_id == -1)
-		SetFailState("Missing offset \"CNavArea::m_id\"");
-	
-	g_iOffs_m_flowToGoal = conf.GetOffset("TerrorNavArea::m_flowToGoal");
-	if (g_iOffs_m_flowToGoal == -1)
-		SetFailState("Missing offset \"TerrorNavArea::m_flowToGoal\"");
-	
-	g_iOffs_m_flMapMaxFlowDistance = conf.GetOffset("TerrorNavMesh::m_flMapMaxFlowDistance");
-	if (g_iOffs_m_flMapMaxFlowDistance == -1)
-		SetFailState("Missing offset \"TerrorNavMesh::m_flMapMaxFlowDistance\"");
+	g_iOffs_m_nMainPathAreaCount = gd.GetOffsetOrFail("CEscapeRoute::m_nMainPathAreaCount");
+	g_iOffs_m_flowToGoal = gd.GetOffsetOrFail("TerrorNavArea::m_flowToGoal");
+	g_iOffs_m_flMapMaxFlowDistance = gd.GetOffsetOrFail("TerrorNavMesh::m_flMapMaxFlowDistance");
 	
 	StartPrepSDKCall(SDKCall_Raw);
-	if ( PrepSDKCall_SetFromConf(conf, SDKConf_Signature, "CEscapeRoute::ResetPath") == false )
+	if ( PrepSDKCall_SetFromConf(gd, SDKConf_Signature, "CEscapeRoute::ResetPath") == false )
 		SetFailState("Missing signature \"CEscapeRoute::ResetPath\"");
 	g_hSDKCall_ResetPath = EndPrepSDKCall();
 	if (g_hSDKCall_ResetPath == null)
 		SetFailState("Failed to create SDKCall \"CEscapeRoute::ResetPath\"");
 	
 	StartPrepSDKCall(SDKCall_Raw);
-	if ( PrepSDKCall_SetFromConf(conf, SDKConf_Signature, "CEscapeRoute::AddArea") == false )
+	if ( PrepSDKCall_SetFromConf(gd, SDKConf_Signature, "CEscapeRoute::AddArea") == false )
 		SetFailState("Missing signature \"CEscapeRoute::AddArea\"");
 	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // TerrorNavArea
 	g_hSDKCall_AddArea = EndPrepSDKCall();
@@ -181,22 +175,13 @@ public void OnPluginStart()
 		SetFailState("Failed to create SDKCall \"CEscapeRoute::AddArea\"");
 	
 	StartPrepSDKCall(SDKCall_Raw);
-	if ( PrepSDKCall_SetFromConf(conf, SDKConf_Signature, "CEscapeRoute::FinishPath") == false )
+	if ( PrepSDKCall_SetFromConf(gd, SDKConf_Signature, "CEscapeRoute::FinishPath") == false )
 		SetFailState("Missing signature \"CEscapeRoute::FinishPath\"");
 	g_hSDKCall_FinishPath = EndPrepSDKCall();
 	if (g_hSDKCall_FinishPath == null)
 		SetFailState("Failed to create SDKCall \"CEscapeRoute::FinishPath\"");
 	
-	StartPrepSDKCall(SDKCall_Raw);
-	if ( PrepSDKCall_SetFromConf(conf, SDKConf_Signature, "CNavMesh::GetNavAreaByID") == false )
-		SetFailState("Missing signature \"CNavMesh::GetNavAreaByID\"");
-	PrepSDKCall_AddParameter(SDKType_PlainOldData, SDKPass_Plain); // id
-	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain); // TerrorNavArea
-	g_hSDKCall_GetNavAreaByID = EndPrepSDKCall();
-	if (g_hSDKCall_GetNavAreaByID == null)
-		SetFailState("Failed to create SDKCall \"CNavMesh::GetNavAreaByID\"");
-	
-	delete conf;
+	delete gd;
 	
 	g_aSpawnPathAreas = new ArrayList();
 	g_aAreaFlows = new ArrayList(NUM_OF_FLOW_INFO);
@@ -206,11 +191,16 @@ public void OnPluginStart()
 
 void Event_RoundStartPostNav(Event event, const char[] name, bool dontBroadcast)
 {
+	CreateTimer(0.1, Timer_RoundStartPostNav, _, TIMER_FLAG_NO_MAPCHANGE);
+}
+
+Action Timer_RoundStartPostNav(Handle timer)
+{
 	if (!L4D_IsVersusMode())
-		return;
+		return Plugin_Stop;
 	
 	g_spawnPath = LoadFromAddress(g_pSpawnPath, NumberType_Int32);
-	TheNavAreas = NavAreaVector(g_pTheNavAreas);
+	TheNavAreas = NavAreaVector(L4D_GetPointer(POINTER_THENAVAREAS));
 	
 	if (InSecondHalfOfRound())
 	{
@@ -275,6 +265,8 @@ void Event_RoundStartPostNav(Event event, const char[] name, bool dontBroadcast)
 		
 		PrintToServer("[l4d_consistent_escaperoute] Cached escape route of first half (%i / %i nav) (%.5f)", g_aSpawnPathAreas.Length, TheNavAreas.Size(), g_flMapMaxFlowDistance);
 	}
+	
+	return Plugin_Stop;
 }
 
 stock bool InSecondHalfOfRound()
