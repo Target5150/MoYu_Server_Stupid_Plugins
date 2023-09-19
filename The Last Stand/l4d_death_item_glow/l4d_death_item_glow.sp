@@ -59,7 +59,7 @@ public void OnPluginStart()
 					true, 0.0, false, 0.0,
 					CvarChg_GlowRange);
 	
-	int size = L4D_IsEngineLeft4Dead() ? sizeof(WeaponGlowInfo) : 1;
+	int size = L4D_IsEngineLeft4Dead1() ? sizeof(WeaponGlowInfo) : 1;
 	g_WeaponGlowList = new ArrayList(size);
 	
 	HookEvent("round_start", Event_RoundStart);
@@ -119,7 +119,7 @@ void AddWeaponGlow(int weapon)
 {
 	int index = g_WeaponGlowList.Push(EntKey(weapon));
 	
-	if (L4D_IsEngineLeft4Dead())
+	if (L4D_IsEngineLeft4Dead1())
 	{
 		int glow = CreateGlowEntity(weapon);
 		g_WeaponGlowList.Set(index, EntIndexToEntRef(glow), WeaponGlowInfo::glowRef);
@@ -135,7 +135,7 @@ void RemoveWeaponGlow(int weapon)
 	int index = g_WeaponGlowList.FindValue(EntKey(weapon));
 	if (index != -1)
 	{
-		if (L4D_IsEngineLeft4Dead())
+		if (L4D_IsEngineLeft4Dead1())
 		{
 			int glow = EntRefToEntIndex(g_WeaponGlowList.Get(index, WeaponGlowInfo::glowRef));
 			if (IsValidEdict(glow))
