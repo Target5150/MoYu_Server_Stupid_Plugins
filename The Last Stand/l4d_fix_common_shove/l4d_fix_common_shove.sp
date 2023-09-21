@@ -7,7 +7,7 @@
 #include <left4dhooks_anim>
 #include <actions>
 
-#define PLUGIN_VERSION "1.2"
+#define PLUGIN_VERSION "1.2.1"
 
 public Plugin myinfo = 
 {
@@ -283,19 +283,33 @@ bool ForceActivityInterruptible(int infected)
 {
 	ZombieBotBody body = Infected__GetBodyInterface(infected);
 	
-	switch (body.m_activity) // perhaps unnecessary
+	if (L4D_IsEngineLeft4Dead1()) // perhaps unnecessary
 	{
-		case L4D2_ACT_TERROR_JUMP_LANDING,
-			L4D2_ACT_TERROR_JUMP_LANDING_HARD,
-			L4D2_ACT_TERROR_JUMP_LANDING_NEUTRAL,
-			L4D2_ACT_TERROR_JUMP_LANDING_HARD_NEUTRAL:
+		switch (body.m_activity)
 		{
-			body.m_activityType &= ~ACTIVITY_UNINTERRUPTIBLE;
-			return true;
+			case L4D1_ACT_TERROR_JUMP_LANDING,
+				L4D1_ACT_TERROR_JUMP_LANDING_HARD,
+				L4D1_ACT_TERROR_JUMP_LANDING_NEUTRAL,
+				L4D1_ACT_TERROR_JUMP_LANDING_HARD_NEUTRAL: { }
+			default: { return false; }
+		}
+	}
+	else
+	{
+		switch (body.m_activity)
+		{
+			case L4D2_ACT_TERROR_JUMP_LANDING,
+				L4D2_ACT_TERROR_JUMP_LANDING_HARD,
+				L4D2_ACT_TERROR_JUMP_LANDING_NEUTRAL,
+				L4D2_ACT_TERROR_JUMP_LANDING_HARD_NEUTRAL: { }
+			default: { return false; }
 		}
 	}
 	
-	return false;
+	body.m_activityType &= ~ACTIVITY_UNINTERRUPTIBLE;
+	return true;
+	
+	
 }
 
 ZombieBotBody Infected__GetBodyInterface(int infected)
