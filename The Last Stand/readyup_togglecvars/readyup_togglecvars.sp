@@ -5,7 +5,7 @@
 #undef REQUIRE_PLUGIN
 #include <readyup>
 
-#define PLUGIN_VERSION "1.2"
+#define PLUGIN_VERSION "1.3"
 
 public Plugin myinfo = 
 {
@@ -43,13 +43,16 @@ Action Cmd_AddToggleCvars(int args)
 	
 	char sCvar[128];
 	GetCmdArg(1, sCvar, sizeof(sCvar));
+	StripQuotes(sCvar);
 	
 	DataPack dp = new DataPack();
 	
 	char sOn[64], sOff[64];
 	GetCmdArg(2, sOn, sizeof(sOn));
+	StripQuotes(sOn);
 	dp.WriteString(sOn);
 	GetCmdArg(3, sOff, sizeof(sOff));
+	StripQuotes(sOff);
 	dp.WriteString(sOff);
 	
 	g_smToggleCvars.SetValue(sCvar, dp);
@@ -68,6 +71,7 @@ Action Cmd_RemoveToggleCvars(int args)
 	
 	char sCvar[128];
 	GetCmdArg(1, sCvar, sizeof(sCvar));
+	StripQuotes(sCvar);
 	RemoveToggleCvar(sCvar);
 	
 	return Plugin_Handled;
