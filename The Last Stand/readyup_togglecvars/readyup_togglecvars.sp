@@ -5,7 +5,7 @@
 #undef REQUIRE_PLUGIN
 #include <readyup>
 
-#define PLUGIN_VERSION "1.3"
+#define PLUGIN_VERSION "1.4"
 
 public Plugin myinfo = 
 {
@@ -16,6 +16,11 @@ public Plugin myinfo =
 	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 };
 
+enum struct CvarValue
+{
+	char on[128];
+	char off[128];
+}
 StringMap g_smToggleCvars;
 
 public void OnPluginStart()
@@ -30,7 +35,6 @@ public void OnPluginStart()
 public void OnPluginEnd()
 {
 	OnRoundIsLive();
-	Cmd_ClearToggleCvars(0);
 }
 
 Action Cmd_AddToggleCvars(int args)
@@ -45,18 +49,14 @@ Action Cmd_AddToggleCvars(int args)
 	GetCmdArg(1, sCvar, sizeof(sCvar));
 	StripQuotes(sCvar);
 	
-	DataPack dp = new DataPack();
+	CvarValue v;
+	GetCmdArg(2, v.on, sizeof(v.on));
+	GetCmdArg(3, v.off, sizeof(v.off));
+	StripQuotes(v.on);
+	StripQuotes(v.off);
 	
-	char sOn[64], sOff[64];
-	GetCmdArg(2, sOn, sizeof(sOn));
-	StripQuotes(sOn);
-	dp.WriteString(sOn);
-	GetCmdArg(3, sOff, sizeof(sOff));
-	StripQuotes(sOff);
-	dp.WriteString(sOff);
-	
-	g_smToggleCvars.SetValue(sCvar, dp);
-	PrintToServer("[ReadyUp ToggleCvars] Added: %s <%s|%s>", sCvar, sOn, sOff);
+	g_smToggleCvars.SetArray(sCvar, v, sizeof(v));
+	PrintToServer("[ReadyUp ToggleCvars] Added: %s <%s|%s>", sCvar, v.on, v.off);
 	
 	return Plugin_Handled;
 }
@@ -96,11 +96,8 @@ Action Cmd_ClearToggleCvars(int args)
 
 void RemoveToggleCvar(const char[] sCvar)
 {
-	DataPack dp;
-	if (g_smToggleCvars.GetValue(sCvar, dp))
+	if (g_smToggleCvars.Remove(sCvar))
 	{
-		delete dp;
-		g_smToggleCvars.Remove(sCvar);
 		PrintToServer("[ReadyUp ToggleCvars] Removed: %s", sCvar);
 	}
 }
@@ -109,19 +106,18 @@ public void OnReadyUpInitiate()
 {
 	StringMapSnapshot ss = g_smToggleCvars.Snapshot();
 	
-	char buffer[128];
+	char sCvar[128];
+	CvarValue v;
+	ConVar cvar;
 	for (int i = 0; i < ss.Length; ++i)
 	{
-		ss.GetKey(i, buffer, sizeof(buffer));
-		for (ConVar cvar = FindConVar(buffer); cvar != null;)
+		ss.GetKey(i, sCvar, sizeof(sCvar));
+		if ((cvar = FindConVar(sCvar)) != null)
 		{
-			DataPack dp;
-			if (g_smToggleCvars.GetValue(buffer, dp))
+			if (g_smToggleCvars.GetArray(sCvar, v, sizeof(v)))
 			{
-				dp.ReadString(buffer, sizeof(buffer));
-				cvar.SetString(buffer);
+				cvar.SetString(v.on);
 			}
-			break;
 		}
 	}
 	
@@ -132,20 +128,18 @@ public void OnRoundIsLive()
 {
 	StringMapSnapshot ss = g_smToggleCvars.Snapshot();
 	
-	char buffer[128];
+	char sCvar[128];
+	CvarValue v;
+	ConVar cvar;
 	for (int i = 0; i < ss.Length; ++i)
 	{
-		ss.GetKey(i, buffer, sizeof(buffer));
-		for (ConVar cvar = FindConVar(buffer); cvar != null;)
+		ss.GetKey(i, sCvar, sizeof(sCvar));
+		if ((cvar = FindConVar(sCvar)) != null)
 		{
-			DataPack dp;
-			if (g_smToggleCvars.GetValue(buffer, dp))
+			if (g_smToggleCvars.GetArray(sCvar, v, sizeof(v)))
 			{
-				dp.ReadString(buffer, sizeof(buffer));
-				dp.ReadString(buffer, sizeof(buffer));
-				cvar.SetString(buffer);
+				cvar.SetString(v.off);
 			}
-			break;
 		}
 	}
 	
