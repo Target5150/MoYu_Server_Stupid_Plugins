@@ -1,0 +1,167 @@
+"Games"
+{
+	"left4dead"
+	{
+		"MemPatches"
+		{
+			"CTerrorPlayer::OnFallDamage__playerzombie_ignore" // empty patch
+			{
+				"signature"		"CTerrorPlayer::Event_Killed"
+				"linux"
+				{
+					"offset"	"0"
+					"verify"	""
+					"patch"		""
+				}
+				"windows"
+				{
+					"offset"	"0"
+					"verify"	""
+					"patch"		""
+				}
+			}
+
+			"CTerrorPlayer::Event_Killed__playerzombie_nop"
+			{
+				"signature"		"CTerrorPlayer::Event_Killed"
+				"linux"
+				{
+					"offset"	"1520h"
+					"verify"	"\xE8\x2A\x2A\x2A\x2A\x84\x2A\x74"
+					"patch"		"\x90\x90\x90\x90\x90\x90\x90"
+				}
+				"windows"
+				{
+					"offset"	"136Eh"
+					"verify"	"\xE8\x2A\x2A\x2A\x2A\x84\x2A\x0F\x84"
+					"patch"		"\x90\x90\x90\x90\x90\x90\x90"
+				}
+			}
+		}
+
+		"Signatures"
+		{
+			/**
+			 * Big thanks to @Psykotikism
+			 *
+			 * CTerrorPlayer::Event_Killed(CTakeDamageInfo const&)
+			 *
+			 * How to find on Windows:
+			 * 1a. Search for any of the following strings (they can each only be found in this function):
+			 * - "blood_bleedout"
+			 * - "SubjectIsA:%s,Distance:%f"
+			 * - "KilledZombie"
+			 * - "DeadCharacter:"
+			 * - ",SubjectTeam:Survivor"
+			 * - "SurvivorDied"
+			 * - "infected_explosive_barrel_kill"
+			 * - "boomer_exploded"
+			 * - "splashedbile"
+			 *
+			 * 1b. Find the function's offsets with asherkin's VTable dump.
+			 * 2b. In IDA Pro, go to the ".rdata" section of the Windows binary.
+			 * 3b. Search for "CTerrorPlayer::`vftable'" to jump to the "CTerrorPlayer" vtable.
+			 * 4b. Compare your dump's offsets with asherkin's dump's offsets to find the target function.
+			 * 5b. Look for the target function in the Windows binary.
+			 **/
+			"CTerrorPlayer::Event_Killed"
+			{
+				"library"	"server"
+				"linux"		"@_ZN13CTerrorPlayer12Event_KilledERK15CTakeDamageInfo"
+				"mac"		"@_ZN13CTerrorPlayer12Event_KilledERK15CTakeDamageInfo"
+				"windows"	"\x2A\x2A\x2A\x2A\x2A\x2A\x53\x55\x56\x8B\x2A\x8B\x2A\x8B\x90\x2A\x2A\x2A\x2A\x57\xFF\x2A\x88"
+						/* ? ? ? ? ? ? 53 55 56 8B ? 8B ? 8B 90 ? ? ? ? 57 FF ? 88 */
+			}
+		}
+	}
+	
+	"left4dead2"
+	{
+		"MemPatches"
+		{
+			"CTerrorPlayer::OnFallDamage__playerzombie_ignore"
+			{
+				"signature"		"CTerrorPlayer::OnFallDamage"
+				"linux"
+				{
+					"offset"	"193h"
+					"verify"	"\x0F\x85"
+					"patch"		"\x90\x90\x90\x90\x90\x90"
+				}
+				"windows"
+				{
+					"offset"	"89h"
+					"verify"	"\x0F\x85"
+					"patch"		"\x90\x90\x90\x90\x90\x90"
+				}
+			}
+
+			"CTerrorPlayer::Event_Killed__playerzombie_nop"
+			{
+				"signature"		"CTerrorPlayer::Event_Killed"
+				"linux"
+				{
+					"offset"	"17F0h"
+					"verify"	"\xE8\x2A\x2A\x2A\x2A\x84\x2A\x74"
+					"patch"		"\x90\x90\x90\x90\x90\x90\x90"
+				}
+				"windows"
+				{
+					"offset"	"1C49h"
+					"verify"	"\xE8\x2A\x2A\x2A\x2A\x84\x2A\x0F\x84"
+					"patch"		"\x90\x90\x90\x90\x90\x90\x90"
+				}
+			}
+		}
+
+		"Signatures"
+		{
+			// Search string "%s landed"
+			"CTerrorPlayer::OnFallDamage"
+			{
+				"library"	"server"
+				"linux"			"@_ZN13CTerrorPlayer12OnFallDamageEf"
+				"windows"		"\x55\x8B\x2A\x2A\x2A\x2A\x2A\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x2A\x2A\x89\x2A\x2A\x2A\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x83\x2A\x03\x0F\x85\x2A\x2A\x2A\x2A\x8B\x2A\xE8"
+								/* 55 8B ? ? ? ? ? ? ? A1 ? ? ? ? ? ? 89 ? ? ? 8B ? E8 ? ? ? ? 83 ? 03 0F 85 ? ? ? ? 8B ? E8 */
+			}
+
+			/**
+			 * Big thanks to @Psykotikism
+			 *
+			 * CTerrorPlayer::Event_Killed(CTakeDamageInfo const&)
+			 *
+			 * How to find on Windows:
+			 * 1a. Search for any of the following strings (they can each only be found in this function):
+			 * - "charger_carry_kill"
+			 * - "blood_bleedout"
+			 * - "spitter_killed"
+			 * - "SubjectIsA:%s,Distance:%f"
+			 * - "DeadCharacter:"
+			 * - ",SubjectTeam:Survivor"
+			 * - "SurvivorDied"
+			 * - "pounce_attempt_stopped"
+			 * - "infected_explosive_barrel_kill"
+			 * - "mulletTongue"
+			 * - "charger_killed"
+			 * - "charging"
+			 * - "jockey_killed"
+			 * - "boomer_exploded"
+			 * - "splashedbile"
+			 *
+			 * 1b. Find the function's offsets with asherkin's VTable dump.
+			 * 2b. In IDA Pro, go to the ".rdata" section of the Windows binary.
+			 * 3b. Search for "CTerrorPlayer::`vftable'" to jump to the "CTerrorPlayer" vtable.
+			 * 4b. Compare your dump's offsets with asherkin's dump's offsets to find the target function.
+			 * 5b. Look for the target function in the Windows binary.
+			 **/
+			"CTerrorPlayer::Event_Killed"
+			{
+				"library"	"server"
+				"linux"		"@_ZN13CTerrorPlayer12Event_KilledERK15CTakeDamageInfo"
+				"mac"		"@_ZN13CTerrorPlayer12Event_KilledERK15CTakeDamageInfo"
+				"windows"	"\x2A\x2A\x2A\x2A\x2A\x2A\x83\x2A\x2A\x83\x2A\x2A\x55\x8B\x2A\x2A\x89\x2A\x2A\x2A\x8B\x2A\x81\xEC\x2A\x2A\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x33\x2A\x89\x2A\x2A\x8B\x2A\x2A\x56\x8B\x2A\x8B\x2A\x89\x85\x2A\x2A\x2A\x2A\x8B\x82\x2A\x2A\x2A\x2A\x57\xFF\x2A\x8B\x2A\x8B"
+						/* ? ? ? ? ? ? 83 ? ? 83 ? ? 55 8B ? ? 89 ? ? ? 8B ? 81 EC ? ? ? ? A1 ? ? ? ? 33 ? 89 ? ? 8B ? ? 56 8B ? 8B ? 89 85 ? ? ? ? 8B 82 ? ? ? ? 57 FF ? 8B ? 8B */
+			}
+		}
+	}
+}
