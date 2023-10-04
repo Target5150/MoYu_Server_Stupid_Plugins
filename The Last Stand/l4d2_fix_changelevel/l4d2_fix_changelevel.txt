@@ -1,0 +1,87 @@
+"Games"
+{
+	"left4dead2"
+	{
+		"Functions"
+		{
+			"CVEngineServer::ChangeLevel"
+			{
+				"signature"		"CVEngineServer::ChangeLevel"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"ignore"
+				"arguments"
+				{
+					"map"
+					{
+						"type"	"charptr"
+					}
+					"reason"
+					{
+						"type"	"charptr"
+					}
+				}
+			}
+		}
+
+		"Offsets"
+		{
+			"CDirector::m_mapDurationTimer"
+			{
+				"linux"			"936"
+				"windows"		"936"
+			}
+
+			"CDirector::m_flTotalMissionElaspedTime"
+			{
+				"linux"			"944"
+				"windows"		"944"
+			}
+		}
+
+		"Addresses"
+		{
+			"CDirector::m_isTransitioning"
+			{
+				"signature"	"CDirector::OnBeginTransition"
+				"linux"
+				{
+					"read"		"14"
+				}
+				"windows"
+				{
+					"read"		"26"
+				}
+			}
+		}
+
+		"Signatures"
+		{
+			"CDirector::OnBeginTransition"
+			{
+				"library"		"server"
+				"linux"			"@_ZN9CDirector17OnBeginTransitionEb"
+				"windows"		"\x55\x8B\x2A\x2A\x2A\x2A\x80\x2A\x2A\x2A\x53\x56\x8B\x2A\x0F\x2A\x2A\x57\x8D"
+								/* 55 8B ? ? ? ? 80 ? ? ? 53 56 8B ? 0F ? ? 57 8D */
+			}
+
+			// Search string "Preparing player entities for changelevel"
+			"CTerrorGameRules::OnBeginChangeLevel"
+			{
+				"library"		"server"
+				"linux"			"@_ZN16CTerrorGameRules18OnBeginChangeLevelEPKc"
+				"windows"		"\x55\x8B\x2A\x56\x8B\x2A\x2A\x2A\x2A\x2A\x8B\x2A\x8B\x2A\x2A\x8B\x2A\xFF"
+								/* 55 8B ? 56 8B ? ? ? ? ? 8B ? 8B ? ? 8B ? FF */
+			}
+
+			// Search string "VEngineServer::Changelevel with NULL s1"
+			"CVEngineServer::ChangeLevel"
+			{
+				"library"		"engine"
+				"linux"			"@_ZN14CVEngineServer11ChangeLevelEPKcS1_"
+				"windows"		"\x55\x8B\x2A\x2A\x2A\x2A\x2A\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x2A\x2A\x89\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x56\x8B\x2A\x2A\x57\x8B"
+								/* 55 8B ? ? ? ? ? ? ? A1 ? ? ? ? ? ? 89 ? ? A1 ? ? ? ? 56 8B ? ? 57 8B */
+			}
+		}
+	}
+}
