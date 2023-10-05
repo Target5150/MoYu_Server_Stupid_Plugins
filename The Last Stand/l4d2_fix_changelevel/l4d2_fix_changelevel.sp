@@ -6,7 +6,7 @@
 #include <dhooks>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo =
 {
@@ -76,6 +76,7 @@ methodmap GameDataWrapper < GameData {
 	}
 }
 
+Handle g_CallClearTeamScores;
 Handle g_CallOnBeginTransition;
 Handle g_CallOnBeginChangeLevel;
 int g_iOffs_m_mapDurationTimer;
@@ -83,6 +84,9 @@ int g_iOffs_m_flTotalMissionElaspedTime;
 Address gp_m_isTransitioning;
 
 methodmap CDirector {
+	public void ClearTeamScores(bool newCampaign) {
+		SDKCall(g_CallClearTeamScores, this, newCampaign);
+	}
 	public void OnBeginTransition(bool bTransitionToNextMap) {
 		SDKCall(g_CallOnBeginTransition, this, bTransitionToNextMap);
 	}
@@ -105,12 +109,17 @@ public void OnPluginStart()
 	SDKCallParamsWrapper params[] = {
 		{SDKType_Bool, SDKPass_Plain}
 	};
-	g_CallOnBeginTransition = gd.CreateSDKCallOrFail(SDKCall_Raw, SDKConf_Signature, "CDirector::OnBeginTransition", params, sizeof(params), false);
+	g_CallClearTeamScores = gd.CreateSDKCallOrFail(SDKCall_Raw, SDKConf_Signature, "CDirector::ClearTeamScores", params, sizeof(params), false);
 	
 	SDKCallParamsWrapper params2[] = {
+		{SDKType_Bool, SDKPass_Plain}
+	};
+	g_CallOnBeginTransition = gd.CreateSDKCallOrFail(SDKCall_Raw, SDKConf_Signature, "CDirector::OnBeginTransition", params2, sizeof(params2), false);
+	
+	SDKCallParamsWrapper params3[] = {
 		{SDKType_String, SDKPass_Pointer}
 	};
-	g_CallOnBeginChangeLevel = gd.CreateSDKCallOrFail(SDKCall_GameRules, SDKConf_Signature, "CTerrorGameRules::OnBeginChangeLevel", params2, sizeof(params2), false);
+	g_CallOnBeginChangeLevel = gd.CreateSDKCallOrFail(SDKCall_GameRules, SDKConf_Signature, "CTerrorGameRules::OnBeginChangeLevel", params3, sizeof(params3), false);
 	
 	g_iOffs_m_mapDurationTimer = gd.GetOffsetOrFail("CDirector::m_mapDurationTimer");
 	g_iOffs_m_flTotalMissionElaspedTime = gd.GetOffsetOrFail("CDirector::m_flTotalMissionElaspedTime");
@@ -133,13 +142,15 @@ MRESReturn DTR__CVEngineServer__ChangeLevel(DHookParam hParams)
 		return MRES_Ignored;
 	}
 	
-	char map[64], reason[64];
+	char map[64]/*, reason[64]*/;
 	hParams.GetString(1, map, sizeof(map));
-	if (!hParams.IsNull(2))
-		hParams.GetString(2, reason, sizeof(reason));
+	// if (!hParams.IsNull(2))
+	//	hParams.GetString(2, reason, sizeof(reason));
 	
 	if (TheDirector.IsTransitioning())
 		return MRES_Ignored;
+	
+	TheDirector.ClearTeamScores(true);
 	
 	ITimer_Start(TheDirector.m_mapDurationTimer);
 	TheDirector.m_flTotalMissionElaspedTime = 0.0;
