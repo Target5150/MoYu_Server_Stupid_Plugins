@@ -1,0 +1,47 @@
+"Games"
+{
+	"#default"
+	{
+		"Functions"
+		{
+			"CClaw::GetPlayerDamage"
+			{
+				"offset"		"CClaw::GetPlayerDamage"
+				"hooktype"		"entity"
+				"return"		"float"
+				"this"			"entity"
+				"arguments"
+				{
+					"a1"
+					{
+						"type"	"cbaseentity"
+					}
+				}
+			}
+		}
+	}
+
+	"left4dead"
+	{
+		"Offsets"
+		{
+			"CClaw::GetPlayerDamage"
+			{
+				"linux"			"407"
+				"windows"		"406"
+			}
+		}
+	}
+
+	"left4dead2"
+	{
+		"Offsets"
+		{
+			"CClaw::GetPlayerDamage"
+			{
+				"linux"			"449"
+				"windows"		"447"
+			}
+		}
+	}
+}
