@@ -69,6 +69,16 @@
 		"#format"	"{1:d},{2:d},{3:s},{4:d},{5:d},{6:d},{7:d}"
 		"chi"		"{blue}[{default}{1}{blue}] ({default}{2}%%{blue}) {olive}{3} {blue}[{default}{4}{olive}/{default}{5}{olive}/{default}{6} {blue}@ {olive}{7}{blue}]"
 	}
+	"DamageToTank_Friendly"
+	{
+		"#format"	"{1:d},{2:d}"
+		"chi"		"{red}[{default}{1}{red}] ({default}{2}%%{red}) {green}感染者"
+	}
+	"DamageToTank_Unknown"
+	{
+		"#format"	"{1:d},{2:d}"
+		"chi"		"{green}[{default}{1}{green}] ({default}{2}%%{green}) {default}其他"
+	}
 	
 	
 	/**
