@@ -54,7 +54,7 @@
 * @Forgetest
 */
 
-#define PLUGIN_VERSION "3.0"
+#define PLUGIN_VERSION "3.1"
 
 public Plugin myinfo =
 {
@@ -358,7 +358,10 @@ void SDK_OnTakeDamageAlive_Post(int victim, int attacker, int inflictor, float d
 		if (IsIncapacitated(victim))
 			return;
 		
-		if (!IsTank(attacker))
+		if (attacker <= 0
+		 || attacker > MaxClients
+		 || !IsClientInGame(attacker)
+		 || !IsTank(attacker))
 			return;
 		
 		if (GetClientHealth(victim) <= 0)
@@ -715,6 +718,8 @@ void PrintTankFacts(int userid, float delay = 0.0)
 
 Action Timer_PrintTankFacts(Handle timer, DataPack dp)
 {
+	dp.Reset();
+
 	TankInfo info;
 	dp.ReadCellArray(info, sizeof(info));
 	
