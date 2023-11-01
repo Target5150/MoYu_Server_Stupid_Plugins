@@ -4,7 +4,7 @@
 	{
 		"MemPatches"
 		{
-			"CTankClaw::SweepFist::Check1"
+			"CTankClaw::SweepFist__HasPlayerControlledZombies_skip"
 			{
 				"signature"			"CTankClaw::SweepFist"
 				"linux"
