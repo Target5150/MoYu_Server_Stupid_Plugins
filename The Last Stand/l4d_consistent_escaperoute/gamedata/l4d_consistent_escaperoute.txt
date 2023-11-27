@@ -23,38 +23,8 @@
 			}
 		}
 		
-		"Addresses"
-		{
-			"TheEscapeRoute"
-			{
-				"linux"
-				{
-					"signature"	"g_spawnPath"
-				}
-				"windows"
-				{
-					"signature"	"CEntityFactory<CEscapeRoute>::Create"
-					"read"		"41"
-				}
-			}
-		}
-		
 		"Signatures"
 		{
-			/**< TheEscapeRoute() */
-			"g_spawnPath"
-			{
-				"library"		"server"
-				"linux"			"@g_spawnPath"
-			}
-			
-			"CEntityFactory<CEscapeRoute>::Create"
-			{
-				"library"		"server"
-				"windows"		"\x56\x68\x74\x33\x00\x00\xE8"
-								/* 56 68 74 33 00 00 E8 */
-			}
-			
 			// Search string "ERROR: BuildEscapeRoute failed. The start or end area was NULL\n"
 			// "CEscapeRoute::ResetPath", "CEscapeRoute::AddArea" and "CEscapeRoute::FinishPath" can be found there.
 			"CEscapeRoute::ResetPath"
@@ -107,38 +77,8 @@
 			}
 		}
 		
-		"Addresses"
-		{
-			"TheEscapeRoute"
-			{
-				"linux"
-				{
-					"signature"	"g_spawnPath"
-				}
-				"windows"
-				{
-					"signature"	"CEntityFactory<CEscapeRoute>::Create"
-					"read"		"40"
-				}
-			}
-		}
-		
 		"Signatures"
 		{
-			/**< TheEscapeRoute() */
-			"g_spawnPath"
-			{
-				"library"		"server"
-				"linux"			"@g_spawnPath"
-			}
-			
-			"CEntityFactory<CEscapeRoute>::Create"
-			{
-				"library"		"server"
-				"windows"		"\x55\x8B\xEC\x56\x68\x38\x34\x00\x00"
-								/* 55 8B EC 56 68 38 34 00 00 */
-			}
-			
 			// Search string "ERROR: BuildEscapeRoute failed. No path from start to end. zeroFlowArea = #%d, endArea = #%d.\n"
 			// "CEscapeRoute::ResetPath", "CEscapeRoute::AddArea" and "CEscapeRoute::FinishPath" can be found there.
 			"CEscapeRoute::ResetPath"
