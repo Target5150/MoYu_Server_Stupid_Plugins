@@ -54,7 +54,7 @@
 * @Forgetest
 */
 
-#define PLUGIN_VERSION "3.1"
+#define PLUGIN_VERSION "3.1.1"
 
 public Plugin myinfo =
 {
@@ -703,6 +703,7 @@ void PrintTankFacts(int userid, float delay = 0.0)
 	
 	if (delay > 0.0)
 	{
+		info.aliveSince += delay;
 		info.survivorInfoVector = view_as<AutoUserVector>(info.survivorInfoVector.Clone());
 		
 		DataPack dp;
