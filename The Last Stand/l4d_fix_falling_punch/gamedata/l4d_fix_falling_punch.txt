@@ -1,0 +1,72 @@
+"Games"
+{
+	"left4dead"
+	{
+		"MemPatches"
+		{
+			"CTerrorPlayer::OnFallDamage__activeweapon_check"
+			{
+				"signature"		"CTerrorPlayer::OnFallDamage"
+				"linux"
+				{
+					"offset"	"F9h"
+					"verify"	"\x0F\x84"
+					"patch"		"\x90\xE9"
+				}
+				"windows"
+				{
+					"offset"	"2D1h"
+					"verify"	"\x74"
+					"patch"		"\xEB"
+				}
+			}
+		}
+
+		"Signatures"
+		{
+			// Search string "%s landed"
+			"CTerrorPlayer::OnFallDamage"
+			{
+				"library"		"server"
+				"linux"			"@_ZN13CTerrorPlayer12OnFallDamageEf"
+				"windows"		"\x81\xEC\x2A\x2A\x2A\x2A\x2A\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x83\xF8\x03\x0F\x85\x2A\x2A\x2A\x2A\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x83\xF8\x03\x0F\x85"
+								/* 81 EC ? ? ? ? ? 8B ? E8 ? ? ? ? 83 F8 03 0F 85 ? ? ? ? 8B ? E8 ? ? ? ? 83 F8 03 0F 85 */
+			}
+		}
+	}
+
+	"left4dead2"
+	{
+		"MemPatches"
+		{
+			"CTerrorPlayer::OnFallDamage__activeweapon_check"
+			{
+				"signature"		"CTerrorPlayer::OnFallDamage"
+				"linux"
+				{
+					"offset"	"FEh"
+					"verify"	"\x0F\x84"
+					"patch"		"\x90\xE9"
+				}
+				"windows"
+				{
+					"offset"	"341h"
+					"verify"	"\x74"
+					"patch"		"\xEB"
+				}
+			}
+		}
+
+		"Signatures"
+		{
+			// Search string "%s landed"
+			"CTerrorPlayer::OnFallDamage"
+			{
+				"library"		"server"
+				"linux"			"@_ZN13CTerrorPlayer12OnFallDamageEf"
+				"windows"		"\x55\x8B\x2A\x2A\x2A\x2A\x2A\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x2A\x2A\x89\x2A\x2A\x2A\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x83\x2A\x03\x0F\x85\x2A\x2A\x2A\x2A\x8B\x2A\xE8"
+								/* 55 8B ? ? ? ? ? ? ? A1 ? ? ? ? ? ? 89 ? ? ? 8B ? E8 ? ? ? ? 83 ? 03 0F 85 ? ? ? ? 8B ? E8 */
+			}
+		}
+	}
+}
