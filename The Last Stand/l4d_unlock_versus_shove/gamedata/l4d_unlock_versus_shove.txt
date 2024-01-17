@@ -1,0 +1,162 @@
+"Games"
+{
+	"left4dead"
+	{
+		"MemPatches"
+		{
+			"CTerrorWeapon::OnHit__hunter_fov"
+			{
+				"signature"		"CTerrorWeapon::OnHit"
+				"linux"
+				{
+					"offset"	"E7h"
+					"verify"	"\x0F\x85"
+					"patch"		"\x90\xE9"
+				}
+				"windows"
+				{
+					"offset"	"2BEh"
+					"verify"	"\x0F\x84"
+					"patch"		"\x90\x90\x90\x90\x90\x90"
+				}
+			}
+
+			"CTerrorWeapon::OnHit__tongue_shove"
+			{
+				"signature"		"CTerrorWeapon::OnHit"
+				"linux"
+				{
+					"offset"	"7CBh"
+					"verify"	"\x0F\x84"
+					"patch"		"\x90\x90\x90\x90\x90\x90"
+				}
+				"windows"
+				{
+					"offset"	"C2h"
+					"verify"	"\x75"
+					"patch"		"\xEB"
+				}
+			}
+
+			"CTerrorPlayer::OnShovedByLunge__shove_fov"
+			{
+				"signature"		"CTerrorPlayer::OnShovedByLunge"
+				"linux"
+				{
+					"offset"	"8AFh"
+					"verify"	"\x0F\x84"
+					"patch"		"\x90\x90\x90\x90\x90\x90"
+				}
+				"windows"
+				{
+					"offset"	"44h"
+					"verify"	"\x74"
+					"patch"		"\x90\x90"
+				}
+			}
+		}
+
+		"Signatures"
+		{
+			// Stolen from left4dhooks thanks to Silvers
+			/*
+			* CTerrorWeapon::OnHit(CGameTrace &, Vector const&, bool)
+			*/
+			"CTerrorWeapon::OnHit"
+			{
+				"library"		"server"
+				"linux"			"@_ZN13CTerrorWeapon5OnHitER10CGameTraceRK6Vectorb.part.104"
+				"windows"		"\x81\x2A\x2A\x2A\x2A\x2A\x80\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x89\x2A\x2A\x2A\x0F\x84\x2A\x2A\x2A\x2A\x8B"
+				/* 81 ? ? ? ? ? 80 ? ? ? ? ? ? ? 89 ? ? ? 0F 84 ? ? ? ? 8B */
+			}
+
+			"CTerrorPlayer::OnShovedByLunge"
+			{
+				"library"		"server"
+				"linux"			"@_ZN13CTerrorPlayer15OnShovedByLungeEPS_b.part.825"
+				"windows"		"\x83\xEC\x2A\x56\x8B\xF1\xE8\x2A\x2A\x2A\x2A\x84\xC0\x0F\x85\x2A\x2A\x2A\x2A\x55\x8B"
+								/* 83 EC ? 56 8B F1 E8 ? ? ? ? 84 C0 0F 85 ? ? ? ? 55 8B */
+			}
+		}
+	}
+
+	"left4dead2"
+	{
+		"MemPatches"
+		{
+			"CTerrorWeapon::OnHit__hunter_fov"
+			{
+				"signature"		"CTerrorWeapon::OnHit"
+				"linux"
+				{
+					"offset"	"127h"
+					"verify"	"\x0F\x85"
+					"patch"		"\x90\xE9"
+				}
+				"windows"
+				{
+					"offset"	"31Ah"
+					"verify"	"\x0F\x84"
+					"patch"		"\x90\x90\x90\x90\x90\x90"
+				}
+			}
+
+			"CTerrorWeapon::OnHit__tongue_shove"
+			{
+				"signature"		"CTerrorWeapon::OnHit"
+				"linux"
+				{
+					"offset"	"8E2h"
+					"verify"	"\x0F\x84"
+					"patch"		"\x90\x90\x90\x90\x90\x90"
+				}
+				"windows"
+				{
+					"offset"	"E4h"
+					"verify"	"\x75"
+					"patch"		"\xEB"
+				}
+			}
+
+			"CTerrorPlayer::OnShovedByLunge__shove_fov"
+			{
+				"signature"		"CTerrorPlayer::OnShovedByLunge"
+				"linux"
+				{
+					"offset"	"69Bh"
+					"verify"	"\x0F\x84"
+					"patch"		"\x90\x90\x90\x90\x90\x90"
+				}
+				"windows"
+				{
+					"offset"	"6Ch"
+					"verify"	"\x74"
+					"patch"		"\x90\x90"
+				}
+			}
+		}
+
+		"Signatures"
+		{
+			// Stolen from left4dhooks thanks to Silvers
+			/*
+			* CTerrorWeapon::OnHit(CGameTrace &, Vector const&, bool)
+			*/
+			"CTerrorWeapon::OnHit"
+			{
+				"library"		"server"
+				"linux"			"@_ZN13CTerrorWeapon5OnHitER10CGameTraceRK6Vectorb"
+				"windows"		"\x55\x8B\xEC\x81\xEC\xB0\x00\x00\x00\x80\x7D\x10\x00"
+				/* 55 8B EC 81 EC B0 00 00 00 80 7D 10 00 */
+			}
+
+			"CTerrorPlayer::OnShovedByLunge"
+			{
+				"library"		"server"
+				"linux"			"@_ZN13CTerrorPlayer15OnShovedByLungeEPS_b"
+				"windows"		"\x53\x8B\xDC\x83\xEC\x08\x83\xE4\xF0\x83\xC4\x04\x55\x8B\x6B\x04\x89\x6C\x24\x04\x8B\xEC\x83\xEC\x38\x56\x57\x8B\xF1"
+								/* 53 8B DC 83 EC 08 83 E4 F0 83 C4 04 55 8B 6B 04 89 6C 24 04 8B EC 83 EC 38 56 57 8B F1 */
+			}
+		}
+	}
+}
