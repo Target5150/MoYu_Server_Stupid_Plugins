@@ -4,7 +4,7 @@
 #include <sourcemod>
 #include <sdkhooks>
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo =
 {
@@ -77,14 +77,11 @@ void HookClient(int client, bool toggle)
 
 Action SDK_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
-	if (GetClientTeam(victim) != 3 || GetEntProp(victim, Prop_Send, "m_zombieClass") != 3)
-		return Plugin_Continue;
-
-	if (attacker <= 0 || attacker > MaxClients || !IsClientInGame(attacker) || GetClientTeam(attacker) != 2)
-		return Plugin_Continue;
-
 	int ability = GetEntPropEnt(victim, Prop_Send, "m_customAbility");
-	if (ability == -1)
+	if (ability == -1 || !IsAbilityLunge(ability))
+		return Plugin_Continue;
+
+	if (attacker <= 0 || attacker > MaxClients || !IsClientInGame(attacker) || GetClientTeam(attacker) != 2 || IsFakeClient(attacker))
 		return Plugin_Continue;
 
 	float flTargetTime = GetLagCompTargetTime(attacker);
@@ -112,7 +109,7 @@ Action SDK_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 void SDK_OnTakeDamage_Post(int victim, int attacker, int inflictor, float damage, int damagetype)
 {
 	int ability = GetEntPropEnt(victim, Prop_Send, "m_customAbility");
-	if (ability == -1)
+	if (ability == -1 || !IsAbilityLunge(ability))
 		return;
 
 	SetEntProp(victim, Prop_Send, "m_isAttemptingToPounce", GetEntProp(ability, Prop_Send, "m_isLunging"));
@@ -209,6 +206,13 @@ CUserCmd GetPlayerCurrentCommand(int player)
 									+ 88 /* sizeof(m_LastCmd) */;
 
 	return view_as<CUserCmd>(GetEntData(player, s_iOffs_m_pCurrentCommand, 4));
+}
+
+bool IsAbilityLunge(int ability)
+{
+	char cls[64];
+	GetEdictClassname(ability, cls, sizeof(cls));
+	return strcmp(cls, "ability_lunge") == 0;
 }
 
 stock any Math_Clamp(any inc, any low, any high)
