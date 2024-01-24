@@ -4,7 +4,7 @@
 #include <sourcemod>
 #include <sdkhooks>
 
-#define PLUGIN_VERSION "1.1"
+#define PLUGIN_VERSION "1.1.1"
 
 public Plugin myinfo =
 {
@@ -169,7 +169,7 @@ float GetLagCompTargetTime(int client)
 	correct += GetEntPropFloat(client, Prop_Data, "m_fLerpTime");
 
 	// check bounds [0,sv_maxunlag]
-	correct = Math_Clamp( correct, 0.0, sv_maxunlag.FloatValue );
+	if (sv_maxunlag) correct = Math_Clamp( correct, 0.0, sv_maxunlag.FloatValue );
 
 	// correct tick send by player
 	float flTargetTime = GetTickInterval() * GetPlayerCurrentCommand(client).tick_count - GetEntPropFloat(client, Prop_Data, "m_fLerpTime");
@@ -183,7 +183,7 @@ float GetLagCompTargetTime(int client)
 		flTargetTime = GetGameTime() - correct;
 	}
 
-	flTargetTime += GetTickInterval() * sv_lagpushticks.IntValue;
+	if (sv_lagpushticks) flTargetTime += GetTickInterval() * sv_lagpushticks.IntValue;
 
 	return flTargetTime;
 }
