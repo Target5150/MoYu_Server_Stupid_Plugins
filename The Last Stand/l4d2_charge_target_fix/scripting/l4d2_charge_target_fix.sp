@@ -5,7 +5,7 @@
 #include <dhooks>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "1.8"
+#define PLUGIN_VERSION "1.9"
 
 public Plugin myinfo = 
 {
@@ -360,6 +360,17 @@ void HandlePlayerReplace(int replacer, int replacee)
 			g_iChargeVictim[replacer] = g_iChargeVictim[replacee];
 			g_iChargeAttacker[g_iChargeVictim[replacee]] = replacer;
 			g_iChargeVictim[replacee] = -1;
+
+			if (L4D2_IsInQueuedPummel(replacee))
+			{
+				float flQueuedPummelTime = L4D2_GetQueuedPummelStartTime(replacee);
+				L4D2_SetQueuedPummelStartTime(replacer, flQueuedPummelTime);
+				L4D2_SetQueuedPummelAttacker(g_iChargeVictim[replacer], replacer);
+				L4D2_SetQueuedPummelVictim(replacer, g_iChargeVictim[replacer]);
+
+				L4D2_SetQueuedPummelStartTime(replacee, -1.0);
+				L4D2_SetQueuedPummelVictim(replacee, -1);
+			}
 		}
 	}
 	else

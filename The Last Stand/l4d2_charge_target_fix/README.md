@@ -7,6 +7,7 @@
 	- Fix jockey being able to pounce onto charger targets.
 	- (Optional) Fix Survivors in pummel blocking movement of Infected Team.
 	- (Optional) Fix Survivors getting up from pummel blocking movement of Infected Team.
+	- (Since v1.9) Fix non-chargers stuck in pounding Survivors when they change team during queued pummel sections.
 - NOTE: Remove `l4d2_jockeyed_charger_fix` for duplication.
 
 <hr>
@@ -34,8 +35,8 @@ charger_knockdown_getup_window "0.1"
 <hr>
 
 ### Installation
-1. Put the **l4d2_charge_target_fix.smx** to your _plugins_ folder.
-2. Put the **l4d2_charge_target_fix.txt** to your _gamedata_ folder.
+1. Put **plugins/l4d2_charge_target_fix.smx** to your _plugins_ folder.
+2. Put **gamedata/l4d2_charge_target_fix.txt** to your _gamedata_ folder.
 
 <hr>
 
