@@ -5,7 +5,7 @@
 #include <sdktools_functions>
 #include <actions>
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo = 
 {
@@ -162,11 +162,13 @@ void UTIL_ReplaceActionVictim(int entity, const char[] name, int newTarget, int 
 	if (action == INVALID_ACTION)
 		return;
 	
-	EHANDLE ehndl = action.Get(52);
+	int offs = !strcmp(name, "PunchVictim") ? 88 : 52;
+
+	EHANDLE ehndl = action.Get(offs);
 	if (ehndl.Get() != oldTarget)
 		return;
 	
-	action.Set(52, EHANDLE(newTarget));
+	action.Set(offs, EHANDLE(newTarget));
 
 	if (!strcmp(name, "WitchAttack"))
 		action.Set(56, GetEntProp(newTarget, Prop_Send, "m_survivorCharacter"));

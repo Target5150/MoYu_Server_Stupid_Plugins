@@ -2,6 +2,16 @@
 
 ### Introduction
 - Fix issues with infected targeting when replacing survivors.
+    1. Smoker
+        - Lose target when warning before vomit.
+    2. Boomer
+        - Lose target when warning before shooting tongue.
+    3. Infected
+        - Lose target when chasing / attacking.
+        - Punch misses.
+    4. Witch
+        - Potentially lose target when chasing / attacking incapped.
+            - This will only happen when you have plugins like fixing Witch's targeting for multiple characters.
 
 <hr>
 
