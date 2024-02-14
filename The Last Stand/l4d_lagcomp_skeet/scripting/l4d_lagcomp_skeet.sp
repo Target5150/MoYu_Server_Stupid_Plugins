@@ -4,7 +4,7 @@
 #include <sourcemod>
 #include <sdkhooks>
 
-#define PLUGIN_VERSION "1.1.1"
+#define PLUGIN_VERSION "1.2"
 
 public Plugin myinfo =
 {
@@ -75,6 +75,7 @@ void HookClient(int client, bool toggle)
 	}
 }
 
+int g_iSave_m_isAttemptingToPounce = -1;
 Action SDK_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
 	int ability = GetEntPropEnt(victim, Prop_Send, "m_customAbility");
@@ -90,6 +91,7 @@ Action SDK_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 	{
 		float flLungeStartTime = GetEntPropFloat(ability, Prop_Send, "m_lungeStartTime");
 
+		g_iSave_m_isAttemptingToPounce = GetEntProp(victim, Prop_Send, "m_isAttemptingToPounce");
 		SetEntProp(victim, Prop_Send, "m_isAttemptingToPounce", flTargetTime >= flLungeStartTime);
 	}
 	else
@@ -99,6 +101,7 @@ Action SDK_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 		{
 			float flLungeEndTime = lungeCooldownTiemr.m_timestamp - lungeCooldownTiemr.m_duration;
 
+			g_iSave_m_isAttemptingToPounce = GetEntProp(victim, Prop_Send, "m_isAttemptingToPounce");
 			SetEntProp(victim, Prop_Send, "m_isAttemptingToPounce", flTargetTime < flLungeEndTime);
 		}
 	}
@@ -112,7 +115,11 @@ void SDK_OnTakeDamage_Post(int victim, int attacker, int inflictor, float damage
 	if (ability == -1 || !IsAbilityLunge(ability))
 		return;
 
-	SetEntProp(victim, Prop_Send, "m_isAttemptingToPounce", GetEntProp(ability, Prop_Send, "m_isLunging"));
+	if (g_iSave_m_isAttemptingToPounce != -1)
+	{
+		SetEntProp(victim, Prop_Send, "m_isAttemptingToPounce", g_iSave_m_isAttemptingToPounce);
+		g_iSave_m_isAttemptingToPounce = -1;
+	}
 }
 
 float GetLagCompTargetTime(int client)
