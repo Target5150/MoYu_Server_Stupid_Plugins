@@ -145,7 +145,7 @@
 			"CTerrorWeapon::OnHit"
 			{
 				"library"		"server"
-				"linux"			"@_ZN13CTerrorWeapon5OnHitER10CGameTraceRK6Vectorb"
+				"linux"			"@_ZN13CTerrorWeapon5OnHitER10CGameTraceRK6Vectorb.part.111"
 				"windows"		"\x55\x8B\xEC\x81\xEC\xB0\x00\x00\x00\x80\x7D\x10\x00"
 				/* 55 8B EC 81 EC B0 00 00 00 80 7D 10 00 */
 			}
