@@ -4,7 +4,7 @@
 #include <sourcemod>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "2.5"
+#define PLUGIN_VERSION "2.5.1"
 
 public Plugin myinfo = 
 {
@@ -62,22 +62,22 @@ public void OnPluginStart()
 	hCvarPillIncrement =	CreateConVar("l4d_pills_hot_increment",		"10",	"Increment amount for pills hot",	FCVAR_NOTIFY|FCVAR_SPONLY, true, 1.0);
 	hCvarPillTotal =		CreateConVar("l4d_pills_hot_total",			buffer,	"Total amount for pills hot",		FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0);
 	
+	if (g_bLeft4Dead2)
+	{
+		adrenaline_health_buffer = FindConVar("adrenaline_health_buffer");
+		adrenaline_health_buffer.GetString(buffer, sizeof(buffer));
+		
+		hCvarAdrenHot = 		CreateConVar("l4d_adrenaline_hot",				"0",	"Adrenaline heals over time",			FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 1.0);
+		hCvarAdrenInterval =	CreateConVar("l4d_adrenaline_hot_interval",		"1.0",	"Interval for adrenaline hot",			FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.00001);
+		hCvarAdrenIncrement =	CreateConVar("l4d_adrenaline_hot_increment",	"15",	"Increment amount for adrenaline hot",	FCVAR_NOTIFY|FCVAR_SPONLY, true, 1.0);
+		hCvarAdrenTotal =		CreateConVar("l4d_adrenaline_hot_total",		buffer,	"Total amount for adrenaline hot",		FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0);
+		
+		CvarChg_AdrenHot(hCvarAdrenHot, "", "");
+		hCvarAdrenHot.AddChangeHook(CvarChg_AdrenHot);
+	}
+	
 	CvarChg_PillHot(hCvarPillHot, "", "");
 	hCvarPillHot.AddChangeHook(CvarChg_PillHot);
-	
-	if (!g_bLeft4Dead2)
-		return;
-	
-	adrenaline_health_buffer = FindConVar("adrenaline_health_buffer");
-	adrenaline_health_buffer.GetString(buffer, sizeof(buffer));
-	
-	hCvarAdrenHot = 		CreateConVar("l4d_adrenaline_hot",				"0",	"Adrenaline heals over time",			FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0, true, 1.0);
-	hCvarAdrenInterval =	CreateConVar("l4d_adrenaline_hot_interval",		"1.0",	"Interval for adrenaline hot",			FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.00001);
-	hCvarAdrenIncrement =	CreateConVar("l4d_adrenaline_hot_increment",	"15",	"Increment amount for adrenaline hot",	FCVAR_NOTIFY|FCVAR_SPONLY, true, 1.0);
-	hCvarAdrenTotal =		CreateConVar("l4d_adrenaline_hot_total",		buffer,	"Total amount for adrenaline hot",		FCVAR_NOTIFY|FCVAR_SPONLY, true, 0.0);
-	
-	CvarChg_AdrenHot(hCvarAdrenHot, "", "");
-	hCvarAdrenHot.AddChangeHook(CvarChg_AdrenHot);
 }
 
 public void OnPluginEnd()
@@ -215,13 +215,13 @@ void __HealTowardsMax(int client, int amount, int max)
 void CvarChg_PillHot(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	TogglePillHot(hCvarPillHot.BoolValue);
-	SwitchGeneralEventHooks(hCvarPillHot.BoolValue || hCvarAdrenHot.BoolValue);
+	SwitchGeneralEventHooks(hCvarPillHot.BoolValue || (hCvarAdrenHot && hCvarAdrenHot.BoolValue));
 }
 
 void CvarChg_AdrenHot(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	ToggleAdrenHot(hCvarAdrenHot.BoolValue);
-	SwitchGeneralEventHooks(hCvarPillHot.BoolValue || hCvarAdrenHot.BoolValue);
+	SwitchGeneralEventHooks(hCvarPillHot.BoolValue || (hCvarAdrenHot && hCvarAdrenHot.BoolValue));
 }
 
 void TogglePillHot(bool enable)
