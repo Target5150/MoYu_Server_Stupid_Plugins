@@ -1,0 +1,57 @@
+"Games"
+{
+	"#default"
+	{
+		"Functions"
+		{
+			"PlayerLocomotion::IsClimbPossible"
+			{
+				"signature"		"PlayerLocomotion::IsClimbPossible"
+				"callconv"		"thiscall"
+				"return"		"int"
+				"this"			"ignore"
+				"arguments"
+				{
+					"bot"
+					{
+						"type"	"int"
+					}
+					"entity"
+					{
+						"type"	"cbaseentity"
+					}
+				}
+			}
+		}
+	}
+
+	"left4dead"
+	{
+		"Signatures"
+		{
+			// Search string "HulkZombie.StartLedgeClimb" then find the first function call there, for 2 times
+			"PlayerLocomotion::IsClimbPossible"
+			{
+				"library"		"server"
+				"linux"			"@_ZNK16PlayerLocomotion15IsClimbPossibleEP8INextBotPK11CBaseEntity"
+				"windows"		"\x53\x56\x8B\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x57\xFF\xD2\x8B\x10\x8B\xC8\x8B\x82"
+								/* 53 56 8B ? ? ? ? ? ? ? ? ? 57 FF D2 8B 10 8B C8 8B 82 */
+			}
+		}
+	}
+
+	"left4dead2"
+	{
+		"Signatures"
+		{
+			// Search string "HulkZombie.StartLedgeClimb" then find the first function call there
+			"PlayerLocomotion::IsClimbPossible"
+			{
+				"library"		"server"
+				"linux"			"@_ZNK16PlayerLocomotion15IsClimbPossibleEP8INextBotPK11CBaseEntity"
+				"windows"		"\x55\x8B\x2A\x2A\x2A\x8B\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x57\xFF\xD2\x8B\x10\x8B\xC8\x8B\x82\x2A\x2A\x2A\x2A\xFF\xD0\x8B\x16\x8B"
+								/* 55 8B ? ? ? 8B ? ? ? ? ? ? ? ? ? 57 FF D2 8B 10 8B C8 8B 82 ? ? ? ? FF D0 8B 16 8B */
+			}
+		}
+	}
+}
