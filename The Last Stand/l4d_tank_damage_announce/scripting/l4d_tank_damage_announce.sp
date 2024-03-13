@@ -3,7 +3,6 @@
 
 #include <sourcemod>
 #include <sdktools>
-#include <sdkhooks>
 #include <colors>
 #include <left4dhooks>
 
@@ -54,7 +53,7 @@
 * @Forgetest
 */
 
-#define PLUGIN_VERSION "3.1.2"
+#define PLUGIN_VERSION "3.2"
 
 public Plugin myinfo =
 {
@@ -101,15 +100,14 @@ UserVector g_aTankInfo;		// Every Tank has a slot here along with relationships.
 StringMap g_smUserNames;	// Simple map from userid to player names.
 
 int 
-	g_iPlayerLastHealth[MAXPLAYERS+1],				// Used for Tank damage record
 	g_iTankIndex;									// Used to index every Tank
 
 bool
-	g_bIsTankInPlay				= false,            // Whether or not the tank is active
-	g_bLateLoad					= false;
+	g_bIsTankInPlay				= false;            // Whether or not the tank is active
 
 ConVar
-	g_hCvarEnabled              = null;
+	g_hCvarEnabled				= null,
+	g_hCvarDebug				= null;
 
 enum
 {
@@ -140,7 +138,6 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	
 	RegPluginLibrary("l4d_tank_damage_announce");
 	
-	g_bLateLoad = late;
 	return APLRes_Success;
 }
 
@@ -153,7 +150,9 @@ public void OnPluginStart()
 	HookEvent("player_bot_replace", Event_PlayerBotReplace);
 	HookEvent("bot_player_replace", Event_BotPlayerReplace);
 	HookEvent("tank_spawn", Event_TankSpawn);
+	HookEvent("player_incapacitated_start", Event_PlayerIncapStart);
 	HookEvent("player_incapacitated", Event_PlayerIncap);
+	HookEvent("player_hurt", Event_PlayerHurt);
 	HookEvent("player_death", Event_PlayerKilled);
 	
 	g_aTankInfo = new UserVector(sizeof(TankInfo));
@@ -162,6 +161,11 @@ public void OnPluginStart()
 	g_hCvarEnabled = CreateConVar("l4d_tankdamage_enabled",
 										"1",
 										"Announce damage done to tanks when enabled",
+										FCVAR_NONE,
+										true, 0.0, true, 1.0);
+	g_hCvarDebug = CreateConVar("l4d_tankdamage_debug",
+										"0",
+										"Debug toggler.",
 										FCVAR_NONE,
 										true, 0.0, true, 1.0);
 	g_hTextStyle = CreateConVar("l4d_tankdamage_text_style",
@@ -174,14 +178,6 @@ public void OnPluginStart()
 									...	"4 = Individually print with a delay.",
 										FCVAR_NONE,
 										true, 0.0, true, 4.0);
-	
-	if (g_bLateLoad)
-	{
-		for (int i = 1; i <= MaxClients; ++i)
-		{
-			if (IsClientInGame(i)) OnClientPutInServer(i);
-		}
-	}
 }
 
 
@@ -189,13 +185,6 @@ public void OnPluginStart()
 /**
  * Rounds & Clients
  */
-public void OnClientPutInServer(int client)
-{
-	SDKHook(client, SDKHook_OnTakeDamage, SDK_OnTakeDamage);
-	SDKHook(client, SDKHook_OnTakeDamageAlive, SDK_OnTakeDamageAlive);
-	SDKHook(client, SDKHook_OnTakeDamageAlivePost, SDK_OnTakeDamageAlive_Post);
-}
-
 public void OnClientDisconnect(int client)
 {
 	int userid = GetClientUserId(client);
@@ -306,52 +295,31 @@ void Event_TankSpawn(Event event, const char[] name, bool dontBroadcast)
 /**
  * Game events
  */
-Action SDK_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
-{
-	if (!g_bIsTankInPlay)
-		return Plugin_Continue;
-	
-	if (GetClientTeam(victim) == TEAM_SURVIVOR)
-	{
-		int playerHealth = 0;
-		if (!IsIncapacitated(victim))
-			playerHealth = GetClientHealth(victim) + L4D_GetPlayerTempHealth(victim);
-
-		g_iPlayerLastHealth[victim] = playerHealth;
-	}
-	
-	return Plugin_Continue;
-}
-
-float g_flDamageAccumulator;
-Action SDK_OnTakeDamageAlive(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
-{
-	if (!g_bIsTankInPlay)
-		return Plugin_Continue;
-	
-	g_flDamageAccumulator = GetEntPropFloat(victim, Prop_Data, "m_flDamageAccumulator");
-	
-	return Plugin_Continue;
-}
-
-void SDK_OnTakeDamageAlive_Post(int victim, int attacker, int inflictor, float damage, int damagetype)
+void Event_PlayerHurt(Event event, const char[] name, bool dontBroadcast)
 {
 	if (!g_bIsTankInPlay)
 		return;
 	
-	if (!IsValidEdict(inflictor))
+	int victim = GetClientOfUserId(event.GetInt("userid"));
+	if (!victim || !IsClientInGame(victim))
 		return;
 	
-	int iFixedDamage = RoundToFloor(damage + g_flDamageAccumulator);
-	if (iFixedDamage <= 0)
+	int attacker = GetClientOfUserId(event.GetInt("attacker"));
+	if (!attacker || !IsClientInGame(attacker))
+		attacker = event.GetInt("attackerentid");
+
+	int damage = event.GetInt("dmg_health");
+	if (damage <= 0)
 		return;
 	
+	PrintDebug("%s : %N", name, victim);
+
 	if (IsTank(victim))
 	{
 		if (IsIncapacitated(victim))
 			return;
 		
-		OnTankTakeDamage(victim, attacker, iFixedDamage);
+		OnTankTakeDamage(victim, attacker, damage);
 	}
 	else if (GetClientTeam(victim) == TEAM_SURVIVOR)
 	{
@@ -360,17 +328,27 @@ void SDK_OnTakeDamageAlive_Post(int victim, int attacker, int inflictor, float d
 		
 		if (attacker <= 0
 		 || attacker > MaxClients
-		 || !IsClientInGame(attacker)
 		 || !IsTank(attacker))
 			return;
 		
-		if (GetClientHealth(victim) <= 0)
-			iFixedDamage = g_iPlayerLastHealth[victim];
+		int health = GetClientHealth(victim);
+		if (health < 0)
+			damage += health + L4D_GetPlayerTempHealth(victim);
 
 		char weapon[64];
-		GetEdictClassname(inflictor, weapon, sizeof(weapon));
-		OnTankAttackDamage(attacker, victim, iFixedDamage, weapon);
+		event.GetString("weapon", weapon, sizeof(weapon));
+		OnTankAttackDamage(attacker, victim, damage, weapon);
 	}
+}
+
+int g_iPlayerLastHealth;
+void Event_PlayerIncapStart(Event event, const char[] name, bool dontBroadcast)
+{
+	int victim = GetClientOfUserId(event.GetInt("userid"));
+	if (!victim || !IsClientInGame(victim))
+		return;
+
+	g_iPlayerLastHealth = GetClientHealth(victim) + L4D_GetPlayerTempHealth(victim);
 }
 
 void Event_PlayerIncap(Event event, const char[] name, bool dontBroadcast)
@@ -381,6 +359,8 @@ void Event_PlayerIncap(Event event, const char[] name, bool dontBroadcast)
 	int victim = GetClientOfUserId(event.GetInt("userid"));
 	if (!victim || !IsClientInGame(victim))
 		return;
+
+	PrintDebug("%s : %N", name, victim);
 	
 	if (GetClientTeam(victim) == TEAM_SURVIVOR)
 	{
@@ -393,7 +373,7 @@ void Event_PlayerIncap(Event event, const char[] name, bool dontBroadcast)
 		
 		char weapon[64];
 		event.GetString("weapon", weapon, sizeof(weapon));
-		OnTankAttackDamage(attacker, victim, g_iPlayerLastHealth[victim], weapon);
+		OnTankAttackDamage(attacker, victim, g_iPlayerLastHealth, weapon);
 
 		OnSurvivorIncap(victim);
 	}
@@ -412,6 +392,8 @@ void Event_PlayerKilled(Event event, const char[] name, bool dontBroadcast)
 	if (!victim || !IsClientInGame(victim))
 		return;
 	
+	PrintDebug("%s : %N", name, victim);
+
 	if (IsTank(victim))			// Victim isn't tank; no damage to record
 	{
 		// Award the killing blow's damage to the attacker; we don't award
@@ -432,7 +414,7 @@ void Event_PlayerKilled(Event event, const char[] name, bool dontBroadcast)
 	}
 	else if (GetClientTeam(victim) == TEAM_SURVIVOR)
 	{
-		// Attack damage is handled in "SDK_OnTakeDamageAlive_Post",
+		// Attack damage is handled in "Event_PlayerHurt",
 		// so handle death only.
 		OnSurvivorDeath(victim);
 	}
@@ -449,6 +431,10 @@ void UpdateTankHealth(int tank)
 
 	g_aTankInfo.Set(tankid, GetEntProp(tank, Prop_Data, "m_iMaxHealth"), TankInfo::maxHealth);
 	g_aTankInfo.Set(tankid, GetClientHealth(tank), TankInfo::lastHealth);
+
+	PrintDebug("UpdateTankHealth : %N  %d / %d",
+				tank,
+				GetClientHealth(tank), GetEntProp(tank, Prop_Data, "m_iMaxHealth"));
 }
 
 void OnTankTakeDamage(int tank, int attacker, int damage)
@@ -457,6 +443,8 @@ void OnTankTakeDamage(int tank, int attacker, int damage)
 	
 	if (attacker != tank && attacker > 0 && attacker <= MaxClients && IsClientInGame(attacker))
 	{
+		PrintDebug("OnTankTakeDamage : %N <- %N @ %d", tank, attacker, damage);
+
 		int attackerid = GetClientUserId(attacker);
 		int team = GetClientTeam(attacker);
 		if (team == TEAM_SURVIVOR)
@@ -472,12 +460,18 @@ void OnTankTakeDamage(int tank, int attacker, int damage)
 	}
 	else if (IsValidEntity(attacker))
 	{
-		if (GetEntProp(attacker, Prop_Send, "m_iTeamNum") == TEAM_INFECTED)
+		if (GetEntProp(attacker, Prop_Data, "m_iTeamNum") == TEAM_INFECTED)
 		{
+			char cls[64];
+			GetEdictClassname(attacker, cls, sizeof(cls));
+			PrintDebug("OnTankTakeDamage : %N <- %s @ %d", tank, cls, damage);
 			g_aTankInfo.Add(tankid, damage, TankInfo::friendlyDamage);
 		}
 		else
 		{
+			char cls[64];
+			GetEdictClassname(attacker, cls, sizeof(cls));
+			PrintDebug("OnTankTakeDamage : %N <- %s @ %d", tank, cls, damage);
 			g_aTankInfo.Add(tankid, damage, TankInfo::unknownDamage);
 		}
 	}
@@ -493,7 +487,7 @@ void OnTankAttackDamage(int tank, int victim, int damage, const char[] weapon)
 	AutoUserVector survivorVector;
 	g_aTankInfo.Get(attackerid, survivorVector, TankInfo::survivorInfoVector);
 	
-	if (strcmp(weapon, "weapon_tank_claw") == 0 || strcmp(weapon, "tank_claw") == 0)
+	if (StrContains(weapon, "tank_claw") != -1)
 		survivorVector.Add(victimid, 1, SurvivorInfo::punch);
 	else if (strcmp(weapon, "tank_rock") == 0)
 		survivorVector.Add(victimid, 1, SurvivorInfo::rock);
@@ -502,6 +496,8 @@ void OnTankAttackDamage(int tank, int victim, int damage, const char[] weapon)
 
 	survivorVector.Add(victimid, damage, SurvivorInfo::damageReceived);
 	g_aTankInfo.Add(attackerid, damage, TankInfo::totalDamage);
+
+	PrintDebug("OnTankAttackDamage : %N <- %N @ %d [%s]", victim, tank, damage, weapon);
 }
 
 void OnSurvivorIncap(int survivor)
@@ -637,6 +633,31 @@ bool PrintTankInfoInternal(int userid)
 	return true;
 }
 
+void ClearTankInfo(int userid = 0)
+{
+	if (userid > 0)
+	{
+		ClearTankInfoInternal(userid);
+		g_aTankInfo.Erase(userid);
+	}
+	else
+	{
+		g_aTankInfo.ForEach( ClearTankInfoInternal );
+		g_aTankInfo.Clear();
+	}
+	
+	g_bIsTankInPlay = g_aTankInfo.Length > 0;
+}
+
+bool ClearTankInfoInternal(int userid)
+{
+	AutoUserVector survivorVector;
+	if (g_aTankInfo.Get(userid, survivorVector, TankInfo::survivorInfoVector))
+		delete survivorVector;
+	
+	return true;
+}
+
 void PrintTankDamage(int userid)
 {
 	TankInfo info;
@@ -757,31 +778,6 @@ void PrintTankFactsInternal(const TankInfo info)
 		CPrintToChatAll("%t", "Announce_Summary_WithoutMinute", iAliveDuration, total_damage);
 }
 
-void ClearTankInfo(int userid = 0)
-{
-	if (userid > 0)
-	{
-		ClearTankInfoInternal(userid);
-		g_aTankInfo.Erase(userid);
-	}
-	else
-	{
-		g_aTankInfo.ForEach( ClearTankInfoInternal );
-		g_aTankInfo.Clear();
-	}
-	
-	g_bIsTankInPlay = g_aTankInfo.Length > 0;
-}
-
-bool ClearTankInfoInternal(int userid)
-{
-	AutoUserVector survivorVector;
-	if (g_aTankInfo.Get(userid, survivorVector, TankInfo::survivorInfoVector))
-		delete survivorVector;
-	
-	return true;
-}
-
 // utilize our map g_smUserNames
 bool GetClientNameFromUserId(int userid, char[] name, int maxlen)
 {
@@ -811,9 +807,8 @@ int SortADT_DamageDesc(int index1, int index2, Handle array, Handle hndl)
 {
 	AutoUserVector survivorVector = view_as<AutoUserVector>(array);
 	
-	int damage1, damage2;
-	survivorVector.Get(survivorVector.At(index1), damage1, SurvivorInfo::damageDone);
-	survivorVector.Get(survivorVector.At(index2), damage2, SurvivorInfo::damageDone);
+	int damage1 = survivorVector.Super.Get(index1, SurvivorInfo::damageDone);
+	int damage2 = survivorVector.Super.Get(index2, SurvivorInfo::damageDone);
 	
 	if (damage1 > damage2)
 		return -1;
@@ -904,4 +899,14 @@ stock void LoadPluginTranslations(const char[] file)
 		SetFailState("Missing translations \"%s\"", file);
 	}
 	LoadTranslations(file);
+}
+
+stock void PrintDebug(const char[] format, any ...)
+{
+	if (g_hCvarDebug.BoolValue)
+	{
+		char msg[512];
+		VFormat(msg, sizeof(msg), format, 2);
+		PrintToChatAll("%s", msg);
+	}
 }
