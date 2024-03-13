@@ -54,7 +54,7 @@
 * @Forgetest
 */
 
-#define PLUGIN_VERSION "3.1.1"
+#define PLUGIN_VERSION "3.1.2"
 
 public Plugin myinfo =
 {
@@ -605,10 +605,12 @@ void PrintTankInfo(int userid = 0)
 	if (userid > 0)
 	{
 		PrintTankInfoInternal(userid);
+		ClearTankInfo(userid);
 	}
 	else
 	{
 		g_aTankInfo.ForEach( PrintTankInfoInternal );
+		ClearTankInfo();
 	}
 }
 
@@ -631,8 +633,6 @@ bool PrintTankInfoInternal(int userid)
 		
 		PrintTankFacts(userid, delay);
 	}
-	
-	ClearTankInfo(userid);
 	
 	return true;
 }
