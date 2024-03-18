@@ -10,7 +10,7 @@
 #undef REQUIRE_PLUGIN
 #include <caster_system>
 
-#define PLUGIN_VERSION "10.4"
+#define PLUGIN_VERSION "10.4.1"
 
 public Plugin myinfo =
 {
@@ -73,7 +73,7 @@ ConVar
 	sv_infinite_primary_ammo;
 
 // Plugin Cvars
-ConVar 
+ConVar
 	// basic
 	l4d_ready_enabled, l4d_ready_cfg_name, l4d_ready_server_cvar, l4d_ready_max_players,
 	// game
@@ -92,7 +92,7 @@ Footer
 	nativeFooter;
 float
 	fStartTimestamp;
-	
+
 // Standard Ready Up
 int
 	readyUpMode;
@@ -115,13 +115,13 @@ enum disruptType
 	teamShuffle,
 	playerDisconn,
 	adminAbort,
-	
+
 	disruptType_SIZE
 };
 
 // FIXME: Global const array requires static keyword, then how could I share it between modules?
-//static const char g_sDisruptReason[disruptType_SIZE][] = 
-char g_sDisruptReason[disruptType_SIZE][] = 
+//static const char g_sDisruptReason[disruptType_SIZE][] =
+char g_sDisruptReason[disruptType_SIZE][] =
 {
 	"Player marked unready",
 	"Player switched team",
@@ -155,15 +155,15 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 public void OnPluginStart()
 {
 	LoadTranslation();
-	
+
 	SetupConVars();
 	SetupCommands();
-	
+
 	nativeFooter = new Footer();
-	
+
 	readySurvFreeze = l4d_ready_survivor_freeze.BoolValue;
 	l4d_ready_survivor_freeze.AddChangeHook(CvarChg_SurvFreeze);
-	
+
 	l4d_ready_server_cvar.AddChangeHook(CvarChg_ServerCvar);
 
 	HookEvent("round_start",			RoundStart_Event, EventHookMode_Pre);
@@ -207,7 +207,7 @@ void FindCasterSystem()
 void CvarChg_SurvFreeze(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	readySurvFreeze = convar.BoolValue;
-	
+
 	if (inReadyUp)
 	{
 		ReturnTeamToSaferoom(L4D2Team_Survivor);
@@ -246,24 +246,24 @@ void PlayerTeam_Event(Event event, const char[] name, bool dontBroadcast)
 	int client = GetClientOfUserId(userid);
 	if (!client || IsFakeClient(client))
 		return;
-	
+
 	SetButtonTime(client);
-	
+
 	if (!inReadyUp) return;
-	
+
 	SetPlayerReady(client, false);
-	
+
 	if (isForceStart)
 		return;
-	
+
 	int team = event.GetInt("team");
 	int oldteam = event.GetInt("oldteam");
-	
+
 	if (team == L4D2Team_None && oldteam != L4D2Team_Spectator) // Player disconnecting
 	{
 		CancelFullReady(client, playerDisconn);
 	}
-	
+
 	else if (!g_hChangeTeamTimer[client]) // Player in-game swapping team
 	{
 		DataPack dp;
@@ -277,11 +277,11 @@ void PlayerTeam_Event(Event event, const char[] name, bool dontBroadcast)
 Action Timer_PlayerTeam(Handle timer, DataPack dp)
 {
 	dp.Reset();
-	
+
 	int client = dp.ReadCell();
 	int userid = dp.ReadCell();
 	int oldteam = dp.ReadCell();
-	
+
 	if (client == GetClientOfUserId(userid))
 	{
 		if (inLiveCountdown)
@@ -296,7 +296,7 @@ Action Timer_PlayerTeam(Handle timer, DataPack dp)
 			}
 		}
 	}
-	
+
 	g_hChangeTeamTimer[client] = null;
 
 	return Plugin_Stop;
@@ -309,12 +309,12 @@ Action Timer_PlayerTeam(Handle timer, DataPack dp)
 public void OnMapStart()
 {
 	PrecacheSounds();
-	
+
 	for (int client = 1; client <= MAXPLAYERS; client++)
 	{
 		g_hChangeTeamTimer[client] = null;
 	}
-	
+
 	HookEntityOutput("info_director", "OnGameplayStart", EntO_OnGameplayStart);
 }
 
@@ -360,7 +360,7 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 		if (!IsFakeClient(client))
 		{
 			static int iLastMouse[MAXPLAYERS+1][2];
-			
+
 			// Mouse Movement Check
 			if (mouse[0] != iLastMouse[client][0] || mouse[1] != iLastMouse[client][1])
 			{
@@ -370,7 +370,7 @@ public void OnPlayerRunCmdPost(int client, int buttons, int impulse, const float
 			}
 			else if (buttons || impulse) SetButtonTime(client);
 		}
-		
+
 		if (GetClientTeam(client) == L4D2Team_Survivor)
 		{
 			if (readySurvFreeze || inLiveCountdown)
@@ -418,7 +418,7 @@ Action Vote_Callback(int client, const char[] command, int argc)
 	// Fast ready / unready through default keybinds for voting
 	if (!client) return Plugin_Continue;
 	if (BuiltinVote_IsVoteInProgress() && IsClientInBuiltinVotePool(client)) return Plugin_Continue;
-	
+
 	if (Game_IsVoteInProgress())
 	{
 		int voteteam = Game_GetVoteTeam();
@@ -427,7 +427,7 @@ Action Vote_Callback(int client, const char[] command, int argc)
 			return Plugin_Continue;
 		}
 	}
-	
+
 	char sArg[8];
 	GetCmdArg(1, sArg, sizeof(sArg));
 	if (strcmp(sArg, "Yes", false) == 0)
