@@ -1,0 +1,259 @@
+"Games"
+{
+	"#default"
+	{
+		"Offsets"
+		{
+			"OS"
+			{
+				"linux"			"1"
+				"windows"		"0"
+			}
+		}
+	}
+
+	"left4dead"
+	{
+		"Addresses"
+		{
+			"`vtable for'SurvivorBotPathCost"
+			{
+				"linux"
+				{
+					"signature"	"`vtable for'SurvivorBotPathCost"
+					"offset"	"8"
+				}
+				"windows"
+				{
+					"signature"	"SurvivorBot::IsReachable"
+					"read"		"64"
+				}
+			}
+
+			"`vtable for'SurvivorLocomotion"
+			{
+				"linux"
+				{
+					"signature"	"`vtable for'SurvivorLocomotion"
+					"offset"	"8"
+				}
+				"windows"
+				{
+					"signature"	"SurvivorLocomotion::SurvivorLocomotion"
+					"read"		"24"
+				}
+			}
+
+			"`vtable for'SurvivorBot"
+			{
+				"linux"
+				{
+					"signature"	"`vtable for'SurvivorBot"
+					"offset"	"2424"
+				}
+				"windows"
+				{
+					"signature"	"SurvivorBot::~SurvivorBot"
+					"read"		"49"
+				}
+			}
+
+			"NavAreaBuildPath<SurvivorBotPathCost>"
+			{
+				"windows"
+				{
+					"signature"	"SurvivorBot::IsReachable"
+					"offset"	"110"
+				}
+			}
+		}
+
+		"Offsets"
+		{
+			"INextBot::GetEntity"
+			{
+				"linux"			"40"
+				"windows"		"39"
+			}
+
+			"SurvivorBot::INextBot"
+			{
+				"linux"			"11200"
+				"windows"		"11184"
+			}
+
+			"SurvivorBot::m_locomotor"
+			{
+				"linux"			"11976"
+				"windows"		"11960"
+			}
+
+			"SurvivorBot::m_TeamSituation"
+			{
+				"linux"			"30440"
+				"windows"		"30424"
+			}
+		}
+
+		"Signatures"
+		{
+			"`vtable for'SurvivorBotPathCost"
+			{
+				"library"		"server"
+				"linux"			"@_ZTV19SurvivorBotPathCost"
+			}
+
+			// SurvivorBot::IsReachable(CNavArea *,CNavArea *)
+			"SurvivorBot::IsReachable"
+			{
+				"library"		"server"
+				"linux"			"@_ZNK11SurvivorBot11IsReachableEP8CNavAreaS1_"
+				"windows"		"\x83\xEC\x10\x55\x8B\x6C\x24\x18\x56\x57"
+								/* 83 EC 10 55 8B 6C 24 18 56 57 */
+			}
+
+			"`vtable for'SurvivorLocomotion"
+			{
+				"library"		"server"
+				"linux"			"@_ZTV18SurvivorLocomotion"
+			}
+
+			// Search string "Looking toward breakable for melee swing"
+			// xref is the SurvivorLocomotion vtable
+			"SurvivorLocomotion::SurvivorLocomotion"
+			{
+				"library"		"server"
+				"windows"		"\x8B\x44\x24\x04\x56\x57\x50\x8B\xF1\xE8\x2A\x2A\x2A\x2A\xD9\xEE\x8D\x86\xD4\x00\x00\x00"
+								/* 8B 44 24 04 56 57 50 8B F1 E8 ? ? ? ? D9 EE 8D 86 D4 00 00 00 */
+			}
+
+			"`vtable for'SurvivorBot"
+			{
+				"library"		"server"
+				"linux"			"@_ZTV11SurvivorBot"
+			}
+
+			"SurvivorBot::~SurvivorBot"
+			{
+				"library"		"server"
+				"windows"		"\x53\x56\x8B\xF1\x8B\x8E\xB8\x2E\x00\x00"
+								/* 53 56 8B F1 8B 8E B8 2E 00 00 */
+			}
+		}
+	}
+	
+	"left4dead2"
+	{
+		"Addresses"
+		{
+			"`vtable for'SurvivorBotPathCost"
+			{
+				"signature"		"SurvivorBot::IsReachable"
+				"linux"
+				{
+					"read"		"79"
+				}
+				"windows"
+				{
+					"read"		"65"
+				}
+			}
+
+			"`vtable for'SurvivorLocomotion"
+			{
+				"signature"		"SurvivorLocomotion::SurvivorLocomotion"
+				"linux"
+				{
+					"read"		"46"
+				}
+				"windows"
+				{
+					"read"		"27"
+				}
+			}
+
+			"`vtable for'SurvivorBot"
+			{
+				"signature"		"SurvivorBot::~SurvivorBot"
+				"linux"
+				{
+					"read"		"40"
+				}
+				"windows"
+				{
+					"read"		"52"
+				}
+			}
+
+			"NavAreaBuildPath<SurvivorBotPathCost>"
+			{
+				"signature"		"SurvivorBot::IsReachable"
+				"linux"
+				{
+					"offset"	"169"
+				}
+				"windows"
+				{
+					"offset"	"106"
+				}
+			}
+		}
+
+		"Offsets"
+		{
+			"INextBot::GetEntity"
+			{
+				"linux"			"45"
+				"windows"		"44"
+			}
+
+			"SurvivorBot::INextBot"
+			{
+				"linux"			"16424"
+				"windows"		"16448"
+			}
+
+			"SurvivorBot::m_locomotor"
+			{
+				"linux"			"17216"
+				"windows"		"17244"
+			}
+
+			"SurvivorBot::m_TeamSituation"
+			{
+				"linux"			"35692"
+				"windows"		"35720"
+			}
+		}
+
+		"Signatures"
+		{
+			// SurvivorBot::IsReachable(CNavArea *,CNavArea *)
+			"SurvivorBot::IsReachable"
+			{
+				"library"		"server"
+				"linux"			"@_ZNK11SurvivorBot11IsReachableEP8CNavAreaS1_"
+				"windows"		"\x55\x8B\xEC\x83\xEC\x10\x53\x8B\x5D\x0C\x56\x57"
+								/* 55 8B EC 83 EC 10 53 8B 5D 0C 56 57 */
+			}
+
+			// Search string "Looking toward breakable for melee swing"
+			// xref is the SurvivorLocomotion vtable
+			"SurvivorLocomotion::SurvivorLocomotion"
+			{
+				"library"		"server"
+				"linux"			"@_ZN18SurvivorLocomotionC2EP8INextBot"
+				"windows"		"\x55\x8B\xEC\x8B\x45\x08\x56\x57\x50\x8B\xF1\xE8\x2A\x2A\x2A\x2A\x0F\x57\xC0\x8D\x86\xE4\x00\x00\x00"
+								/* 55 8B EC 8B 45 08 56 57 50 8B F1 E8 ? ? ? ? 0F 57 C0 8D 86 E4 00 00 00 */
+			}
+
+			"SurvivorBot::~SurvivorBot"
+			{
+				"library"		"server"
+				"linux"			"@_ZN11SurvivorBotD2Ev"
+				"windows"		"\x55\x8B\xEC\x83\xEC\x0C\x53\x56\x57\x8B\xF1\xE8\x2A\x2A\x2A\x2A\xF3\x0F\x10\x05"
+								/* 55 8B EC 83 EC 0C 53 56 57 8B F1 E8 ? ? ? ? F3 0F 10 05 */
+			}
+		}
+	}
+}
