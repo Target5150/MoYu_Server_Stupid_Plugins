@@ -4,7 +4,7 @@
 #include <sourcemod>
 #include <sourcescramble>
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo =
 {
@@ -68,29 +68,38 @@ public void OnPluginStart()
 
 void CvarChg_OnSlammedSurvivor__normal_damage(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	static float s_flNewValue;
+	static MemoryBlock s_pNewValue = null;
+	if (!s_pNewValue)
+		s_pNewValue = new MemoryBlock(4);
 	
-	s_flNewValue = convar.FloatValue;
+	float flNewValue = convar.FloatValue;
+	s_pNewValue.StoreToOffset(0, view_as<int>(flNewValue), NumberType_Int32);
 	
-	StoreToAddress(g_patch_OnSlammedSurvivor__normal_damage.Address + PATCH_OFFSET, GetAddressOfCell(s_flNewValue), NumberType_Int32);
+	StoreToAddress(g_patch_OnSlammedSurvivor__normal_damage.Address + PATCH_OFFSET, s_pNewValue.Address, NumberType_Int32);
 }
 
 void CvarChg_OnSlammedSurvivor__advanced_damage(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	static float s_flNewValue;
+	static MemoryBlock s_pNewValue = null;
+	if (!s_pNewValue)
+		s_pNewValue = new MemoryBlock(4);
 	
-	s_flNewValue = convar.FloatValue;
+	float flNewValue = convar.FloatValue;
+	s_pNewValue.StoreToOffset(0, view_as<int>(flNewValue), NumberType_Int32);
 	
-	StoreToAddress(g_patch_OnSlammedSurvivor__advanced_damage.Address + PATCH_OFFSET, GetAddressOfCell(s_flNewValue), NumberType_Int32);
+	StoreToAddress(g_patch_OnSlammedSurvivor__advanced_damage.Address + PATCH_OFFSET, s_pNewValue.Address, NumberType_Int32);
 }
 
 void CvarChg_OnSlammedSurvivor__expert_damage(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	static float s_flNewValue;
+	static MemoryBlock s_pNewValue = null;
+	if (!s_pNewValue)
+		s_pNewValue = new MemoryBlock(4);
 	
-	s_flNewValue = convar.FloatValue;
+	float flNewValue = convar.FloatValue;
+	s_pNewValue.StoreToOffset(0, view_as<int>(flNewValue), NumberType_Int32);
 	
-	StoreToAddress(g_patch_OnSlammedSurvivor__expert_damage.Address + PATCH_OFFSET, GetAddressOfCell(s_flNewValue), NumberType_Int32);
+	StoreToAddress(g_patch_OnSlammedSurvivor__expert_damage.Address + PATCH_OFFSET, s_pNewValue.Address, NumberType_Int32);
 }
 
 void CvarChg_ChargeImpactDistributor__damage(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -114,11 +123,14 @@ void CvarChg_ChargeImpactDistributor__damage(ConVar convar, const char[] oldValu
 		hasChecked = true;
 	}
 	
-	static float s_flNewValue;
+	static MemoryBlock s_pNewValue = null;
+	if (!s_pNewValue)
+		s_pNewValue = new MemoryBlock(4);
 	
-	s_flNewValue = convar.FloatValue;
+	float flNewValue = convar.FloatValue;
+	s_pNewValue.StoreToOffset(0, view_as<int>(flNewValue), NumberType_Int32);
 	
-	int data = isLinux ? view_as<int>(s_flNewValue) :  view_as<int>(GetAddressOfCell(s_flNewValue));
+	int data = isLinux ? view_as<int>(flNewValue) : view_as<int>(s_pNewValue.Address);
 	StoreToAddress(g_patch_ChargeImpactDistributor__damage.Address + PATCH_OFFSET, data, NumberType_Int32);
 }
 
