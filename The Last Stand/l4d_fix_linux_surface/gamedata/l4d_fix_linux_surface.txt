@@ -1,0 +1,158 @@
+"Games"
+{
+	"#default"
+	{
+		"#supported"
+		{
+			"engine"			"left4dead"
+			"engine"			"left4dead2"
+		}
+
+		"Addresses"
+		{
+			"g_BSPData"
+			{
+				"linux"
+				{
+					"signature"	"g_BSPData"
+				}
+			}
+
+			"physprops"
+			{
+				"linux"
+				{
+					"signature"	"physprops"
+				}
+			}
+		}
+
+		"Offsets"
+		{
+			"CCollisionBSPData::map_surfaces"
+			{
+				"linux"			"588"
+				"windows"		"580"
+			}
+
+			"CCollisionBSPData::numtextures"
+			{
+				"linux"			"580"
+				"windows"		"572"
+			}
+
+			"CCollisionBSPData::map_texturenames"
+			{
+				"linux"			"584"
+				"windows"		"576"
+			}
+
+			"IPhysicsSurfaceProps::GetSurfaceIndex"
+			{
+				"linux"			"4"
+				"windows"		"3"
+			}
+		}
+
+		"Signatures"
+		{
+			"g_BSPData"
+			{
+				"library"		"engine"
+				"linux"			"@g_BSPData"
+			}
+
+			"physprops"
+			{
+				"library"		"engine"
+				"linux"			"@physprops"
+			}
+		}
+	}
+
+	"left4dead"
+	{
+		"Addresses"
+		{
+			"g_BSPData"
+			{
+				"windows"
+				{
+					"signature"	"CM_Vis"
+					"read"		"92"
+				}
+			}
+
+			"physprops"
+			{
+				"windows"
+				{
+					"signature"	"CollisionBSPData_LoadTextures"
+					"read"		"698"
+				}
+			}
+		}
+
+		"Signatures"
+		{
+			// Search string "CM_Vis: error"
+			"CM_Vis"
+			{
+				"library"		"engine"
+				"windows"		"\x56\x8B\x74\x24\x2A\x85\xF6\x74\x2A\x8B\x4C\x24\x2A\x83\xF9\x02"
+								/* 56 8B 74 24 ? 85 F6 74 ? 8B 4C 24 ? 83 F9 02 */
+			}
+
+			// Search string "Map has too many textures"
+			"CollisionBSPData_LoadTextures"
+			{
+				"library"		"engine"
+				"windows"		"\x81\xEC\x2A\x2A\x2A\x2A\x53\x55\x56\x57\x6A\x02"
+								/* 81 EC ? ? ? ? 53 55 56 57 6A 02 */
+			}
+		}
+	}
+	
+	"left4dead2"
+	{
+		"Addresses"
+		{
+			"g_BSPData"
+			{
+				"windows"
+				{
+					"signature"	"CM_Vis"
+					"read"		"92"
+				}
+			}
+
+			"physprops"
+			{
+				"windows"
+				{
+					"signature"	"CollisionBSPData_LoadTextures"
+					"read"		"817"
+				}
+			}
+		}
+
+		"Signatures"
+		{
+			// Search string "CM_Vis: error"
+			"CM_Vis"
+			{
+				"library"		"engine"
+				"windows"		"\x55\x8B\x2A\x56\x8B\x2A\x2A\x85\xF6\x74\x2A\x8B\x4D\x14\x83"
+								/* 55 8B ? 56 8B ? ? 85 F6 74 ? 8B 4D 14 83 */
+			}
+
+			// Search string "Map has too many textures"
+			"CollisionBSPData_LoadTextures"
+			{
+				"library"		"engine"
+				"windows"		"\x55\x8B\x2A\x81\xEC\x2A\x2A\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x2A\x2A\x89\x2A\x2A\x53\x56\x8B\x75\x2A\x57\x6A\x02"
+								/* 55 8B ? 81 EC ? ? ? ? A1 ? ? ? ? ? ? 89 ? ? 53 56 8B 75 ? 57 6A 02 */
+			}
+		}
+	}
+}
