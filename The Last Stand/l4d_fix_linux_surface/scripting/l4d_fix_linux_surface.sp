@@ -4,7 +4,7 @@
 #include <sourcemod>
 #include <sdktools>
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.0.1"
 
 public Plugin myinfo = 
 {
@@ -250,19 +250,21 @@ void ExpandPatchFile(KeyValues kv)
 		patches.Import(kv);
 
 		kv.GetString("include", buffer, sizeof(buffer));
-		kv.DeleteKey("include");
 		if (!buffer[0])
 		{
 			LogError(" ExpandPatchFile: VMT patch file has no $include key - invalid! ");
 			return;
 		}
 
+		String_ToLower(buffer, sizeof(buffer));
+		ReplaceString(buffer, sizeof(buffer), "\\", "/");
+
 		kv.DeleteThis();
 		kv.JumpToKey("vmt", true);
 
 		if (!kv.ImportFromFile(buffer))
 		{
-			LogError(" ExpandPatchFile: Failed to import VMT file ");
+			LogError(" ExpandPatchFile: Failed to import VMT file (%s)", buffer);
 			return;
 		}
 	}
