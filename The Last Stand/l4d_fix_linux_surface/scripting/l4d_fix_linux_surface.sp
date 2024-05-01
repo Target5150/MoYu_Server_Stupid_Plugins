@@ -4,7 +4,7 @@
 #include <sourcemod>
 #include <sdktools>
 
-#define PLUGIN_VERSION "1.0.1"
+#define PLUGIN_VERSION "1.0.2"
 
 public Plugin myinfo = 
 {
@@ -246,6 +246,8 @@ void ExpandPatchFile(KeyValues kv)
 	int count = 0;
 	while (count < 10 && kv.GetSectionName(buffer, sizeof(buffer)) && !strcmp(buffer, "patch"))
 	{
+		++count;
+
 		ApplyPatchKeyValues(kv, patches);
 		patches.Import(kv);
 
@@ -253,7 +255,7 @@ void ExpandPatchFile(KeyValues kv)
 		if (!buffer[0])
 		{
 			LogError(" ExpandPatchFile: VMT patch file has no $include key - invalid! ");
-			return;
+			break;
 		}
 
 		String_ToLower(buffer, sizeof(buffer));
@@ -265,7 +267,7 @@ void ExpandPatchFile(KeyValues kv)
 		if (!kv.ImportFromFile(buffer))
 		{
 			LogError(" ExpandPatchFile: Failed to import VMT file (%s)", buffer);
-			return;
+			break;
 		}
 	}
 
