@@ -9,7 +9,7 @@
 				"signature"		"CTerrorPlayer::OnFallDamage"
 				"linux"
 				{
-					"offset"	"F9h"
+					"offset"	"FAh"
 					"verify"	"\x0F\x84"
 					"patch"		"\x90\xE9"
 				}

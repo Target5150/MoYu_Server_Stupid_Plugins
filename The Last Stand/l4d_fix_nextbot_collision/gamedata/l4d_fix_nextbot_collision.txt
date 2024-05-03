@@ -1,0 +1,112 @@
+"Games"
+{
+	"#default"
+	{
+		"Offsets"
+		{
+			"OS"
+			{
+				"linux"				"1"
+				"windows"			"0"
+			}
+		}
+	}
+
+	"left4dead"
+	{
+		"MemPatches"
+		{
+			"ZombieBotLocomotion::ResolveZombieCollisions__result_multiple_dummypatch"
+			{
+				"signature"			"ZombieBotLocomotion::ResolveZombieCollisions"
+				"linux"
+				{
+					"offset"		"1EFh"
+					"verify"		"\x2A\x2A\xD8\x8B"					// fmul  dword ptr [ebx+offs]
+					"preserve"		"\xFF\xFF\x00\x00\xFF\xFF\xFF\xFF"
+					"patch"			"\x00\x00\xD8\x0D\x00\x00\x00\x00"	// fmul  ds:my_float
+				}
+				"windows"
+				{
+					"offset"		"201h"
+					"verify"		"\x2A\x2A\xD9\x05"
+					"preserve"		"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"
+					"patch"			"\x00\x00\x00\x00\x00\x00\x00\x00"
+				}
+			}
+
+			"ZombieBotLocomotion::ResolveZombieCollisions__result_multiple_dummypatch_linuxl4d1_p2"
+			{
+				"signature"			"ZombieBotLocomotion::ResolveZombieCollisions"
+				"linux"
+				{
+					"offset"		"203h"
+					"verify"		"\x2A\x2A\xD8\x8B"					// fmul  dword ptr [ebx+offs]
+					"preserve"		"\xFF\xFF\x00\x00\xFF\xFF\xFF\xFF"
+					"patch"			"\x00\x00\xD8\x0D\x00\x00\x00\x00"	// fmul  ds:my_float
+				}
+			}
+
+			"ZombieBotLocomotion::ResolveZombieCollisions__result_multiple_dummypatch_linuxl4d1_p3"
+			{
+				"signature"			"ZombieBotLocomotion::ResolveZombieCollisions"
+				"linux"
+				{
+					"offset"		"217h"
+					"verify"		"\x2A\x2A\xD8\x8B"					// fmul  dword ptr [ebx+offs]
+					"preserve"		"\xFF\xFF\x00\x00\xFF\xFF\xFF\xFF"
+					"patch"			"\x00\x00\xD8\x0D\x00\x00\x00\x00"	// fmul  ds:my_float
+				}
+			}
+		}
+		
+		"Signatures"
+		{
+			// Search string "ZombieBotLocomotion::ResolveZombieCollisions"
+			"ZombieBotLocomotion::ResolveZombieCollisions"
+			{
+				"library"			"server"
+				"linux"				"@_ZN19ZombieBotLocomotion23ResolveZombieCollisionsERK6Vector"
+				"windows"			"\x83\x2A\x2A\x8B\x2A\x2A\x2A\x8B\x2A\x2A\x2A\x8B\x2A\x2A\x2A\x2A\x2A\x8B\x2A\x8B\x2A\x8B\x2A\x2A\x89"
+									/* 83 ? ? 8B ? ? ? 8B ? ? ? 8B ? ? ? ? ? 8B ? 8B ? 8B ? ? 89 */
+			}
+		}
+	}
+	
+	"left4dead2"
+	{
+		"MemPatches"
+		{
+			"ZombieBotLocomotion::ResolveZombieCollisions__result_multiple_dummypatch"
+			{
+				"signature"			"ZombieBotLocomotion::ResolveZombieCollisions"
+				"linux"
+				{
+					"offset"		"301h"
+					"verify"		"\xF3\x0F\x10"
+					"preserve"		"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"
+					"patch"			"\x00\x00\x00\x00\x00\x00\x00\x00"
+				}
+				"windows"
+				{
+					"offset"		"28Ch"
+					"verify"		"\xF3\x0F\x10"
+					"preserve"		"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"
+					"patch"			"\x00\x00\x00\x00\x00\x00\x00\x00"
+				}
+			}
+		}
+		
+		"Signatures"
+		{
+			// Search string "ZombieBotLocomotion::ResolveZombieCollisions"
+			"ZombieBotLocomotion::ResolveZombieCollisions"
+			{
+				"library"			"server"
+				"linux"				"@_ZN19ZombieBotLocomotion23ResolveZombieCollisionsERK6Vector"
+				"windows"			"\x55\x8B\x2A\x2A\x2A\x2A\x8B\x2A\x2A\x8B\x2A\x2A\x2A\x8B\x2A\x2A\x2A\x2A\x8B\x2A\x8B"
+									/* 55 8B ? ? ? ? 8B ? ? 8B ? ? ? 8B ? ? ? ? 8B ? 8B */
+			}
+		}
+	}
+}
