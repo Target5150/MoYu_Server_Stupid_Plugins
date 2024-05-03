@@ -25,12 +25,12 @@ methodmap EHANDLE {
         static int s_iRandomOffsetToAnEHandle = -1;
         if (s_iRandomOffsetToAnEHandle == -1)
             s_iRandomOffsetToAnEHandle = FindSendPropInfo("CWorld", "m_hOwnerEntity");
-        
+
         int temp = GetEntData(0, s_iRandomOffsetToAnEHandle, 4);
         SetEntData(0, s_iRandomOffsetToAnEHandle, this, 4);
         int result = GetEntDataEnt2(0, s_iRandomOffsetToAnEHandle);
         SetEntData(0, s_iRandomOffsetToAnEHandle, temp, 4);
-        
+
         return result;
     #endif
     }
@@ -38,8 +38,23 @@ methodmap EHANDLE {
 
 enum InfectedFlag
 {
-	// random naming by me
+	INFECTED_FLAG_RESERVED_WANDERER		= 0x1,
+	INFECTED_FLAG_FIRE_IMMUNE			= 0x2,		// CEDA
+	INFECTED_FLAG_CRAWL_RUN				= 0x4,		// mudman
+	INFECTED_FLAG_UNDISTRACTABLE		= 0x8,		// worman
+	INFECTED_FLAG_FALLEN_SURVIVOR		= 0x10,
+	INFECTED_FLAG_RIOTCOP				= 0x20,
+	INFECTED_FLAG_ALLOW_AMBUSH			= 0x40,		// Removed after first shoved
+	INFECTED_FLAG_AMBIENT_MOB			= 0x80,
+
+	INFECTED_FLAG_NO_ATTRACT			= 0x100,	// Do not create "info_goal_infected_chase"
+	INFECTED_FLAG_WITCH_BLOCK_CLIMB		= 0x200,	// Block climbing when wandering around
 	INFECTED_FLAG_FALLEN_FLEE			= 0x400,
+	INFECTED_FLAG_HEADSHOT_ONLY			= 0x800,	// "cm_HeadshotOnly"
+
+	INFECTED_FLAG_CANT_SEE_SURVIVORS	= 0x2000,
+	INFECTED_FLAG_CANT_HEAR_SURVIVORS	= 0x4000,
+	INFECTED_FLAG_CANT_FEEL_SURVIVORS	= 0x8000,
 };
 int g_iOffs_m_nInfectedFlags;
 
@@ -48,7 +63,7 @@ bool g_bFleeOnContact;
 public void OnPluginStart()
 {
 	g_iOffs_m_nInfectedFlags = FindSendPropInfo("Infected", "m_nFallenFlags") - 4;
-	
+
 	CreateConVarHook("z_never_fight_on_contact",
 				"1",
 				"Common keeps fleeing after contacting survivors instead of attacking them.",
@@ -70,7 +85,7 @@ public void OnActionCreated(BehaviorAction action, int actor, const char[] name)
 		{
 			AddInfectedFlag(actor, INFECTED_FLAG_FALLEN_FLEE);
 		}
-		
+
 		if (strcmp(name, "InfectedAttack") == 0)
 		{
 			action.OnStartPost = InfectedAttack__OnStartPost;
@@ -89,7 +104,7 @@ Action InfectedAttack__OnStartPost(BehaviorAction action, int actor, BehaviorAct
 	{
 		RequestFrame(NextFrame_FakeInjure, EntIndexToEntRef(actor));
 	}
-	
+
 	return Plugin_Continue;
 }
 
@@ -98,19 +113,19 @@ void NextFrame_FakeInjure(int entRef)
 	int entity = EntRefToEntIndex(entRef);
 	if (!IsValidEdict(entity))
 		return;
-	
+
 	BehaviorAction action = ActionsManager.GetAction(entity, "InfectedAttack");
 	if (action == INVALID_ACTION)
 		return;
-	
+
 	EHANDLE hTarget = action.Get(52, NumberType_Int32);
 	int client = hTarget.Get();
 	if (client <= 0 || client > MaxClients || !IsClientInGame(client))
 		return;
-	
+
 	if (GetClientTeam(client) != 2)
 		return;
-	
+
 	// fakes OnInjured event
 	SDKHooks_TakeDamage(entity, client, client, 0.0, .bypassHooks = true);
 }
@@ -148,14 +163,14 @@ stock ConVar CreateConVarHook(const char[] name,
 	ConVarChanged callback)
 {
 	ConVar cv = CreateConVar(name, defaultValue, description, flags, hasMin, min, hasMax, max);
-	
+
 	Call_StartFunction(INVALID_HANDLE, callback);
 	Call_PushCell(cv);
 	Call_PushNullString();
 	Call_PushNullString();
 	Call_Finish();
-	
+
 	cv.AddChangeHook(callback);
-	
+
 	return cv;
 }
