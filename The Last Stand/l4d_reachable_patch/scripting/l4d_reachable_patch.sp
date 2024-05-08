@@ -5,7 +5,7 @@
 #include <sdktools>
 #include <sourcescramble>
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo = 
 {
@@ -155,7 +155,14 @@ any Ntv_SurvivorBot_NavAreaBuildPath(Handle plugin, int numParams)
 
 any Ntv_SurvivorBot_IsReachable(Handle plugin, int numParams)
 {
-	return IsReachable(GetNativeCell(1), GetNativeCell(2));
+	Address from = GetNativeCell(1);
+	Address to = GetNativeCell(2);
+
+	// passing any null to the function results in a crash
+	if (!from || !to)
+		return false;
+
+	return IsReachable(from, to);
 }
 
 bool NavAreaBuildPath_SurvivorBotPathCost(
