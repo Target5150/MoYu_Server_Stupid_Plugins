@@ -60,7 +60,7 @@ public SharedPlugin __pl_l4d_tank_damage_announce =
 };
 
 #if !defined REQUIRE_PLUGIN
-public void __pl_l4d_tank_control_eq_SetNTVOptional()
+public void __pl_l4d_tank_damage_announce_SetNTVOptional()
 {
 	MarkNativeAsOptional("TFA_Punches");
 	MarkNativeAsOptional("TFA_Rocks");
