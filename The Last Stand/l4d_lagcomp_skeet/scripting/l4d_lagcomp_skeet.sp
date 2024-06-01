@@ -3,8 +3,9 @@
 
 #include <sourcemod>
 #include <sdkhooks>
+#include <dhooks>
 
-#define PLUGIN_VERSION "1.2"
+#define PLUGIN_VERSION "1.3"
 
 public Plugin myinfo =
 {
@@ -37,54 +38,52 @@ methodmap CUserCmd
 	}
 }
 
-bool g_bLateLoad;
-
-public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
-{
-	g_bLateLoad = late;
-	return APLRes_Success;
+methodmap GameDataWrapper < GameData {
+	public GameDataWrapper(const char[] file) {
+		GameData gd = new GameData(file);
+		if (!gd) SetFailState("Missing gamedata \"%s\"", file);
+		return view_as<GameDataWrapper>(gd);
+	}
+	public DynamicDetour CreateDetourOrFail(
+			const char[] name,
+			DHookCallback preHook = INVALID_FUNCTION,
+			DHookCallback postHook = INVALID_FUNCTION) {
+		DynamicDetour hSetup = DynamicDetour.FromConf(this, name);
+		if (!hSetup)
+			SetFailState("Missing detour setup \"%s\"", name);
+		if (preHook != INVALID_FUNCTION && !hSetup.Enable(Hook_Pre, preHook))
+			SetFailState("Failed to pre-detour \"%s\"", name);
+		if (postHook != INVALID_FUNCTION && !hSetup.Enable(Hook_Post, postHook))
+			SetFailState("Failed to post-detour \"%s\"", name);
+		return hSetup;
+	}
 }
 
 public void OnPluginStart()
 {
-	if (g_bLateLoad)
-	{
-		for (int i = 1; i <= MaxClients; ++i)
-		{
-			if (IsClientInGame(i)) HookClient(i, true);
-		}
-	}
+	GameDataWrapper gd = new GameDataWrapper("l4d_lagcomp_skeet");
+	delete gd.CreateDetourOrFail("CTerrorPlayer::OnTakeDamageInternal", DTR_OnTakeDamageInternal, DTR_OnTakeDamageInternal_Post);
+	delete gd;
 }
 
-public void OnClientPutInServer(int client)
+int g_iSaveClient;
+int g_iSave_m_isAttemptingToPounce;
+MRESReturn DTR_OnTakeDamageInternal(int victim, DHookParam hParams)
 {
-	HookClient(client, true);
-}
+	g_iSaveClient = -1;
+	g_iSave_m_isAttemptingToPounce = -1;
 
-void HookClient(int client, bool toggle)
-{
-	if (toggle)
-	{
-		SDKHook(client, SDKHook_OnTakeDamage, SDK_OnTakeDamage);
-		SDKHook(client, SDKHook_OnTakeDamagePost, SDK_OnTakeDamage_Post);
-	}
-	else
-	{
-		SDKUnhook(client, SDKHook_OnTakeDamage, SDK_OnTakeDamage);
-		SDKUnhook(client, SDKHook_OnTakeDamagePost, SDK_OnTakeDamage_Post);
-	}
-}
-
-int g_iSave_m_isAttemptingToPounce = -1;
-Action SDK_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
-{
 	int ability = GetEntPropEnt(victim, Prop_Send, "m_customAbility");
 	if (ability == -1 || !IsAbilityLunge(ability))
-		return Plugin_Continue;
+		return MRES_Ignored;
 
+	static const int k_iOffs_CTakeDamageInfo_m_hAttacker = 52;
+
+	int attacker = hParams.GetObjectVar(1, k_iOffs_CTakeDamageInfo_m_hAttacker, ObjectValueType_Ehandle);
 	if (attacker <= 0 || attacker > MaxClients || !IsClientInGame(attacker) || GetClientTeam(attacker) != 2 || IsFakeClient(attacker))
-		return Plugin_Continue;
+		return MRES_Ignored;
 
+	g_iSaveClient = victim;
 	float flTargetTime = GetLagCompTargetTime(attacker);
 
 	if (GetEntProp(ability, Prop_Send, "m_isLunging"))
@@ -106,20 +105,22 @@ Action SDK_OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage
 		}
 	}
 
-	return Plugin_Continue;
+	return MRES_Ignored;
 }
 
-void SDK_OnTakeDamage_Post(int victim, int attacker, int inflictor, float damage, int damagetype)
+MRESReturn DTR_OnTakeDamageInternal_Post(int victim, DHookParam hParams)
 {
-	int ability = GetEntPropEnt(victim, Prop_Send, "m_customAbility");
-	if (ability == -1 || !IsAbilityLunge(ability))
-		return;
+	if (g_iSaveClient != victim)
+		return MRES_Ignored;
 
+	g_iSaveClient = -1;
 	if (g_iSave_m_isAttemptingToPounce != -1)
 	{
 		SetEntProp(victim, Prop_Send, "m_isAttemptingToPounce", g_iSave_m_isAttemptingToPounce);
 		g_iSave_m_isAttemptingToPounce = -1;
 	}
+
+	return MRES_Ignored;
 }
 
 float GetLagCompTargetTime(int client)

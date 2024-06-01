@@ -1,0 +1,53 @@
+"Games"
+{
+	"#default"
+	{
+		"Functions"
+		{
+			"CTerrorPlayer::OnTakeDamageInternal"
+			{
+				"signature"		"CTerrorPlayer::OnTakeDamageInternal"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"entity"
+				"arguments"
+				{
+					"CTakeDamageInfo&"
+					{
+						"type"	"objectptr"
+					}
+				}
+			}
+		}
+	}
+
+	"left4dead"
+	{
+		"Signatures"
+		{
+			// Search string "%s took %d/%d damage while trying to pounce"
+			"CTerrorPlayer::OnTakeDamageInternal"
+			{
+				"library"		"server"
+				"linux"			"@_ZN13CTerrorPlayer20OnTakeDamageInternalER15CTakeDamageInfo"
+				"windows"		"\xD9\xEE\x81\xEC\x2A\x2A\x2A\x2A\x55\x8B"
+								/* D9 EE 81 EC ? ? ? ? 55 8B */
+			}
+		}
+	}
+
+	"left4dead2"
+	{
+		"Signatures"
+		{
+			// Search string "%s took %d/%d damage while trying to pounce"
+			"CTerrorPlayer::OnTakeDamageInternal"
+			{
+				"library"		"server"
+				"linux"			"@_ZN13CTerrorPlayer20OnTakeDamageInternalER15CTakeDamageInfo"
+				"windows"		"\x53\x8B\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x55\x8B\x2A\x2A\x89\x2A\x2A\x2A\x2A\x2A\x81\xEC\x2A\x2A\x2A\x2A\x56\x57\x8B\x2A\x2A\xF3\x0F"
+								/* 53 8B ? ? ? ? ? ? ? ? ? ? 55 8B ? ? 89 ? ? ? ? ? 81 EC ? ? ? ? 56 57 8B ? ? F3 0F */
+			}
+		}
+	}
+}
