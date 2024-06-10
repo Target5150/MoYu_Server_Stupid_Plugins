@@ -1,0 +1,131 @@
+"Games"
+{
+	"left4dead"
+	{
+		"MemPatches"
+		{
+			"skip_IsMoving"
+			{
+				"signature"		"CFirstAidKit::DoHeal"
+				"linux"
+				{
+					"offset"	"A5h"
+					"verify"	"\x0F\x85"
+					"patch"		"\x90\x90\x90\x90\x90\x90"
+				}
+				"windows"
+				{
+					"offset"	"C5h"
+					"verify"	"\x74"
+					"patch"		"\xEB"
+				}
+			}
+
+			"set_mobilized"
+			{
+				"signature"		"CTerrorPlayer::IsImmobilized"
+				"linux"
+				{
+					"offset"	"1CAh"
+					"verify"	"\x74"
+					"patch"		"\xEB"
+				}
+				"windows"
+				{
+					"offset"	"7Fh"
+					"verify"	"\x74"
+					"patch"		"\xEB"
+				}
+			}
+		}
+
+		"Signatures"
+		{
+			"CTerrorPlayer::IsImmobilized"
+			{
+				"library"		"server"
+				"linux"			"@_ZNK13CTerrorPlayer13IsImmobilizedEv"
+				"windows"		"\x51\x56\x8B\xF1\x8B\x2A\x8B\x90\x2A\x2A\x2A\x2A\xFF\x2A\x2A\x2A\x74\x2A\xB0"
+								/* 51 56 8B F1 8B ? 8B 90 ? ? ? ? FF ? ? ? 74 ? B0 */
+			}
+
+			"CFirstAidKit::DoHeal"
+			{
+				"library"		"server"
+				"linux"			"@_ZN12CFirstAidKit6DoHealEi"
+				"windows"		"\x83\xEC\x2A\x55\x56\x8B\xF1\x89\x74\x24\x14\xE8"
+								/* 83 EC ? 55 56 8B F1 89 74 24 14 E8 */
+			}
+		}
+	}
+
+	"left4dead2"
+	{
+		"MemPatches"
+		{
+			"skip_IsMoving"
+			{
+				"signature"		"CBaseBackpackItem::ShouldContinueAction"
+				"linux"
+				{
+					"offset"	"A5h"
+					"verify"	"\x75"
+					"patch"		"\x90\x90"
+				}
+				"windows"
+				{
+					"offset"	"96h"
+					"verify"	"\x74"
+					"patch"		"\xEB"
+				}
+			}
+		}
+
+		"Functions"
+		{
+			"CTerrorPlayer::IsImmobilized"
+			{
+				"signature"		"CTerrorPlayer::IsImmobilized"
+				"callconv"		"thiscall"
+				"return"		"bool"
+				"this"			"entity"
+			}
+
+			"CBaseEntity::IsMoving"
+			{
+				"offset"		"CBaseEntity::IsMoving"
+				"hooktype"		"entity"
+				"return"		"bool"
+				"this"			"entity"
+			}
+		}
+
+		"Offsets"
+		{
+			"CBaseEntity::IsMoving"
+			{
+				"linux"			"85"
+				"windows"		"84"
+			}
+		}
+
+		"Signatures"
+		{
+			"CTerrorPlayer::IsImmobilized"
+			{
+				"library"		"server"
+				"linux"			"@_ZNK13CTerrorPlayer13IsImmobilizedEv"
+				"windows"		"\x55\x8B\xEC\x2A\x2A\x8B\x2A\x8B\x2A\x8B\x2A\x2A\x2A\x2A\x2A\xFF\x2A\x2A\x2A\x0F\x85"
+								/* 55 8B EC ? ? 8B ? 8B ? 8B ? ? ? ? ? FF ? ? ? 0F 85 */
+			}
+
+			"CBaseBackpackItem::ShouldContinueAction"
+			{
+				"library"		"server"
+				"linux"			"@_ZN17CBaseBackpackItem20ShouldContinueActionEP13CTerrorPlayerP11CBaseEntityi"
+				"windows"		"\x55\x8B\xEC\x2A\x2A\x2A\x8B\x7D\x2A\x8B\x2A\x8B\x90\x2A\x2A\x2A\x2A\x8B\x2A\x8B\x2A\xFF\x2A\x84\x2A\x74"
+								/* 55 8B EC ? ? ? 8B 7D ? 8B ? 8B 90 ? ? ? ? 8B ? 8B ? FF ? 84 ? 74 */
+			}
+		}
+	}
+}
