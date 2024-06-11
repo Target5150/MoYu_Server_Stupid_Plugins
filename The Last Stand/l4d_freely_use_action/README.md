@@ -1,4 +1,4 @@
-# Static Punch Get-up
+# [L4D & 2] Freely Use Action
 
 ### Introduction
 - Free movement when using items.
