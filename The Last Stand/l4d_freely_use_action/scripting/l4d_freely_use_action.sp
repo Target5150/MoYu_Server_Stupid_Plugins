@@ -6,7 +6,7 @@
 #include <sourcescramble>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.0.1"
 
 public Plugin myinfo = 
 {
@@ -85,12 +85,16 @@ static const int UseActionToFlag[MAX_USE_ACTION] = {
 
 int g_fType;
 float g_flSpeedFactor;
+
+int g_iOffs_m_iCurrentUseAction = -1;
 bool g_bLeft4Dead2;
 
 DynamicHook g_Hook_IsMoving;
 
 public void OnPluginStart()
 {
+	g_iOffs_m_iCurrentUseAction = FindSendPropInfo("CTerrorPlayer", "m_iCurrentUseAction");
+
 	GameDataWrapper gd = new GameDataWrapper("l4d_freely_use_action");
 
 	g_bLeft4Dead2 = GetEngineVersion() == Engine_Left4Dead2;
@@ -150,7 +154,7 @@ public void OnClientPutInServer(int client)
 
 public Action L4D_OnGetRunTopSpeed(int target, float &retVal)
 {
-	UseAction action = view_as<UseAction>(GetEntProp(target, Prop_Send, "m_iCurrentUseAction"));
+	UseAction action = view_as<UseAction>(GetEntData(target, g_iOffs_m_iCurrentUseAction));
 
 	if (IsAllowedUseType(action))
 	{
@@ -163,7 +167,7 @@ public Action L4D_OnGetRunTopSpeed(int target, float &retVal)
 
 MRESReturn DTR__IsMoving(int client, DHookReturn hReturn)
 {
-	UseAction action = view_as<UseAction>(GetEntProp(client, Prop_Send, "m_iCurrentUseAction"));
+	UseAction action = view_as<UseAction>(GetEntData(client, g_iOffs_m_iCurrentUseAction));
 
 	if (IsAllowedUseType(action))
 	{
@@ -177,12 +181,12 @@ MRESReturn DTR__IsMoving(int client, DHookReturn hReturn)
 UseAction g_iSave = UseAction_None;
 MRESReturn DTR__IsImmobilized(int client, DHookReturn hReturn)
 {
-	UseAction action = view_as<UseAction>(GetEntProp(client, Prop_Send, "m_iCurrentUseAction"));
+	UseAction action = view_as<UseAction>(GetEntData(client, g_iOffs_m_iCurrentUseAction));
 
 	if (IsAllowedUseType(action))
 	{
 		g_iSave = action;
-		SetEntProp(client, Prop_Send, "m_iCurrentUseAction", 0);
+		SetEntData(client, g_iOffs_m_iCurrentUseAction, 0);
 	}
 
 	return MRES_Ignored;
@@ -192,7 +196,7 @@ MRESReturn DTR__IsImmobilized_Post(int client, DHookReturn hReturn)
 {
 	if (g_iSave != UseAction_None)
 	{
-		SetEntProp(client, Prop_Send, "m_iCurrentUseAction", g_iSave);
+		SetEntData(client, g_iOffs_m_iCurrentUseAction, g_iSave);
 		g_iSave = UseAction_None;
 	}
 	return MRES_Ignored;
