@@ -6,7 +6,7 @@
 #include <sourcescramble>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "1.0.1"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo = 
 {
@@ -154,6 +154,11 @@ public void OnClientPutInServer(int client)
 
 public Action L4D_OnGetRunTopSpeed(int target, float &retVal)
 {
+	if (GetEntProp(target, Prop_Data, "m_nWaterLevel"))
+	{
+		return Plugin_Continue;
+	}
+
 	UseAction action = view_as<UseAction>(GetEntData(target, g_iOffs_m_iCurrentUseAction));
 
 	if (IsAllowedUseType(action))
