@@ -86,9 +86,9 @@ methodmap TerrorNavArea
 	}*/
 }
 
-methodmap CZombieManager 
+methodmap ZombieManager 
 {
-	public bool IsSpaceForZombieHere(const float vPos[3]) {
+	public static bool IsSpaceForZombieHere(const float vPos[3]) {
 		return SDKCall(s_hSDKCall_IsSpaceForZombieHere, L4D_GetPointer(POINTER_ZOMBIEMANAGER), vPos);
 	}
 }
