@@ -21,6 +21,12 @@
 				"linux"			"43"
 				"windows"		"42"
 			}
+
+			"ZombieBotLocomotion::m_ladder"
+			{
+				"linux"			"220"
+				"windows"		"220"
+			}
 		}
 		
 		"Signatures"
@@ -55,6 +61,12 @@
 			{
 				"linux"			"48"
 				"windows"		"47"
+			}
+
+			"ZombieBotLocomotion::m_ladder"
+			{
+				"linux"			"232"
+				"windows"		"232"
 			}
 		}
 		

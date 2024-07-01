@@ -7,7 +7,7 @@
 #include <left4dhooks_anim>
 #include <actions>
 
-#define PLUGIN_VERSION "1.4"
+#define PLUGIN_VERSION "1.4.1"
 
 public Plugin myinfo = 
 {
@@ -24,6 +24,8 @@ Handle g_hCall_MyNextBotPointer;
 Handle g_hCall_GetBodyInterface;
 Handle g_hCall_GetLocomotionInterface;
 Handle g_hCall_SetDesiredPosture;
+
+int g_iOffs_ZombieBotLocomotion__m_ladder;
 
 enum ActivityType 
 { 
@@ -79,8 +81,8 @@ methodmap ZombieBotBody
 methodmap ZombieBotLocomotion
 {
 	property Address m_ladder {
-		public get() { return LoadFromAddress(view_as<Address>(this) + view_as<Address>(232), NumberType_Int32); }
-		public set(Address p) { StoreToAddress(view_as<Address>(this) + view_as<Address>(232), p, NumberType_Int32); }
+		public get() { return LoadFromAddress(view_as<Address>(this) + view_as<Address>(g_iOffs_ZombieBotLocomotion__m_ladder), NumberType_Int32); }
+		public set(Address p) { StoreToAddress(view_as<Address>(this) + view_as<Address>(g_iOffs_ZombieBotLocomotion__m_ladder), p, NumberType_Int32); }
 	}
 }
 
@@ -130,6 +132,8 @@ public void OnPluginStart()
 		SetFailState("Missing signature \"INextBot::GetLocomotionInterface\"");
 	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
 	g_hCall_GetLocomotionInterface = EndPrepSDKCall();
+
+	g_iOffs_ZombieBotLocomotion__m_ladder = gd.GetOffset("ZombieBotLocomotion::m_ladder");
 	
 	delete gd;
 	
