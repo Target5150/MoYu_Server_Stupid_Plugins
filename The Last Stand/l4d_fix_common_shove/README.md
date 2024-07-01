@@ -9,12 +9,11 @@
 ### ConVars
 ```
 // Flag for fixing common shove.
-// 1 = Crouch, 2 = Falling, 4 = Landing
+// 1 = Crouch, 2 = Falling, 4 = Landing, 8 = Climbing
 // -
-// Default: "7.000000"
+// Default: "15"
 // Minimum: "0.000000"
-// Maximum: "7.000000"
-l4d_common_shove_flag "7"
+l4d_common_shove_flag "15"
 ```
 
 <hr>
