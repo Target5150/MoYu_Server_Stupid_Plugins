@@ -5,7 +5,7 @@
 #include <sdktools>
 #include <dhooks>
 
-#define PLUGIN_VERSION "3.3"
+#define PLUGIN_VERSION "3.3.1"
 
 public Plugin myinfo =
 {
@@ -21,9 +21,9 @@ public Plugin myinfo =
 
 enum
 {
-	Exception_Door,
-	Exception_Carryable
-}
+	Exception_Door			= 1,
+	Exception_Carryable		= (1 << 1),
+};
 
 ConVar g_cvExceptions;
 StringMap g_smExceptions;
@@ -43,8 +43,8 @@ public void OnPluginStart()
 									"1",
 									"Flag to allow bending on certain types of entities.\n" \
 								...	"1 = Doors, 2 = Carryable, 3 = All, 0 = Disable",
-									FCVAR_NOTIFY|FCVAR_SPONLY,
-									true, 0.0, true, 3.0);
+									FCVAR_NONE,
+									true, 0.0, false, 3.0);
 	
 	g_smExceptions = new StringMap();
 	g_smExceptions.SetValue("prop_door_rotating", Exception_Door);
