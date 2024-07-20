@@ -5,7 +5,7 @@
 #include <sdktools_functions>
 #include <actions>
 
-#define PLUGIN_VERSION "1.1"
+#define PLUGIN_VERSION "1.2"
 
 public Plugin myinfo = 
 {
@@ -31,9 +31,6 @@ methodmap EHANDLE {
 	}
 	
 	public int Get() {
-	#if SOURCEMOD_V_MAJOR >= 1 && SOURCEMOD_V_MINOR >= 12 && SOURCEMOD_V_REV >= 6964
-		return LoadEntityFromHandleAddress(view_as<Address>(this));
-	#else
 		static int s_iRandomOffsetToAnEHandle = -1;
 		if (s_iRandomOffsetToAnEHandle == -1)
 			s_iRandomOffsetToAnEHandle = FindSendPropInfo("CWorld", "m_hOwnerEntity");
@@ -44,7 +41,6 @@ methodmap EHANDLE {
 		SetEntData(0, s_iRandomOffsetToAnEHandle, temp, 4);
 		
 		return result;
-	#endif
 	}
 }
 
@@ -125,6 +121,7 @@ void NotifyNextbot(int newTarget, int oldTarget)
 	{ 
 		UTIL_ReplaceActionVictim(entity, "WitchAttack", newTarget, oldTarget);
 		UTIL_ReplaceActionVictim(entity, "WitchKillIncapVictim", newTarget, oldTarget);
+		UTIL_ReplaceActionVictim(entity, "InfectedStandingActivity", newTarget, oldTarget);
 	}
 
 	for (int i = 1; i <= MaxClients; i++)
@@ -162,6 +159,23 @@ void UTIL_ReplaceActionVictim(int entity, const char[] name, int newTarget, int 
 	if (action == INVALID_ACTION)
 		return;
 	
+	if (!strcmp(name, "InfectedStandingActivity"))
+	{
+		BehaviorAction nextAction = action.Get(68, NumberType_Int32);
+		if (action != INVALID_ACTION)
+		{
+			// It's still an inactive action so we cannot just call "BehaviorAction.GetName" on it
+			// ugly but accept
+			_ReplaceActionVictim(nextAction, "WitchKillIncapVictim", newTarget, oldTarget);
+		}
+		return;
+	}
+
+	_ReplaceActionVictim(action, name, newTarget, oldTarget);
+}
+
+void _ReplaceActionVictim(BehaviorAction action, const char[] name, int newTarget, int oldTarget)
+{
 	int offs = !strcmp(name, "PunchVictim") ? 88 : 52;
 
 	EHANDLE ehndl = action.Get(offs);
