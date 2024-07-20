@@ -13,7 +13,7 @@ Feel free to take any plugin here for any stuff.
 If you find a bug or something strange when using this project, any report is appreciated (via **Issues** or **Pull requests**).
 
 # Requirement
-- **Sourcemod 1.11 (Since 6825)**
+- **Sourcemod 1.12.0.7139**
   - Or you can try to compile it yourselves.
 - **[Left4DHooks](https://forums.alliedmods.net/showthread.php?p=2684862)**
 
