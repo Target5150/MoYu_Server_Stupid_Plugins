@@ -1,25 +1,37 @@
 "Phrases"
 {
+	"Frustrated"
+	{
+		"#format"	"{1:s}"
+		"en"		"AI [{1}]"
+	}
+	"AI"
+	{
+		"#format"	"{1:s}"
+		"en"		"AI"
+	}
+	"HumanControlled"
+	{
+		"#format"	"{1:s}"
+		"en"		"{1}"
+	}
+
 	/**
 	 * Remaining Health Title
 	 * ------------------------------
-	 * 1: Player name of the Tank
+	 * 1: Translation of the Tank player name
 	 * 2: Remaining health of the Tank
 	 * 3: Number of the Tank spawned on this map
+	 * 4: Top number
 	 */
-	"RemainingHealth_Frustrated"
+	"RemainingHealth"
 	{
-		"#format"	"{1:s},{2:d},{3:d}"
-		"en"		"{default}[{green}!{default}] {blue}Tank {default}({olive}AI [{1}]{default}) had {green}{2} {default}health remaining"
+		"#format"	"{1:t},{2:d},{3:d},{4:d}"
+		"en"		"{default}[{green}!{default}] {blue}Tank {default}({olive}{1}{default}) had {green}{2} {default}health remaining"
 	}
-	"RemainingHealth_AI"
+	"RemainingHealth_TopNumbered"
 	{
-		"#format"	"{1:s},{2:d},{3:d}"
-		"en"		"{default}[{green}!{default}] {blue}Tank {default}({olive}AI{default}) had {green}{2} {default}health remaining"
-	}
-	"RemainingHealth_HumanControlled"
-	{
-		"#format"	"{1:s},{2:d},{3:d}"
+		"#format"	"{1:t},{2:d},{3:d},{4:d}"
 		"en"		"{default}[{green}!{default}] {blue}Tank {default}({olive}{1}{default}) had {green}{2} {default}health remaining"
 	}
 	
@@ -27,23 +39,19 @@
 	/**
 	 * Generic Title
 	 * ------------------------------
-	 * 1: Player name of the Tank
+	 * 1: Translation of the Tank player name
 	 * 2: Number of the Tank spawned on this map
+	 * 3: Top number
 	 */
-	"DamageDealt_Frustrated"
+	"DamageDealt"
 	{
-		"#format"	"{1:s},{2:d}"
-		"en"		"{default}[{green}!{default}] {blue}Damage {default}dealt to {blue}Tank {default}({olive}AI [{1}]{default})"
-	}
-	"DamageDealt_AI"
-	{
-		"#format"	"{1:s},{2:d}"
-		"en"		"{default}[{green}!{default}] {blue}Damage {default}dealt to {blue}Tank {default}({olive}AI{default})"
-	}
-	"DamageDealt_HumanControlled"
-	{
-		"#format"	"{1:s},{2:d}"
+		"#format"	"{1:t},{2:d},{3:d}"
 		"en"		"{default}[{green}!{default}] {blue}Damage {default}dealt to {blue}Tank {default}({olive}{1}{default})"
+	}
+	"DamageDealt_TopNumbered"
+	{
+		"#format"	"{1:t},{2:d},{3:d}"
+		"en"		"{default}[{green}!{default}] {blue}Top {olive}{3} {blue}damage {default}dealt to {blue}Tank {default}({olive}{1}{default})"
 	}
 	
 	
@@ -84,22 +92,12 @@
 	/**
 	 * Tank Facts/Skill Title
 	 * ------------------------------
-	 * 1: Player name of the Tank
+	 * 1: Translation of the Tank player name
 	 * 2: Number of the Tank spawned on this map
 	 */
-	"FactsTitle_Frustrated"
+	"FactsTitle"
 	{
-		"#format"	"{1:s},{2:d}"
-		"en"		"[{green}!{default}] {blue}Facts {default}of the {blue}Tank {default}({olive}AI [{1}]{default})"
-	}
-	"FactsTitle_AI"
-	{
-		"#format"	"{1:s},{2:d}"
-		"en"		"[{green}!{default}] {blue}Facts {default}of the {blue}Tank {default}({olive}AI{default})"
-	}
-	"FactsTitle_HumanControlled"
-	{
-		"#format"	"{1:s},{2:d}"
+		"#format"	"{1:t},{2:d}"
 		"en"		"[{green}!{default}] {blue}Facts {default}of the {blue}Tank {default}({olive}{1}{default})"
 	}
 	

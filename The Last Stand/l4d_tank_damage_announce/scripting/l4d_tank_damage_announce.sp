@@ -53,7 +53,7 @@
 * @Forgetest
 */
 
-#define PLUGIN_VERSION "3.3"
+#define PLUGIN_VERSION "3.4"
 
 public Plugin myinfo =
 {
@@ -107,7 +107,8 @@ bool
 
 ConVar
 	g_hCvarEnabled				= null,
-	g_hCvarDebug				= null;
+	g_hCvarDebug				= null,
+	g_hCvarTopCount				= null;
 
 enum
 {
@@ -127,6 +128,14 @@ enum
 }
 ConVar
 	g_hTextStyle				= null;
+
+enum 
+{
+	OTHERSOURCE_FRIENDLY		= 1,
+	OTHERSOURCE_UNKNOWN			= (1 << 1),
+};
+ConVar
+	g_hCvarOtherSource			= null;
 
 GlobalForward g_TankDanageAnnounceForward;
 	
@@ -172,6 +181,20 @@ public void OnPluginStart()
 										"Debug toggler.",
 										FCVAR_NONE,
 										true, 0.0, true, 1.0);
+	g_hCvarTopCount = CreateConVar("l4d_tankdamage_top_count",
+										"0",
+										"Print only top-numbered survivor damages."
+									...	"0 = print all survivor damages",
+										FCVAR_NONE,
+										true, 0.0, false, 0.0);
+	g_hCvarOtherSource = CreateConVar("l4d_tankdamage_other_source",
+										"3",
+										"Announce damages from other source than survivors.\n"
+									...	"1 = Infected friendly damage\n"
+									...	"2 = Unknown source damage\n"
+									...	"3 = All.",
+										FCVAR_NONE,
+										true, 0.0, false, 0.0);
 	g_hTextStyle = CreateConVar("l4d_tankdamage_text_style",
 										"2",
 										"Text style for how tank facts are printed.\n"
@@ -565,17 +588,19 @@ void PrintTankDamageTitle(const TankInfo info)
 	char name[MAX_NAME_LENGTH];
 	bool bHumanControlled = FindTankControlName(info.userid, name, sizeof(name));
 	
-	char sTranslation[64];
-	FormatEx(sTranslation,
-		sizeof(sTranslation),
-		"%s_%s",
-		IsPlayerAlive(client) ? "RemainingHealth" : "DamageDealt",
-		IsFakeClient(client) ? (bHumanControlled ? "Frustrated" : "AI") : "HumanControlled");
-	
 	if (IsPlayerAlive(client))
-		CPrintToChatAll("%t", sTranslation, name, info.lastHealth, info.index);
+		CPrintToChatAll("%t",
+				g_hCvarTopCount.IntValue ? "RemainingHealth_TopNumbered" : "RemainingHealth",
+				IsFakeClient(client) ? (bHumanControlled ? "Frustrated" : "AI") : "HumanControlled", name,
+				info.lastHealth,
+				info.index,
+				g_hCvarTopCount.IntValue);
 	else
-		CPrintToChatAll("%t", sTranslation, name, info.index);
+		CPrintToChatAll("%t",
+				g_hCvarTopCount.IntValue ? "DamageDealt_TopNumbered" : "DamageDealt",
+				IsFakeClient(client) ? (bHumanControlled ? "Frustrated" : "AI") : "HumanControlled", name,
+				info.index,
+				g_hCvarTopCount.IntValue);
 }
 
 void PrintTankFactsTitle(const TankInfo info)
@@ -585,16 +610,17 @@ void PrintTankFactsTitle(const TankInfo info)
 	char name[MAX_NAME_LENGTH];
 	bool bHumanControlled = FindTankControlName(info.userid, name, sizeof(name));
 	
-	char sTranslation[64];
-	FormatEx(sTranslation,
-			sizeof(sTranslation),
-			"FactsTitle_%s",
-			IsFakeClient(client) ? (bHumanControlled ? "Frustrated" : "AI") : "HumanControlled");
-	
 	if (IsPlayerAlive(client))
-		CPrintToChatAll("%t", sTranslation, name, info.lastHealth, info.index);
+		CPrintToChatAll("%t",
+				"FactsTitle",
+				IsFakeClient(client) ? (bHumanControlled ? "Frustrated" : "AI") : "HumanControlled", name,
+				info.lastHealth,
+				info.index);
 	else
-		CPrintToChatAll("%t", sTranslation, name, info.index);
+		CPrintToChatAll("%t",
+				"FactsTitle",
+				IsFakeClient(client) ? (bHumanControlled ? "Frustrated" : "AI") : "HumanControlled", name,
+				info.index);
 }
 
 void PrintTankInfo(int userid = 0)
@@ -706,6 +732,7 @@ bool ClearTankInfoInternal(int userid)
 	return true;
 }
 
+int g_iAnnounceCount = 0;
 void PrintTankDamage(int userid)
 {
 	TankInfo info;
@@ -716,16 +743,18 @@ void PrintTankDamage(int userid)
 	// survivor damages
 	AutoUserVector survivorVector = info.survivorInfoVector;
 	survivorVector.SortCustom( SortADT_DamageDesc );
+
+	g_iAnnounceCount = 0;
 	survivorVector.ForEach( PrintTankDamageInternal, userid );
 	
 	// friendly / unknown damages
-	if (info.friendlyDamage)
+	if (info.friendlyDamage && g_hCvarOtherSource.IntValue & OTHERSOURCE_FRIENDLY)
 	{
 		int percent = RoundToNearest(float(info.friendlyDamage) / info.maxHealth * 100.0);
 		CPrintToChatAll("%t", "DamageToTank_Friendly", info.friendlyDamage, percent);	
 	}
 	
-	if (info.unknownDamage)
+	if (info.unknownDamage && g_hCvarOtherSource.IntValue & OTHERSOURCE_UNKNOWN)
 	{
 		int percent = RoundToNearest(float(info.unknownDamage) / info.maxHealth * 100.0);
 		CPrintToChatAll("%t", "DamageToTank_Unknown", info.unknownDamage, percent);
@@ -761,8 +790,9 @@ bool PrintTankDamageInternal(int userid, any tankid)
 		else
 			CPrintToChatAll("%t", "DamageToTank", info.damageDone, percent, name);
 	}
-	
-	return true;
+
+	g_iAnnounceCount++;
+	return g_iAnnounceCount <= g_hCvarTopCount.IntValue;
 }
 
 void PrintTankFacts(int userid, float delay = 0.0)

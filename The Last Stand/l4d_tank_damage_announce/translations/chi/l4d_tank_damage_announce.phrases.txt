@@ -1,25 +1,37 @@
 "Phrases"
 {
+	"Frustrated"
+	{
+		"#format"	"{1:s}"
+		"chi"		"AI [{1}]"
+	}
+	"AI"
+	{
+		"#format"	"{1:s}"
+		"chi"		"AI"
+	}
+	"HumanControlled"
+	{
+		"#format"	"{1:s}"
+		"chi"		"{1}"
+	}
+
 	/**
 	 * Remaining Health Title
 	 * ------------------------------
-	 * 1: Player name of the Tank
+	 * 1: Translation of the Tank player name
 	 * 2: Remaining health of the Tank
 	 * 3: Number of the Tank spawned on this map
+	 * 4: Top number
 	 */
-	"RemainingHealth_Frustrated"
+	"RemainingHealth"
 	{
-		"#format"	"{1:s},{2:d},{3:d}"
-		"chi"		"{default}[{green}!{default}] {blue}坦克 {default}({olive}AI [{1}]{default}) 还剩 {green}{2} {default}血"
+		"#format"	"{1:t},{2:d},{3:d},{4:d}"
+		"chi"		"{default}[{green}!{default}] {blue}坦克 {default}({olive}{1}{default}) 还剩 {green}{2} {default}血"
 	}
-	"RemainingHealth_AI"
+	"RemainingHealth_TopNumbered"
 	{
-		"#format"	"{1:s},{2:d},{3:d}"
-		"chi"		"{default}[{green}!{default}] {blue}坦克 {default}({olive}AI{default}) 还剩 {green}{2} {default}血"
-	}
-	"RemainingHealth_HumanControlled"
-	{
-		"#format"	"{1:s},{2:d},{3:d}"
+		"#format"	"{1:t},{2:d},{3:d},{4:d}"
 		"chi"		"{default}[{green}!{default}] {blue}坦克 {default}({olive}{1}{default}) 还剩 {green}{2} {default}血"
 	}
 	
@@ -27,23 +39,19 @@
 	/**
 	 * Generic Title
 	 * ------------------------------
-	 * 1: Player name of the Tank
+	 * 1: Translation of the Tank player name
 	 * 2: Number of the Tank spawned on this map
+	 * 3: Top number
 	 */
-	"DamageDealt_Frustrated"
+	"DamageDealt"
 	{
-		"#format"	"{1:s},{2:d}"
-		"chi"		"{default}[{green}!{default}] {default}对 {blue}坦克 {default}({olive}AI [{1}]{default}) 输出的{blue}伤害{default}:"
-	}
-	"DamageDealt_AI"
-	{
-		"#format"	"{1:s},{2:d}"
-		"chi"		"{default}[{green}!{default}] {default}对 {blue}坦克 {default}({olive}AI{default}) 输出的{blue}伤害{default}:"
-	}
-	"DamageDealt_HumanControlled"
-	{
-		"#format"	"{1:s},{2:d}"
+		"#format"	"{1:t},{2:d},{3:d}"
 		"chi"		"{default}[{green}!{default}] {default}对 {blue}坦克 {default}({olive}{1}{default}) 输出的{blue}伤害{default}:"
+	}
+	"DamageDealt_TopNumbered"
+	{
+		"#format"	"{1:t},{2:d},{3:d}"
+		"chi"		"{default}[{green}!{default}] {default}对 {blue}坦克 {default}({olive}{1}{default}) 输出的{blue}前 {olive}{3} {blue}伤害{default}:"
 	}
 	
 	
@@ -84,22 +92,12 @@
 	/**
 	 * Tank Facts/Skill Title
 	 * ------------------------------
-	 * 1: Player name of the Tank
+	 * 1: Translation of the Tank player name
 	 * 2: Number of the Tank spawned on this map
 	 */
-	"FactsTitle_Frustrated"
+	"FactsTitle"
 	{
-		"#format"	"{1:s},{2:d}"
-		"chi"		"[{green}!{default}] {blue}坦克 {default}({olive}AI [{1}]{default}) {blue}数据{default}统计:"
-	}
-	"FactsTitle_AI"
-	{
-		"#format"	"{1:s},{2:d}"
-		"chi"		"[{green}!{default}] {blue}坦克 {default}({olive}AI{default}) {blue}数据{default}统计:"
-	}
-	"FactsTitle_HumanControlled"
-	{
-		"#format"	"{1:s},{2:d}"
+		"#format"	"{1:t},{2:d}"
 		"chi"		"[{green}!{default}] {blue}坦克 {default}({olive}{1}{default}) {blue}数据{default}统计:"
 	}
 	
