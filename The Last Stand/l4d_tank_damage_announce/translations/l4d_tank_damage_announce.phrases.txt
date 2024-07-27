@@ -20,19 +20,19 @@
 	 * Remaining Health Title
 	 * ------------------------------
 	 * 1: Translation of the Tank player name
-	 * 2: Remaining health of the Tank
-	 * 3: Number of the Tank spawned on this map
-	 * 4: Top number
+	 * 3: Remaining health of the Tank
+	 * 4: Number of the Tank spawned on this map
+	 * 5: Top number
 	 */
 	"RemainingHealth"
 	{
-		"#format"	"{1:t},{2:d},{3:d},{4:d}"
-		"en"		"{default}[{green}!{default}] {blue}Tank {default}({olive}{1}{default}) had {green}{2} {default}health remaining"
+		"#format"	"{1:t},{2:s},{3:d},{4:d},{5:d}"
+		"en"		"{default}[{green}!{default}] {blue}Tank {default}({olive}{1}{default}) had {green}{3} {default}health remaining"
 	}
 	"RemainingHealth_TopNumbered"
 	{
-		"#format"	"{1:t},{2:d},{3:d},{4:d}"
-		"en"		"{default}[{green}!{default}] {blue}Tank {default}({olive}{1}{default}) had {green}{2} {default}health remaining"
+		"#format"	"{1:t},{2:s},{3:d},{4:d},{5:d}"
+		"en"		"{default}[{green}!{default}] {blue}Tank {default}({olive}{1}{default}) had {green}{3} {default}health remaining"
 	}
 	
 	
@@ -40,18 +40,18 @@
 	 * Generic Title
 	 * ------------------------------
 	 * 1: Translation of the Tank player name
-	 * 2: Number of the Tank spawned on this map
-	 * 3: Top number
+	 * 3: Number of the Tank spawned on this map
+	 * 4: Top number
 	 */
 	"DamageDealt"
 	{
-		"#format"	"{1:t},{2:d},{3:d}"
+		"#format"	"{1:t},{2:s},{3:d},{4:d}"
 		"en"		"{default}[{green}!{default}] {blue}Damage {default}dealt to {blue}Tank {default}({olive}{1}{default})"
 	}
 	"DamageDealt_TopNumbered"
 	{
-		"#format"	"{1:t},{2:d},{3:d}"
-		"en"		"{default}[{green}!{default}] {blue}Top {olive}{3} {blue}damage {default}dealt to {blue}Tank {default}({olive}{1}{default})"
+		"#format"	"{1:t},{2:s},{3:d},{4:d}"
+		"en"		"{default}[{green}!{default}] {blue}Top {olive}{4} {blue}damage {default}dealt to {blue}Tank {default}({olive}{1}{default})"
 	}
 	
 	
