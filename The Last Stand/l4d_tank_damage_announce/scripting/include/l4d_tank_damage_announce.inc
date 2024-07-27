@@ -48,6 +48,21 @@ native int TFA_TotalDmg(int client);
  */
 native int TFA_UpTime(int client);
 
+/**
+ * @brief Called when a Tank's damage info should be announced.
+ *
+ * @param tank					Client id of the Tank
+ * @param remaining_health		Remaining health of the Tank
+ * @param max_health			Total health of the Tank
+ * @param survivors				Array of survivor client id
+ * @param damages				Array of survivor damages
+ * @param arraySize				Size of array
+ *
+ * @noreturn
+ */
+forward void OnTankDamageAnnounce(int tank, int remaining_health, int max_health, const int[] survivors, const int[] damages, int arraySize);
+
+
 public SharedPlugin __pl_l4d_tank_damage_announce =
 {
 	name = "l4d_tank_damage_announce",

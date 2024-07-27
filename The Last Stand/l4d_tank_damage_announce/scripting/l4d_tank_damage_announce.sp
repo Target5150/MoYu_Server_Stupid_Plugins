@@ -6,7 +6,7 @@
 #include <colors>
 #include <left4dhooks>
 
-#include <uservector>
+#include <logic/uservector>
 
 /*
 * Version 0.6.6
@@ -53,7 +53,7 @@
 * @Forgetest
 */
 
-#define PLUGIN_VERSION "3.2"
+#define PLUGIN_VERSION "3.3"
 
 public Plugin myinfo =
 {
@@ -127,6 +127,8 @@ enum
 }
 ConVar
 	g_hTextStyle				= null;
+
+GlobalForward g_TankDanageAnnounceForward;
 	
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
@@ -135,6 +137,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	CreateNative("TFA_Hittables", Native_Hittables);
 	CreateNative("TFA_TotalDmg", Native_TotalDamage);
 	CreateNative("TFA_UpTime", Native_UpTime);
+
+	g_TankDanageAnnounceForward = new GlobalForward("OnTankDamageAnnounce", ET_Ignore, Param_Cell, Param_Cell, Param_Cell, Param_Array, Param_Array, Param_Cell);
 	
 	RegPluginLibrary("l4d_tank_damage_announce");
 	
@@ -595,9 +599,6 @@ void PrintTankFactsTitle(const TankInfo info)
 
 void PrintTankInfo(int userid = 0)
 {
-	if (!g_hCvarEnabled.BoolValue)
-		return;
-	
 	if (userid > 0)
 	{
 		PrintTankInfoInternal(userid);
@@ -612,6 +613,9 @@ void PrintTankInfo(int userid = 0)
 
 bool PrintTankInfoInternal(int userid)
 {
+	if (!g_hCvarEnabled.BoolValue)
+		return false;
+	
 	int style = g_hTextStyle.IntValue;
 	
 	if (style == Style_Separate_Reverse)
@@ -629,8 +633,52 @@ bool PrintTankInfoInternal(int userid)
 		
 		PrintTankFacts(userid, delay);
 	}
+
+	ForwardTankInfo(userid);
 	
 	return true;
+}
+
+void ForwardTankInfo(int userid)
+{
+	if (!g_TankDanageAnnounceForward.FunctionCount)
+		return;
+
+	int client = GetClientOfUserId(userid);
+	if (!client || !IsClientInGame(client))
+		return;
+
+	TankInfo tank;
+	g_aTankInfo.GetArray(userid, tank);
+
+	int size = tank.survivorInfoVector.Super.Length;
+	int count = 0;
+
+	int[] survivors = new int[size];
+	int[] damages = new int[size];
+
+	SurvivorInfo survivor;
+	for (int i = 0; i < size; ++i)
+	{
+		tank.survivorInfoVector.Super.GetArray(i, survivor);
+
+		int temp = GetClientOfUserId(survivor.userid);
+		if (!temp || !IsClientInGame(temp))
+			continue;
+
+		survivors[count] = temp;
+		damages[count] = survivor.damageDone;
+		count++;
+	}
+
+	Call_StartForward(g_TankDanageAnnounceForward);
+	Call_PushCell(client);
+	Call_PushCell(tank.lastHealth);
+	Call_PushCell(tank.maxHealth);
+	Call_PushArray(survivors, count);
+	Call_PushArray(damages, count);
+	Call_PushCell(count);
+	Call_Finish();
 }
 
 void ClearTankInfo(int userid = 0)
