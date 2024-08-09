@@ -53,7 +53,7 @@
 * @Forgetest
 */
 
-#define PLUGIN_VERSION "3.4.1"
+#define PLUGIN_VERSION "3.4.2"
 
 public Plugin myinfo =
 {
@@ -792,7 +792,7 @@ bool PrintTankDamageInternal(int userid, any tankid)
 	}
 
 	g_iAnnounceCount++;
-	return g_iAnnounceCount < g_hCvarTopCount.IntValue;
+	return !g_hCvarTopCount.IntValue || g_iAnnounceCount < g_hCvarTopCount.IntValue;
 }
 
 void PrintTankFacts(int userid, float delay = 0.0)
