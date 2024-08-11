@@ -20,18 +20,18 @@
 	 * Remaining Health Title
 	 * ------------------------------
 	 * 1: Translation of the Tank player name
-	 * 3: Remaining health of the Tank
-	 * 4: Number of the Tank spawned on this map
-	 * 5: Top number
+	 * 2: Remaining health of the Tank
+	 * 3: Number of the Tank spawned on this map
+	 * 4: Top number
 	 */
 	"RemainingHealth"
 	{
-		"#format"	"{1:t},{2:s},{3:d},{4:d},{5:d}"
+		"#format"	"{1:s},{2:d},{3:d},{4:d}"
 		"chi"		"{default}[{green}!{default}] {blue}坦克 {default}({olive}{1}{default}) 还剩 {green}{3} {default}血"
 	}
 	"RemainingHealth_TopNumbered"
 	{
-		"#format"	"{1:t},{2:s},{3:d},{4:d},{5:d}"
+		"#format"	"{1:s},{2:d},{3:d},{4:d}"
 		"chi"		"{default}[{green}!{default}] {blue}坦克 {default}({olive}{1}{default}) 还剩 {green}{3} {default}血"
 	}
 	
@@ -40,17 +40,17 @@
 	 * Generic Title
 	 * ------------------------------
 	 * 1: Translation of the Tank player name
-	 * 3: Number of the Tank spawned on this map
-	 * 4: Top number
+	 * 2: Number of the Tank spawned on this map
+	 * 3: Top number
 	 */
 	"DamageDealt"
 	{
-		"#format"	"{1:t},{2:s},{3:d},{4:d}"
+		"#format"	"{1:s},{2:d},{3:d}"
 		"chi"		"{default}[{green}!{default}] {default}对 {blue}坦克 {default}({olive}{1}{default}) 输出的{blue}伤害{default}:"
 	}
 	"DamageDealt_TopNumbered"
 	{
-		"#format"	"{1:t},{2:s},{3:d},{4:d}"
+		"#format"	"{1:s},{2:d},{3:d}"
 		"chi"		"{default}[{green}!{default}] {default}对 {blue}坦克 {default}({olive}{1}{default}) 输出的{blue}前 {olive}{4} {blue}伤害{default}:"
 	}
 	
@@ -97,7 +97,7 @@
 	 */
 	"FactsTitle"
 	{
-		"#format"	"{1:t},{2:d}"
+		"#format"	"{1:s},{2:d}"
 		"chi"		"[{green}!{default}] {blue}坦克 {default}({olive}{1}{default}) {blue}数据{default}统计:"
 	}
 	
