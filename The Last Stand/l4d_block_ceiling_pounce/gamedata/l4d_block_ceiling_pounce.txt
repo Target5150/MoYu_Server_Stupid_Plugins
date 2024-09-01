@@ -1,0 +1,109 @@
+"Games"
+{
+	"#default"
+	{
+		"Functions"
+		{
+			"CLunge::OnTouch"
+			{
+				"signature"		"CLunge::OnTouch"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"entity"
+				"arguments"
+				{
+					"a1"
+					{
+						"type"	"cbaseentity"
+					}
+				}
+			}
+		}
+
+		"Addresses"
+		{
+			"g_TouchTrace"
+			{
+				"linux"
+				{
+					"signature"	"g_TouchTrace"
+				}
+			}
+		}
+
+		"Signatures"
+		{
+			"g_TouchTrace"
+			{
+				"library"		"server"
+				"linux"			"@_ZL12g_TouchTrace"
+			}
+		}
+	}
+
+	"left4dead"
+	{
+		"Addresses"
+		{
+			"g_TouchTrace"
+			{
+				"windows"
+				{
+					"signature"	"CBaseEntity::PhysicsMarkEntitiesAsTouching"
+					"read"		"10"
+				}
+			}
+		}
+
+		"Signatures"
+		{
+			"CBaseEntity::PhysicsMarkEntitiesAsTouching"
+			{
+				"library"		"server"
+				"windows"		"\x56\x8B\x74\x24\x0C\x57\x8B\xF9\x56\xB9\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\xD9\x46\x38\xD9\x1D\x2A\x2A\x2A\x2A\x8B\x46\x3C\xA3\x2A\x2A\x2A\x2A\x8B\x4E\x40\x89\x0D\x2A\x2A\x2A\x2A\x8B\x56\x44\x89\x15\x2A\x2A\x2A\x2A\x66\x8B\x46\x48\x66\xA3\x2A\x2A\x2A\x2A\x66\x8B\x4E\x4A\x66\x89\x0D\x2A\x2A\x2A\x2A\x8B\x56\x4C\x89\x15\x2A\x2A\x2A\x2A\x8B\x46\x50\x8B\x74\x24\x0C\x56\x8B\xCF\xA3\x2A\x2A\x2A\x2A\xE8"
+								/* 56 8B 74 24 0C 57 8B F9 56 B9 ? ? ? ? E8 ? ? ? ? D9 46 38 D9 1D ? ? ? ? 8B 46 3C A3 ? ? ? ? 8B 4E 40 89 0D ? ? ? ? 8B 56 44 89 15 ? ? ? ? 66 8B 46 48 66 A3 ? ? ? ? 66 8B 4E 4A 66 89 0D ? ? ? ? 8B 56 4C 89 15 ? ? ? ? 8B 46 50 8B 74 24 0C 56 8B CF A3 ? ? ? ? E8 */
+			}
+
+			"CLunge::OnTouch"
+			{
+				"library"		"server"
+				"linux"			"@_ZN6CLunge7OnTouchEP11CBaseEntity"
+				"windows"		"\x55\x8B\xEC\x57\x8B\xF9\x8B\x87\x2A\x2A\x2A\x2A\x83\xF8"
+								/* 55 8B EC 57 8B F9 8B 87 ? ? ? ? 83 F8 */
+			}
+		}
+	}
+
+	"left4dead2"
+	{
+		"Addresses"
+		{
+			"g_TouchTrace"
+			{
+				"windows"
+				{
+					"signature"	"CBaseEntity::PhysicsMarkEntitiesAsTouching"
+					"read"		"13"
+				}
+			}
+		}
+
+		"Signatures"
+		{
+			"CBaseEntity::PhysicsMarkEntitiesAsTouching"
+			{
+				"library"		"server"
+				"windows"		"\x55\x8B\xEC\x53\x56\x8B\x75\x0C\x57\x8B\xF9\x56"
+								/* 55 8B EC 53 56 8B 75 0C 57 8B F9 56 */
+			}
+
+			"CLunge::OnTouch"
+			{
+				"library"		"server"
+				"linux"			"@_ZN6CLunge7OnTouchEP11CBaseEntity"
+				"windows"		"\x55\x8B\xEC\x57\x8B\xF9\x8B\x87\x2A\x2A\x2A\x2A\x83\xF8"
+								/* 55 8B EC 57 8B F9 8B 87 ? ? ? ? 83 F8 */
+			}
+		}
+	}
+}
