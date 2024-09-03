@@ -5,7 +5,7 @@
 #include <sdktools>
 #include <dhooks>
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo =
 {
@@ -81,7 +81,7 @@ void Event_pounce_end(Event event, const char[] name, bool dontBroadcast)
 		return;
 	
 	int ability = GetEntPropEnt(client, Prop_Send, "m_customAbility");
-	if (GetEntPropFloat(ability, Prop_Send, "m_lungeAgainTimer", 1) > GetGameTime())
+	if (ability == -1 || GetEntPropFloat(ability, Prop_Send, "m_lungeAgainTimer", 1) > GetGameTime())
 		return;
 	
 	g_bFirstCeiling[client] = true;
