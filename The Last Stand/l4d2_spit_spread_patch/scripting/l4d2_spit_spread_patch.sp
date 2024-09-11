@@ -8,7 +8,7 @@
 #include <sourcescramble>
 #include <collisionhook>
 
-#define PLUGIN_VERSION "1.22"
+#define PLUGIN_VERSION "1.23"
 
 public Plugin myinfo =
 {
@@ -72,7 +72,8 @@ enum
 
 int g_iCvarSaferoomSpread, g_iSaferoomSpread, g_iMaxFlames;
 bool g_bWaterCollision, g_bSurvivorGround;
-float g_flTraceHeight, g_flPropDamage;
+float g_flPropDamage;
+MemoryBlock g_pTraceHeight;
 
 StringMap g_smNoSpreadMaps;
 
@@ -95,7 +96,8 @@ void LoadSDK()
 	if (!hPatch.Enable()) SetFailState("Failed to enable patch \""...KEY_TRACEHEIGHT_PATCH..."\"");
 
 	// replace with custom memory
-	StoreToAddress(hPatch.Address + view_as<Address>(4), GetAddressOfCell(g_flTraceHeight), NumberType_Int32);
+	g_pTraceHeight = new MemoryBlock(4);
+	StoreToAddress(hPatch.Address + view_as<Address>(4), g_pTraceHeight.Address, NumberType_Int32);
 
 	DynamicDetour hDetour = DynamicDetour.FromConf(conf, KEY_DETONATE);
 	if (!hDetour)
@@ -223,7 +225,8 @@ void CvarChange_SaferoomSpread(ConVar convar, const char[] oldValue, const char[
 
 void CvarChange_TraceHeight(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	g_flTraceHeight = convar.FloatValue;
+	float flTraceHeight = convar.FloatValue;
+	g_pTraceHeight.StoreToOffset(0, view_as<int>(flTraceHeight), NumberType_Int32);
 }
 
 void CvarChange_MaxFlames(ConVar convar, const char[] oldValue, const char[] newValue)
