@@ -1,0 +1,35 @@
+"Games"
+{
+	"left4dead2"
+	{
+		"Functions"
+		{
+			"CTerrorPlayer::OnFallDamage"
+			{
+				"signature"		"CTerrorPlayer::OnFallDamage"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"entity"
+				"arguments"
+				{
+					"damage"
+					{
+						"type"	"float"
+					}
+				}
+			}
+		}
+
+		"Signatures"
+		{
+			// Search string "%s landed"
+			"CTerrorPlayer::OnFallDamage"
+			{
+				"library"		"server"
+				"linux"			"@_ZN13CTerrorPlayer12OnFallDamageEf"
+				"windows"		"\x55\x8B\x2A\x2A\x2A\x2A\x2A\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x2A\x2A\x89\x2A\x2A\x2A\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x83\x2A\x03\x0F\x85\x2A\x2A\x2A\x2A\x8B\x2A\xE8"
+								/* 55 8B ? ? ? ? ? ? ? A1 ? ? ? ? ? ? 89 ? ? ? 8B ? E8 ? ? ? ? 83 ? 03 0F 85 ? ? ? ? 8B ? E8 */
+			}
+		}
+	}
+}
