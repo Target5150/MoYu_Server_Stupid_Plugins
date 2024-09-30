@@ -4,7 +4,7 @@
 #include <sourcemod>
 #include <dhooks>
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo = 
 {
@@ -48,7 +48,8 @@ int g_iOffs_m_PlayerAnimState;
 int g_iOffs_m_flEyeYaw;
 
 methodmap Address {}
-methodmap PlayerAnimState < Address {
+methodmap PlayerAnimState < Address
+{
 	public static PlayerAnimState FromPlayer(int client) {
 		return view_as<PlayerAnimState>(GetEntData(client, g_iOffs_m_PlayerAnimState));
 	}
@@ -64,13 +65,27 @@ public void OnPluginStart()
 	g_iOffs_m_PlayerAnimState = gd.GetOffset("CTerrorPlayer::m_PlayerAnimState");
 	g_iOffs_m_flEyeYaw = gd.GetOffset("m_flEyeYaw");
 
+	delete gd.CreateDetourOrFail("CTerrorPlayer::OnShovedBySurvivor", DTR_OnShovedBySurvivor);
 	delete gd.CreateDetourOrFail("CTerrorPlayer::OnStaggered", DTR_OnStaggered);
 	delete gd;
 }
 
+MRESReturn DTR_OnShovedBySurvivor(DHookParam hParams)
+{
+	int client = hParams.Get(1);
+	if (IsClientInGame(client))
+	{
+		float ang[3];
+		GetClientAbsAngles(client, ang);
+		PlayerAnimState.FromPlayer(client).m_flEyeYaw = ang[1];
+	}
+
+	return MRES_Ignored;
+}
+
 MRESReturn DTR_OnStaggered(int client, DHookParam hParams)
 {
-	if (IsClientInGame(client) && GetClientTeam(client) == 2)
+	if (IsClientInGame(client))
 	{
 		float ang[3];
 		GetClientAbsAngles(client, ang);
