@@ -2,11 +2,12 @@
 #pragma newdecls required
 
 #include <sourcemod>
+#include <dhooks>
 #include <sdkhooks>
 #include <actions>
 #include <l4d2util>
 
-#define PLUGIN_VERSION "2.1.1"
+#define PLUGIN_VERSION "3.0"
 
 public Plugin myinfo =
 {
@@ -17,6 +18,48 @@ public Plugin myinfo =
 	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 };
 
+methodmap GameDataWrapper < GameData {
+	public GameDataWrapper(const char[] file) {
+		GameData gd = new GameData(file);
+		if (!gd) SetFailState("Missing gamedata \"%s\"", file);
+		return view_as<GameDataWrapper>(gd);
+	}
+	public DynamicDetour CreateDetourOrFail(
+			const char[] name,
+			DHookCallback preHook = INVALID_FUNCTION,
+			DHookCallback postHook = INVALID_FUNCTION) {
+		DynamicDetour hSetup = DynamicDetour.FromConf(this, name);
+		if (!hSetup)
+			SetFailState("Missing detour setup \"%s\"", name);
+		if (preHook != INVALID_FUNCTION && !hSetup.Enable(Hook_Pre, preHook))
+			SetFailState("Failed to pre-detour \"%s\"", name);
+		if (postHook != INVALID_FUNCTION && !hSetup.Enable(Hook_Post, postHook))
+			SetFailState("Failed to post-detour \"%s\"", name);
+		return hSetup;
+	}
+}
+
+enum
+{
+	INFECTED_FLAG_RESERVED_WANDERER		= 0x1,
+	INFECTED_FLAG_FIRE_IMMUNE			= 0x2,		// CEDA
+	INFECTED_FLAG_CRAWL_RUN				= 0x4,		// mudman
+	INFECTED_FLAG_UNDISTRACTABLE		= 0x8,		// workman
+	INFECTED_FLAG_FALLEN_SURVIVOR		= 0x10,
+	INFECTED_FLAG_RIOTCOP_ARMOR			= 0x20,
+	INFECTED_FLAG_ALLOW_AMBUSH			= 0x40,		// Removed after first shoved
+	INFECTED_FLAG_AMBIENT_MOB			= 0x80,
+
+	INFECTED_FLAG_NO_ATTRACT			= 0x100,	// Do not create "info_goal_infected_chase"
+	INFECTED_FLAG_WITCH_BLOCK_CLIMB		= 0x200,	// Block climbing when wandering around
+	INFECTED_FLAG_FALLEN_FLEE			= 0x400,
+	INFECTED_FLAG_HEADSHOT_ONLY			= 0x800,	// "cm_HeadshotOnly"
+
+	INFECTED_FLAG_CANT_SEE_SURVIVORS	= 0x2000,
+	INFECTED_FLAG_CANT_HEAR_SURVIVORS	= 0x4000,
+	INFECTED_FLAG_CANT_FEEL_SURVIVORS	= 0x8000,
+};
+
 ConVar z_health;
 
 int g_iUncommonAttract;
@@ -24,11 +67,21 @@ int g_iRoadworkerSense;
 int g_iJimmySense;
 float g_flHealthScale;
 float g_flJimmyHealthScale;
+int g_iFallenEquipments;
+bool g_bRiotcopArmor;
+bool g_bMudmanCrouch;
+bool g_bMudmanSplatter;
+bool g_bJimmySplatter;
 
-int g_iOffs_m_nUncommonFlags;
+int g_iOffs_m_nInfectedFlags;
 
 public void OnPluginStart()
 {
+	GameDataWrapper gd = new GameDataWrapper("l4d2_uncommon_adjustment");
+	delete gd.CreateDetourOrFail("InfectedAttack::OnPunch", DTR_OnPunch, DTR_OnPunch_Post);
+	delete gd.CreateDetourOrFail("CTerrorPlayer::QueueScreenBloodSplatter", DTR_QueueScreenBloodSplatter);
+	delete gd;
+
 	z_health = FindConVar("z_health");
 	
 	CreateConVarHook("l4d2_uncommon_attract",
@@ -70,7 +123,43 @@ public void OnPluginStart()
 						true, 0.0, false, 0.0,
 						JimmyHealthScale_ConVarChanged);
 	
-	g_iOffs_m_nUncommonFlags = FindSendPropInfo("Infected", "m_nFallenFlags") - 4;
+	CreateConVarHook("l4d2_fallen_equipments",
+						"15",
+						"Set what items a fallen survivor can equip.\n"
+					...	"1 = Molotov, 2 = Pipebomb, 4 = Pills, 8 = Medkit, 15 = All, 0 = Nothing",
+						FCVAR_NONE,
+						true, 0.0, true, 15.0,
+						FallenEquipments_ConVarChanged);
+	
+	CreateConVarHook("l4d2_riotcop_armor",
+						"1",
+						"Set whether riotcop has armor that prevents damages in front.",
+						FCVAR_NONE,
+						true, 0.0, true, 1.0,
+						RiotcopArmor_ConVarChanged);
+	
+	CreateConVarHook("l4d2_mudman_crouch_run",
+						"1",
+						"Set whether mudman can crouch while running.",
+						FCVAR_NONE,
+						true, 0.0, true, 1.0,
+						MudmanCrouch_ConVarChanged);
+	
+	CreateConVarHook("l4d2_mudman_screen_splatter",
+						"1",
+						"Set whether mudman can blind your screen.",
+						FCVAR_NONE,
+						true, 0.0, true, 1.0,
+						MudmanSplatter_ConVarChanged);
+	
+	CreateConVarHook("l4d2_jimmy_screen_splatter",
+						"1",
+						"Set whether Jimmy gibbs Jr. can blind your screen.",
+						FCVAR_NONE,
+						true, 0.0, true, 1.0,
+						JimmySplatter_ConVarChanged);
+	
+	g_iOffs_m_nInfectedFlags = FindSendPropInfo("Infected", "m_nFallenFlags") - 4;
 }
 
 void UncommonAttract_ConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -96,6 +185,31 @@ void UncommonHealthScale_ConVarChanged(ConVar convar, const char[] oldValue, con
 void JimmyHealthScale_ConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	g_flJimmyHealthScale = convar.FloatValue;
+}
+
+void FallenEquipments_ConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	g_iFallenEquipments = convar.IntValue;
+}
+
+void RiotcopArmor_ConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	g_bRiotcopArmor = convar.BoolValue;
+}
+
+void MudmanCrouch_ConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	g_bMudmanCrouch = convar.BoolValue;
+}
+
+void MudmanSplatter_ConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	g_bMudmanSplatter = convar.BoolValue;
+}
+
+void JimmySplatter_ConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	g_bJimmySplatter = convar.BoolValue;
 }
 
 public void OnEntityCreated(int entity, const char[] classname)
@@ -158,7 +272,21 @@ void SDK_OnSpawn_Post(int entity)
 	
 	switch (gender)
 	{
-	case L4D2Gender_Fallen, L4D2Gender_Riot_Control: { }
+	case L4D2Gender_Fallen:
+		{
+			int flags = GetEntProp(entity, Prop_Send, "m_nFallenFlags");
+			SetEntProp(entity, Prop_Send, "m_nFallenFlags", flags & g_iFallenEquipments);
+		}
+	case L4D2Gender_Crawler:
+		{
+			if (!g_bMudmanCrouch)
+				RemoveInfectedFlags(entity, INFECTED_FLAG_CRAWL_RUN);
+		}
+	case L4D2Gender_Riot_Control:
+		{
+			if (!g_bRiotcopArmor)
+				RemoveInfectedFlags(entity, INFECTED_FLAG_RIOTCOP_ARMOR);
+		}
 	case L4D2Gender_Jimmy:
 		{
 			int iHealth = RoundToFloor(z_health.FloatValue * g_flJimmyHealthScale); // classic cast to int
@@ -174,17 +302,23 @@ void SDK_OnSpawn_Post(int entity)
 
 public void OnActionCreated(BehaviorAction action, int owner, const char[] name)
 {
-	if (name[0] != 'I' || strncmp(name, "Infected", 8) != 0)
-		return;
-	
-	if (strcmp(name[8], "Attack") != 0 && strcmp(name[8], "Alert") != 0 && strcmp(name[8], "Wander") != 0)
-		return;
-	
-	if (~GetUncommonFlag(owner) & 8)
-		return;
-	
-	action.OnSound = OnSound;
-	action.OnSoundPost = OnSoundPost;
+	switch (name[0])
+	{
+	case 'I':
+		{
+			if (strncmp(name, "Infected", 8) != 0)
+				return;
+			
+			if (strcmp(name[8], "Attack") != 0 && strcmp(name[8], "Alert") != 0 && strcmp(name[8], "Wander") != 0)
+				return;
+			
+			if (~GetInfectedFlags(owner) & 8)
+				return;
+			
+			action.OnSound = OnSound;
+			action.OnSoundPost = OnSoundPost;
+		}
+	}
 }
 
 bool g_bShouldRestore = false;
@@ -226,7 +360,7 @@ Action OnSound(BehaviorAction action, int actor, int entity, const float pos[3],
 			return Plugin_Continue;
 	}
 	
-	SetUncommonFlag(actor, GetUncommonFlag(actor) & ~8);
+	RemoveInfectedFlags(actor, INFECTED_FLAG_UNDISTRACTABLE);
 	g_bShouldRestore = true;
 	
 	return Plugin_Continue;
@@ -236,21 +370,66 @@ Action OnSoundPost(BehaviorAction action, int actor, int entity, const float pos
 {
 	if (g_bShouldRestore)
 	{
-		SetUncommonFlag(actor, GetUncommonFlag(actor) | 8);
+		AddInfectedFlags(actor, INFECTED_FLAG_UNDISTRACTABLE);
 		g_bShouldRestore = false;
 	}
 	
 	return Plugin_Continue;
 }
 
-int GetUncommonFlag(int entity)
+bool g_bBlockSplatter = false;
+MRESReturn DTR_OnPunch(Address pThis, DHookParam hParams)
 {
-	return GetEntData(entity, g_iOffs_m_nUncommonFlags);
+	int infected = hParams.Get(1);
+
+	switch (GetGender(infected))
+	{
+	case L4D2Gender_Crawler:
+		{
+			if (g_bMudmanSplatter)
+				return MRES_Ignored;
+		}
+	
+	case L4D2Gender_Jimmy:
+		{
+			if (g_bJimmySplatter)
+				return MRES_Ignored;
+		}
+	}
+
+	g_bBlockSplatter = true;
+	return MRES_Ignored;	
 }
 
-void SetUncommonFlag(int entity, int flags)
+MRESReturn DTR_OnPunch_Post(Address pThis, DHookParam hParams)
 {
-	SetEntData(entity, g_iOffs_m_nUncommonFlags, flags);
+	g_bBlockSplatter = false;
+	return MRES_Ignored;
+}
+
+MRESReturn DTR_QueueScreenBloodSplatter(int client, DHookParam hParams)
+{
+	return g_bBlockSplatter ? MRES_Supercede : MRES_Ignored;
+}
+
+void AddInfectedFlags(int entity, int flags)
+{
+	SetInfectedFlags(entity, GetInfectedFlags(entity) | flags);
+}
+
+void RemoveInfectedFlags(int entity, int flags)
+{
+	SetInfectedFlags(entity, GetInfectedFlags(entity) & ~flags);
+}
+
+int GetInfectedFlags(int entity)
+{
+	return GetEntData(entity, g_iOffs_m_nInfectedFlags);
+}
+
+void SetInfectedFlags(int entity, int flags)
+{
+	SetEntData(entity, g_iOffs_m_nInfectedFlags, flags);
 }
 
 void ResetEntityHealth(int entity, int health)

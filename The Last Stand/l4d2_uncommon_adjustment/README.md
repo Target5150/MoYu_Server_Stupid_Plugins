@@ -5,6 +5,9 @@
 	- Max HP adjustment.
 	- Uncommon infected attracting other commons (clowns / Jimmy gibbs Jr.).
 	- Road workers / Jimmy gibbs Jr. reacting to sounds and/or smells.
+	- Screen splatters (Mudman, Jimmy).
+	- Fallen survivor equipments control.
+	- Riotcop armor removal.
 
 <hr>
 
@@ -38,6 +41,32 @@ l4d2_uncommon_health_multiplier "3.0"
 // -
 // Default: "20.0" | Range: [0.0, ~]
 l4d2_jimmy_health_multiplier "20.0"
+
+// Set what items a fallen survivor can equip.
+// 1 = Molotov, 2 = Pipebomb, 4 = Pills, 8 = Medkit, 15 = All, 0 = Nothing
+// -
+// Default: "15" | Range: [0.0, 15.0]
+l4d2_fallen_equipments "15"
+
+// Set whether riotcop has armor that prevents damages in front.
+// -
+// Default: "1" | Range: [0.0, 1.0]
+l4d2_riotcop_armor "1"
+
+// Set whether mudman can crouch while running.
+// -
+// Default: "1" | Range: [0.0, 1.0]
+l4d2_mudman_crouch_run "1"
+
+// Set whether mudman can blind your screen.
+// -
+// Default: "1" | Range: [0.0, 1.0]
+l4d2_mudman_screen_splatter "1"
+
+// Set whether Jimmy gibbs Jr. can blind your screen.
+// -
+// Default: "1" | Range: [0.0, 1.0]
+l4d2_jimmy_screen_splatter "1"
 ```
 
 <hr>
@@ -53,6 +82,8 @@ l4d2_jimmy_health_multiplier "20.0"
 <hr>
 
 ### Changelog
+(v3.0 2024/12/7 UTC+8) l4d2_uncommon_adjustment: More uncommon options
+
 (v2.1 2023/5/11 UTC+8) Uncommon Attract: Sense setting for roadworker and jimmy
 
 (v2.0 2023/5/8 UTC+8) Fix road workman not reacting to vomit jars
