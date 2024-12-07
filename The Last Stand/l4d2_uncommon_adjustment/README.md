@@ -8,6 +8,7 @@
 	- Screen splatters (Mudman, Jimmy).
 	- Fallen survivor equipments control.
 	- Riotcop armor removal.
+	- CEDA fireproof removal.
 
 <hr>
 
@@ -67,21 +68,30 @@ l4d2_mudman_screen_splatter "1"
 // -
 // Default: "1" | Range: [0.0, 1.0]
 l4d2_jimmy_screen_splatter "1"
+
+// Set whether CEDA is fireproofed.
+// -
+// Default: "1" | Range: [0.0, 1.0]
+l4d2_ceda_fire_proof "1"
 ```
 
 <hr>
 
 ### Requirement
+- **DHooks**
 - [Actions](https://forums.alliedmods.net/showthread.php?p=2771520)
 
 <hr>
 
 ### Installation
-1. Put the **l4d2_uncommon_adjustment.smx** to your _plugins_ folder.
+1. Put **plugins/l4d2_uncommon_adjustment.smx** to your _plugins_ folder.
+2. Put **gamedata/l4d2_uncommon_adjustment.txt** to your _gamedata_ folder.
 
 <hr>
 
 ### Changelog
+(v3.1 2024/12/7 UTC+8) l4d2_uncommon_adjustment: Add CEDA fireproof option
+
 (v3.0 2024/12/7 UTC+8) l4d2_uncommon_adjustment: More uncommon options
 
 (v2.1 2023/5/11 UTC+8) Uncommon Attract: Sense setting for roadworker and jimmy
