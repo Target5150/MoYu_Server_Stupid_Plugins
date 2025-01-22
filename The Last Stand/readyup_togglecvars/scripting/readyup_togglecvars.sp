@@ -25,6 +25,7 @@ StringMap g_smToggleCvars;
 StringMap g_smConfigToggleCvars;
 
 bool g_bConfigExecuted;
+bool g_bReadyupAvailable;
 ConVar g_cvVarsConfig;
 
 public void OnPluginStart()
@@ -41,6 +42,21 @@ public void OnPluginStart()
 	RegServerCmd("sm_readyup_add_togglecvars", Cmd_AddToggleCvars);
 	RegServerCmd("sm_readyup_remove_togglecvars", Cmd_RemoveToggleCvars);
 	RegServerCmd("sm_readyup_clear_togglecvars", Cmd_ClearToggleCvars);
+}
+
+public void OnAllPluginsLoaded()
+{
+	g_bReadyupAvailable = LibraryExists("readyup");
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+	if (!strcmp(name, "readyup")) g_bReadyupAvailable = true;
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+	if (!strcmp(name, "readyup")) g_bReadyupAvailable = false;
 }
 
 void CvarChg_Config(ConVar convar, const char[] oldValue, const char[] newValue)
@@ -90,7 +106,7 @@ bool ReadToggleCvarToken(const char[] str, char[] cvar, int cvar_length, CvarVal
 
 void LoadConfig()
 {
-	if (g_bConfigExecuted && IsInReady())
+	if (g_bConfigExecuted && g_bReadyupAvailable && IsInReady())
 		DoToggleCvars(g_smConfigToggleCvars, false);
 
 	g_smConfigToggleCvars.Clear();
@@ -119,7 +135,7 @@ void LoadConfig()
 
 	delete f;
 
-	if (g_bConfigExecuted && IsInReady())
+	if (g_bConfigExecuted && g_bReadyupAvailable && IsInReady())
 		DoToggleCvars(g_smConfigToggleCvars, true);
 }
 
@@ -198,7 +214,7 @@ public void OnReadyUpInitiate()
 
 void NextFrame_OnReadyUpInitiate()
 {
-	if (!IsInReady())
+	if (!g_bReadyupAvailable || !IsInReady())
 		return;
 
 	DoToggleCvars(g_smToggleCvars, true);
