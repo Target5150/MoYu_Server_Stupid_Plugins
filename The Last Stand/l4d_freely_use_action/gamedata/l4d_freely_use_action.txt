@@ -9,7 +9,7 @@
 				"signature"		"CFirstAidKit::DoHeal"
 				"linux"
 				{
-					"offset"	"A5h"
+					"offset"	"B5h"
 					"verify"	"\x0F\x85"
 					"patch"		"\x90\x90\x90\x90\x90\x90"
 				}

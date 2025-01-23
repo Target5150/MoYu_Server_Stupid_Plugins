@@ -9,7 +9,7 @@
 				"signature"		"CTerrorWeapon::OnHit"
 				"linux"
 				{
-					"offset"	"E7h"
+					"offset"	"CAh"
 					"verify"	"\x0F\x85"
 					"patch"		"\x90\xE9"
 				}
@@ -26,7 +26,7 @@
 				"signature"		"CTerrorWeapon::OnHit"
 				"linux"
 				{
-					"offset"	"7CBh"
+					"offset"	"7DAh"
 					"verify"	"\x0F\x84"
 					"patch"		"\x90\x90\x90\x90\x90\x90"
 				}
@@ -43,7 +43,7 @@
 				"signature"		"CTerrorPlayer::OnShovedByLunge"
 				"linux"
 				{
-					"offset"	"8AFh"
+					"offset"	"646h"
 					"verify"	"\x0F\x84"
 					"patch"		"\x90\x90\x90\x90\x90\x90"
 				}
@@ -65,7 +65,7 @@
 			"CTerrorWeapon::OnHit"
 			{
 				"library"		"server"
-				"linux"			"@_ZN13CTerrorWeapon5OnHitER10CGameTraceRK6Vectorb.part.104"
+				"linux"			"@_ZN13CTerrorWeapon5OnHitER10CGameTraceRK6Vectorb.part.80"
 				"windows"		"\x81\x2A\x2A\x2A\x2A\x2A\x80\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x89\x2A\x2A\x2A\x0F\x84\x2A\x2A\x2A\x2A\x8B"
 				/* 81 ? ? ? ? ? 80 ? ? ? ? ? ? ? 89 ? ? ? 0F 84 ? ? ? ? 8B */
 			}
@@ -73,7 +73,7 @@
 			"CTerrorPlayer::OnShovedByLunge"
 			{
 				"library"		"server"
-				"linux"			"@_ZN13CTerrorPlayer15OnShovedByLungeEPS_b.part.825"
+				"linux"			"@_ZN13CTerrorPlayer15OnShovedByLungeEPS_b"
 				"windows"		"\x83\xEC\x2A\x56\x8B\xF1\xE8\x2A\x2A\x2A\x2A\x84\xC0\x0F\x85\x2A\x2A\x2A\x2A\x55\x8B"
 								/* 83 EC ? 56 8B F1 E8 ? ? ? ? 84 C0 0F 85 ? ? ? ? 55 8B */
 			}
