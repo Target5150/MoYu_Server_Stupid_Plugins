@@ -7,7 +7,7 @@
 #include <dhooks>
 #include <sourcescramble>
 
-#define PLUGIN_VERSION "1.10"
+#define PLUGIN_VERSION "1.11"
 
 public Plugin myinfo = 
 {
@@ -18,53 +18,93 @@ public Plugin myinfo =
 	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 };
 
-#define GAMEDATA_FILE "l4d2_rock_trace_unblock"
-#define KEY_BOUNCETOUCH "CTankRock::BounceTouch"
-#define KEY_PATCH_FOREACHPLAYER "CTankRock::ProximityThink__No_ForEachPlayer"
+enum struct SDKCallParamsWrapper {
+	SDKType type;
+	SDKPassMethod pass;
+	int decflags;
+	int encflags;
+}
+
+methodmap GameDataWrapper < GameData {
+	public GameDataWrapper(const char[] file) {
+		GameData gd = new GameData(file);
+		if (!gd) SetFailState("Missing gamedata \"%s\"", file);
+		return view_as<GameDataWrapper>(gd);
+	}
+	public MemoryPatch CreatePatchOrFail(const char[] name, bool enable = false) {
+		MemoryPatch hPatch = MemoryPatch.CreateFromConf(this, name);
+		if (!(enable ? hPatch.Enable() : hPatch.Validate()))
+			SetFailState("Failed to patch \"%s\"", name);
+		return hPatch;
+	}
+	public DynamicDetour CreateDetourOrFail(
+			const char[] name,
+			DHookCallback preHook = INVALID_FUNCTION,
+			DHookCallback postHook = INVALID_FUNCTION) {
+		DynamicDetour hSetup = DynamicDetour.FromConf(this, name);
+		if (!hSetup)
+			SetFailState("Missing detour setup \"%s\"", name);
+		if (preHook != INVALID_FUNCTION && !hSetup.Enable(Hook_Pre, preHook))
+			SetFailState("Failed to pre-detour \"%s\"", name);
+		if (postHook != INVALID_FUNCTION && !hSetup.Enable(Hook_Post, postHook))
+			SetFailState("Failed to post-detour \"%s\"", name);
+		return hSetup;
+	}
+	public DynamicHook CreateDHookOrFail(const char[] name) {
+		DynamicHook hSetup = DynamicHook.FromConf(this, name);
+		if (!hSetup)
+			SetFailState("Missing dhook setup \"%s\"", name);
+		return hSetup;
+	}
+	public Handle CreateSDKCallOrFail(
+			SDKCallType type,
+			SDKFuncConfSource src,
+			const char[] name,
+			const SDKCallParamsWrapper[] params = {},
+			int numParams = 0,
+			bool hasReturnValue = false,
+			const SDKCallParamsWrapper ret = {}) {
+		static const char k_sSDKFuncConfSource[SDKFuncConfSource][] = { "offset", "signature", "address" };
+		Handle result;
+		StartPrepSDKCall(type);
+		if (!PrepSDKCall_SetFromConf(this, src, name))
+			SetFailState("Missing %s \"%s\"", k_sSDKFuncConfSource[src], name);
+		for (int i = 0; i < numParams; ++i)
+			PrepSDKCall_AddParameter(params[i].type, params[i].pass, params[i].decflags, params[i].encflags);
+		if (hasReturnValue)
+			PrepSDKCall_SetReturnInfo(ret.type, ret.pass, ret.decflags, ret.encflags);
+		if (!(result = EndPrepSDKCall()))
+			SetFailState("Failed to prep sdkcall \"%s\"", name);
+		return result;
+	}
+}
+
+Handle g_hSDKCall_BounceTouch;
+DynamicHook g_hDHook_BounceTouch;
+MemoryPatch g_hPatch_ForEachPlayer;
 
 ConVar z_tank_rock_radius;
-float g_fRockRadiusSquared;
 
 ConVar
 	g_cvFlags,
 	g_cvJockeyFix,
 	g_cvHurtCapper;
 
-int
-	g_iFlags;
-
-Handle
-	g_hSDKCall_BounceTouch;
-
-DynamicHook
-	g_hDHook_BounceTouch;
-
-MemoryPatch
-	g_hPatch_ForEachPlayer;
+int g_iFlags;
 
 void LoadSDK()
 {
-	Handle conf = LoadGameConfigFile(GAMEDATA_FILE);
-	if (!conf) SetFailState("Missing gamedata \""...GAMEDATA_FILE..."\"");
+	GameDataWrapper gd = new GameDataWrapper("l4d2_rock_trace_unblock");
+
+	g_hPatch_ForEachPlayer = gd.CreatePatchOrFail("CTankRock::ProximityThink__No_ForEachPlayer", false);
+	g_hDHook_BounceTouch = gd.CreateDHookOrFail("CTankRock::BounceTouch");
+
+	SDKCallParamsWrapper params[] = {
+		{SDKType_CBaseEntity, SDKPass_Pointer},
+	};
+	g_hSDKCall_BounceTouch = gd.CreateSDKCallOrFail(SDKCall_Entity, SDKConf_Virtual, "CTankRock::BounceTouch", params, 1);
 	
-	g_hPatch_ForEachPlayer = MemoryPatch.CreateFromConf(conf, KEY_PATCH_FOREACHPLAYER);
-	if (!g_hPatch_ForEachPlayer.Validate())
-		SetFailState("Missing MemPatch setup for \""...KEY_PATCH_FOREACHPLAYER..."\"");
-	
-	StartPrepSDKCall(SDKCall_Entity);
-	if (!PrepSDKCall_SetFromConf(conf, SDKConf_Virtual, KEY_BOUNCETOUCH))
-		SetFailState("Missing offset \""...KEY_BOUNCETOUCH..."\"");
-	PrepSDKCall_AddParameter(SDKType_CBaseEntity, SDKPass_Pointer);
-	PrepSDKCall_SetReturnInfo(SDKType_PlainOldData, SDKPass_Plain);
-	g_hSDKCall_BounceTouch = EndPrepSDKCall();
-	if (!g_hSDKCall_BounceTouch)
-		SetFailState("Failed to prepare SDKCall of \""...KEY_BOUNCETOUCH..."\"");
-	
-	g_hDHook_BounceTouch = DynamicHook.FromConf(conf, KEY_BOUNCETOUCH);
-	if (!g_hDHook_BounceTouch)
-		SetFailState("Missing dhook setup for \""...KEY_BOUNCETOUCH..."\"");
-	
-	delete conf;
+	delete gd;
 }
 
 public void OnPluginStart()
@@ -96,7 +136,6 @@ public void OnPluginStart()
 					true, 0.0, true, 7.0);
 	
 	z_tank_rock_radius = FindConVar("z_tank_rock_radius");
-	z_tank_rock_radius.AddChangeHook(OnConVarChanged);
 	g_cvFlags.AddChangeHook(OnConVarChanged);
 }
 
@@ -114,9 +153,12 @@ void GetCvars()
 {
 	g_iFlags = g_cvFlags.IntValue;
 	ApplyPatch(g_iFlags > 0);
-	
-	g_fRockRadiusSquared = z_tank_rock_radius.FloatValue * z_tank_rock_radius.FloatValue;
-	//if (L4D2_HasConfigurableDifficultySetting())
+}
+
+float GetTankRockProximityRadius()
+{
+	float result = z_tank_rock_radius.FloatValue;
+	if (L4D2_HasConfigurableDifficultySetting())
 	{
 		static ConVar z_difficulty = null;
 		if (z_difficulty == null)
@@ -125,8 +167,9 @@ void GetCvars()
 		char buffer[16];
 		z_difficulty.GetString(buffer, sizeof(buffer));
 		if (strcmp(buffer, "Easy", false) == 0)
-			g_fRockRadiusSquared *= 0.5625; // 0.75 ^ 2
+			result *= 0.75;
 	}
+	return result;
 }
 
 void ApplyPatch(bool patch)
@@ -146,6 +189,8 @@ public void L4D_TankRock_OnRelease_Post(int tank, int rock, const float vecPos[3
 		g_hDHook_BounceTouch.HookEntity(Hook_Post, rock, DHook_OnBounceTouch_Post);
 }
 
+int g_iFilterRock = -1;
+int g_iFilterTank = -1;
 Action SDK_OnThink(int entity)
 {
 	static float vOrigin[3], vLastOrigin[3], vPos[3], vClosestPos[3];
@@ -157,14 +202,11 @@ Action SDK_OnThink(int entity)
 	
 	GetEntDataVector(entity, m_vLastPosition, vLastOrigin);
 	
-	float flMinDistSqr = g_fRockRadiusSquared;
+	float flMinDistSqr = GetTankRockProximityRadius() * GetTankRockProximityRadius();
 	int iClosestSurvivor = -1;
 	
-	// Serves as a List for ignored entities in traces
-	DataPack dp = new DataPack();
-	dp.WriteCell(entity); // always self-ignored
-	dp.WriteCell(GetEntPropEnt(entity, Prop_Send, "m_hThrower"));
-	DataPackPos pos = dp.Position;
+	g_iFilterRock = entity; // always self-ignored
+	g_iFilterTank = GetEntPropEnt(entity, Prop_Send, "m_hThrower");
 	
 	for (int i = 1; i <= MaxClients; ++i)
 	{
@@ -181,19 +223,14 @@ Action SDK_OnThink(int entity)
 		if (flDistSqr < flMinDistSqr)
 		{
 			// See if there's any obstracle in the way
-			dp.Position = pos;
-			dp.WriteCell(i);
+			TR_TraceRayFilter(vOrigin, vPos, MASK_SOLID, RayType_EndPoint, ProximityThink_TraceFilter, i);
 			
-			Handle tr = TR_TraceRayFilterEx(vOrigin, vPos, MASK_SOLID, RayType_EndPoint, ProximityThink_TraceFilter, dp);
-			
-			if (!TR_DidHit(tr) && TR_GetFraction(tr) >= 1.0)
+			if (!TR_DidHit() && TR_GetFraction() >= 1.0)
 			{
 				flMinDistSqr = flDistSqr;
 				iClosestSurvivor = i;
 				vClosestPos = vOrigin;
 			}
-			
-			delete tr;
 			
 			// Keep in mind that rock finds multiple targets basically only around the moment the Tank releases it.
 			// Exit the loop if we are really gonna search for nothing.
@@ -207,8 +244,6 @@ Action SDK_OnThink(int entity)
 			}
 		}
 	}
-	
-	delete dp;
 	
 	if (iClosestSurvivor != -1)
 	{
@@ -235,7 +270,6 @@ Action SDK_OnThink(int entity)
  * 
  * @return				True if the closest point, false otherwise.
  */
-
 bool ComputeClosestPoint(const float vLeft[3], const float vRight[3], const float vPos[3], float result[3])
 {
 	static float vLTarget[3], vLine[3];
@@ -278,23 +312,11 @@ bool ComputeClosestPoint(const float vLeft[3], const float vRight[3], const floa
 	}
 }
 
-bool ProximityThink_TraceFilter(int entity, int contentsMask, DataPack dp)
+bool ProximityThink_TraceFilter(int entity, int contentsMask, int target)
 {
-	dp.Reset();
-	
-	/**
-	 * dp[0] = rock
-	 * dp[1] = tank
-	 * dp[2] = survivor
-	 */
-	
-	if (entity == dp.ReadCell())
-		return false;
-	
-	if (entity == dp.ReadCell())
-		return !(g_iFlags & 16);
-	
-	if (entity == dp.ReadCell())
+	if (entity == g_iFilterRock
+	 || entity == g_iFilterTank
+	 || entity == target)
 		return false;
 	
 	if (entity > 0 && entity <= MaxClients && IsClientInGame(entity))
@@ -356,9 +378,9 @@ MRESReturn DHook_OnBounceTouch_Post(int pThis, DHookReturn hReturn, DHookParam h
 	if (!hParams.IsNull(1))
 		client = hParams.Get(1);
 	
-	if( client > 0 && client <= MaxClients
-		&& GetClientTeam(client) == 2
-		&& !L4D_IsPlayerIncapacitated(client) )
+	if (client > 0 && client <= MaxClients
+	 && GetClientTeam(client) == 2
+	 && !L4D_IsPlayerIncapacitated(client))
 	{
 		int jockey = GetEntPropEnt(client, Prop_Send, "m_jockeyAttacker");
 		if (jockey != -1)
