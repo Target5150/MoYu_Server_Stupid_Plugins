@@ -1,0 +1,102 @@
+"Games"
+{
+	"left4dead"
+	{
+		"ActionConstructors"
+		{
+			"TankAttack::TankAttack"
+			{
+				"signature" "TankAttack::TankAttack"
+				"size"  "18540"
+			}
+		}
+
+		"MemPatches"
+		{
+			"aggressive_tank_patch"
+			{
+				"signature"		"TankBehavior::InitialContainedAction"
+				"linux"
+				{
+					"offset"	"20h"
+				}
+				"windows"
+				{
+					"offset"	"Ch"
+				}
+				"verify"		"\x75"
+				"patch"			"\xEB"
+			}
+		}
+
+		"Signatures"
+		{
+			"TankBehavior::InitialContainedAction"
+			{
+				"library"		"server"
+				"linux"			"@_ZN12TankBehavior22InitialContainedActionEP4Tank"
+				"windows"		"\xA1\x2A\x2A\x2A\x2A\x80\xB8\x6A\x01\x00\x00\x00\x75\x2A\x80\x78\x59\x00"
+								/* A1 ? ? ? ? 80 B8 6A 01 00 00 00 75 ? 80 78 59 00 */
+			}
+
+			"TankAttack::TankAttack"
+			{
+				"library"		"server"
+				"linux"			"@_ZN10TankAttackC2Ev"
+				"windows"		"\x33\xC0\x56\x8B\xF1\xC7\x46\x04\x2A\x2A\x2A\x2A\xC7\x46\x2C\x01\x00\x00\x00\x89\x46\x20\x57\x33\xC9\x89\x4E\x24\x33\xD2\x33\xFF\x89\x56\x28\x89\x7E\x2C\x8D\x7E\x38\x89\x46\x0C\x89\x46\x10\x89\x46\x14\x89\x46\x18\x89\x46\x1C\x89\x46\x08\x88\x46\x30\x88\x46\x31\xC7\x06\x2A\x2A\x2A\x2A\xC7\x46\x04\x2A\x2A\x2A\x2A\x50\x8B\xCF\xC7\x46\x34\xFF\xFF\xFF\xFF\xE8\x2A\x2A\x2A\x2A\xD9\x05\x2A\x2A\x2A\x2A\xC7\x07"
+								/* 33 C0 56 8B F1 C7 46 04 ? ? ? ? C7 46 2C 01 00 00 00 89 46 20 57 33 C9 89 4E 24 33 D2 33 FF 89 56 28 89 7E 2C 8D 7E 38 89 46 0C 89 46 10 89 46 14 89 46 18 89 46 1C 89 46 08 88 46 30 88 46 31 C7 06 ? ? ? ? C7 46 04 ? ? ? ? 50 8B CF C7 46 34 FF FF FF FF E8 ? ? ? ? D9 05 ? ? ? ? C7 07 */
+			}
+		}
+	}
+
+	"left4dead2"
+	{
+		"ActionConstructors"
+		{
+			"TankAttack::TankAttack"
+			{
+				"signature" "TankAttack::TankAttack"
+				"size"  "18556"
+			}
+		}
+
+		"MemPatches"
+		{
+			"aggressive_tank_patch"
+			{
+				"signature"		"TankBehavior::InitialContainedAction"
+				"linux"
+				{
+					"offset"	"17h"
+					"verify"	"\x74"
+					"patch"		"\x90\x90"
+				}
+				"windows"
+				{
+					"offset"	"10h"
+					"verify"	"\x75"
+					"patch"		"\xEB"
+				}
+			}
+		}
+
+		"Signatures"
+		{
+			"TankBehavior::InitialContainedAction"
+			{
+				"library"		"server"
+				"linux"			"@_ZN12TankBehavior22InitialContainedActionEP4Tank"
+				"windows"		"\x55\x8B\xEC\x8B\x0D\x2A\x2A\x2A\x2A\xE8\x2A\x2A\x2A\x2A\x84\xC0\x75\x2A\x8B\x4D\x08"
+								/* 55 8B EC 8B 0D ? ? ? ? E8 ? ? ? ? 84 C0 75 ? 8B 4D 08 */
+			}
+
+			"TankAttack::TankAttack"
+			{
+				"library"		"server"
+				"linux"			"@_ZN10TankAttackC2Ev"
+				"windows"		"\x53\x56\x8B\xF1\xC7\x46\x04\x2A\x2A\x2A\x2A\xC7\x46\x2C\x01\x00\x00\x00\x33\xDB\x33\xC0\x89\x46\x20\x33\xC9\x89\x4E\x24\x57\x33\xD2\x89\x56\x28\x33\xFF\x89\x5E\x0C\x89\x5E\x10\x89\x5E\x14\x89\x5E\x18\x89\x5E\x1C\x89\x5E\x08\x66\x89\x5E\x30\x89\x7E\x2C\xC7\x06\x2A\x2A\x2A\x2A\xC7\x46\x04\x2A\x2A\x2A\x2A\x53\x8D\x4E\x38\xC7\x46\x34\xFF\xFF\xFF\xFF\xE8\x2A\x2A\x2A\x2A\xF3\x0F\x10\x05\x2A\x2A\x2A\x2A\x8D\x86\x4C\x48\x00\x00\xC7\x46\x38\x2A\x2A\x2A\x2A\x88\x9E\x44\x48\x00\x00\x8D\x48\xFC\xBF"
+								/* 53 56 8B F1 C7 46 04 ? ? ? ? C7 46 2C 01 00 00 00 33 DB 33 C0 89 46 20 33 C9 89 4E 24 57 33 D2 89 56 28 33 FF 89 5E 0C 89 5E 10 89 5E 14 89 5E 18 89 5E 1C 89 5E 08 66 89 5E 30 89 7E 2C C7 06 ? ? ? ? C7 46 04 ? ? ? ? 53 8D 4E 38 C7 46 34 FF FF FF FF E8 ? ? ? ? F3 0F 10 05 ? ? ? ? 8D 86 4C 48 00 00 C7 46 38 ? ? ? ? 88 9E 44 48 00 00 8D 48 FC BF */
+			}
+		}
+	}
+}

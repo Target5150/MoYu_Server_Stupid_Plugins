@@ -1,0 +1,96 @@
+"Games"
+{
+	"left4dead"
+	{
+		"ActionConstructors"
+		{
+			"WitchAttack::WitchAttack"
+			{
+				"signature" "WitchAttack::WitchAttack"
+				"size"  "18540"
+				"params"
+				{
+					"target"
+					{
+						"type"			"basic"
+						"flags"			"byval"
+						"encoder"		"entity"
+					}
+				}
+			}
+		}
+
+		"Offsets"
+		{
+			"INextBotEventResponder::OnShoved"
+			{
+				"linux"			"28"
+				"windows"		"27"
+			}
+
+			"MyNextBotPointer"
+			{
+				"linux"			"72"
+				"windows"		"71"
+			}
+		}
+
+		"Signatures"
+		{
+			"WitchAttack::WitchAttack"
+			{
+				"library"		"server"
+				"linux"			"@_ZN11WitchAttackC2EP11CBaseEntity"
+				"windows"		"\x53\x56\x8B\xF1\xC7\x46\x04\x2A\x2A\x2A\x2A\xC7\x46\x2C\x01\x00\x00\x00\x33\xDB\x57\x33\xC0\x89\x46\x20\x33\xC9\x89\x4E\x24\x33\xD2\x33\xFF\x89\x56\x28\x89\x7E\x2C\x8D\x7E\x3C"
+								/* 53 56 8B F1 C7 46 04 ? ? ? ? C7 46 2C 01 00 00 00 33 DB 57 33 C0 89 46 20 33 C9 89 4E 24 33 D2 33 FF 89 56 28 89 7E 2C 8D 7E 3C */
+			}
+		}
+	}
+
+	"left4dead2"
+	{
+		"ActionConstructors"
+		{
+			"WitchAttack::WitchAttack"
+			{
+				"signature"	"WitchAttack::WitchAttack"
+				"size"	"18556"
+				"params"
+				{
+					"target"
+					{
+						"type"			"basic"
+						"flags"			"byval"
+						"encoder"		"entity"
+					}
+				}
+			}
+		}
+
+		"Offsets"
+		{
+			"INextBotEventResponder::OnCommandAttack"
+			{
+				"linux"			"33"
+				"windows"		"32"
+			}
+
+			"MyNextBotPointer"
+			{
+				"linux"			"82"
+				"windows"		"81"
+			}
+		}
+
+		"Signatures"
+		{
+			"WitchAttack::WitchAttack"
+			{
+				"library"		"server"
+				"linux"			"@_ZN11WitchAttackC2EP11CBaseEntity"
+				"windows"		"\x55\x8B\xEC\x53\x56\x8B\xF1\xC7\x46\x04\x2A\x2A\x2A\x2A\xC7\x46\x2C\x01\x00\x00\x00\x33\xDB\x33\xC0\x89\x46\x20\x33\xC9\x89\x4E\x24\x57\x33\xD2\x89\x56\x28\x33\xFF\x89\x5E\x0C\x89\x5E\x10\x89\x5E\x14\x89\x5E\x18\x89\x5E\x1C\x89\x5E\x08\x66\x89\x5E\x30\x89\x7E\x2C\xC7\x06\x2A\x2A\x2A\x2A\xC7\x46\x04\x2A\x2A\x2A\x2A\x53"
+								/* 55 8B EC 53 56 8B F1 C7 46 04 ? ? ? ? C7 46 2C 01 00 00 00 33 DB 33 C0 89 46 20 33 C9 89 4E 24 57 33 D2 89 56 28 33 FF 89 5E 0C 89 5E 10 89 5E 14 89 5E 18 89 5E 1C 89 5E 08 66 89 5E 30 89 7E 2C C7 06 ? ? ? ? C7 46 04 ? ? ? ? 53 */
+			}
+		}
+	}
+}
