@@ -6,7 +6,7 @@
 #include <sourcescramble>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "1.1"
+#define PLUGIN_VERSION "1.2"
 
 public Plugin myinfo = 
 {
@@ -93,8 +93,6 @@ DynamicHook g_Hook_IsMoving;
 
 public void OnPluginStart()
 {
-	g_iOffs_m_iCurrentUseAction = FindSendPropInfo("CTerrorPlayer", "m_iCurrentUseAction");
-
 	GameDataWrapper gd = new GameDataWrapper("l4d_freely_use_action");
 
 	g_bLeft4Dead2 = GetEngineVersion() == Engine_Left4Dead2;
@@ -105,6 +103,8 @@ public void OnPluginStart()
 	}
 	else
 	{
+		g_iOffs_m_iCurrentUseAction = FindSendPropInfo("CTerrorPlayer", "m_iCurrentUseAction");
+
 		g_Hook_IsMoving = gd.CreateDHookOrFail("CBaseEntity::IsMoving");
 		delete gd.CreateDetourOrFail("CTerrorPlayer::IsImmobilized", DTR__IsImmobilized, DTR__IsImmobilized_Post);
 
@@ -159,9 +159,7 @@ public Action L4D_OnGetRunTopSpeed(int target, float &retVal)
 		return Plugin_Continue;
 	}
 
-	UseAction action = view_as<UseAction>(GetEntData(target, g_iOffs_m_iCurrentUseAction));
-
-	if (IsAllowedUseType(action))
+	if (IsPerformingFreelyUseAction(target))
 	{
 		retVal *= g_flSpeedFactor;
 		return Plugin_Handled;
@@ -207,6 +205,25 @@ MRESReturn DTR__IsImmobilized_Post(int client, DHookReturn hReturn)
 	return MRES_Ignored;
 }
 
+bool IsPerformingFreelyUseAction(int client)
+{
+	if (!g_bLeft4Dead2)
+	{
+		int weapon = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+		if (weapon != -1 && IsFirstAidKit(weapon) && GetEntProp(weapon, Prop_Send, "m_isHealing"))
+			return true;
+	}
+	else
+	{
+		UseAction action = view_as<UseAction>(GetEntData(client, g_iOffs_m_iCurrentUseAction));
+
+		if (IsAllowedUseType(action))
+			return true;
+	}
+	
+	return false;
+}
+
 bool IsAllowedUseType(UseAction action)
 {
 	if (action >= UseAction_None && action < MAX_USE_ACTION)
@@ -214,6 +231,13 @@ bool IsAllowedUseType(UseAction action)
 		return (g_fType & UseActionToFlag[action]) != 0;
 	}
 	return false;
+}
+
+bool IsFirstAidKit(int weapon)
+{
+	char cls[32];
+	GetEntityClassname(weapon, cls, sizeof(cls));
+	return !strcmp(cls, "weapon_first_aid_kit");
 }
 
 stock ConVar CreateConVarHook(const char[] name,
