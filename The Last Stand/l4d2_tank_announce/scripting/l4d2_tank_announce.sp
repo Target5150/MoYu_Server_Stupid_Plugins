@@ -6,7 +6,7 @@
 #include <left4dhooks>
 #include <colors>
 
-#define PLUGIN_VERSION "2.0"
+#define PLUGIN_VERSION "2.1"
 
 public Plugin myinfo = 
 {
@@ -44,11 +44,26 @@ public void OnPluginStart()
 void ConVarChanged_Sound(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	convar.GetString(g_sSound, sizeof(g_sSound));
+
+	if (!TryPrecacheSound(g_sSound))
+		g_sSound[0] = '\0';
 }
 
 public void OnMapStart()
 {
-	PrecacheSound(g_sSound);
+	if (!TryPrecacheSound(g_sSound))
+		g_sSound[0] = '\0';
+}
+
+bool TryPrecacheSound(const char[] sample)
+{
+	if (!PrecacheSound(sample))
+		return false;
+
+	// if (!FileExists(sample, true, "GAME"))
+	// 	AddFileToDownloadsTable(sample);
+
+	return true;
 }
 
 public void L4D_OnSpawnTank_Post(int client, const float vecPos[3], const float vecAng[3])
@@ -56,7 +71,9 @@ public void L4D_OnSpawnTank_Post(int client, const float vecPos[3], const float 
 	if (client <= 0 || !IsClientInGame(client))
 		return;
 	
-	EmitSoundToAll(g_sSound);
+	if (g_sSound[0])
+		EmitSoundToAll(g_sSound);
+		
 	CreateTimer(0.1, Timer_Announce, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
 }
 
