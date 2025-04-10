@@ -1,0 +1,12 @@
+"Phrases"
+{
+	"Cmd_Absorb_ToggleOff"
+	{
+		"en"		"{blue}[{default}Auto Pick-up Weapon{blue}] {olive}OFF"
+	}
+	
+	"Cmd_Absorb_ToggleOn"
+	{
+		"en"		"{blue}[{default}Auto Pick-up Weapon{blue}] {olive}ON"
+	}
+}
