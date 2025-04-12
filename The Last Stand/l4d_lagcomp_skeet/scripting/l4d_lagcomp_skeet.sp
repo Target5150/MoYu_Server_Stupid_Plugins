@@ -5,7 +5,7 @@
 #include <sdkhooks>
 #include <dhooks>
 
-#define PLUGIN_VERSION "1.3"
+#define PLUGIN_VERSION "1.4"
 
 public Plugin myinfo =
 {
@@ -38,11 +38,37 @@ methodmap CUserCmd
 	}
 }
 
+int g_iOffs_m_pCurrentPlayer;
+int g_iOffs_m_isCurrentlyDoingCompensation;
+methodmap CLagCompensationManager
+{
+	property Address m_pCurrentPlayer {
+		public get() { return LoadFromAddress(view_as<Address>(this) + view_as<Address>(g_iOffs_m_pCurrentPlayer), NumberType_Int32); }
+	}
+	property bool m_isCurrentlyDoingCompensation {
+		public get() { return LoadFromAddress(view_as<Address>(this) + view_as<Address>(g_iOffs_m_isCurrentlyDoingCompensation), NumberType_Int8); }
+	}
+}
+CLagCompensationManager g_LagCompensationManager;
+
 methodmap GameDataWrapper < GameData {
 	public GameDataWrapper(const char[] file) {
 		GameData gd = new GameData(file);
 		if (!gd) SetFailState("Missing gamedata \"%s\"", file);
 		return view_as<GameDataWrapper>(gd);
+	}
+	property GameData Super {
+		public get() { return view_as<GameData>(this); }
+	}
+	public int GetOffset(const char[] key) {
+		int offset = this.Super.GetOffset(key);
+		if (offset == -1) SetFailState("Missing offset \"%s\"", key);
+		return offset;
+	}
+	public Address GetAddress(const char[] key) {
+		Address ptr = this.Super.GetAddress(key);
+		if (ptr == Address_Null) SetFailState("Missing address \"%s\"", key);
+		return ptr;
 	}
 	public DynamicDetour CreateDetourOrFail(
 			const char[] name,
@@ -62,6 +88,9 @@ methodmap GameDataWrapper < GameData {
 public void OnPluginStart()
 {
 	GameDataWrapper gd = new GameDataWrapper("l4d_lagcomp_skeet");
+	g_LagCompensationManager = view_as<CLagCompensationManager>(gd.GetAddress("g_LagCompensationManager"));
+	g_iOffs_m_pCurrentPlayer = gd.GetOffset("CLagCompensationManager::m_pCurrentPlayer");
+	g_iOffs_m_isCurrentlyDoingCompensation = gd.GetOffset("CLagCompensationManager::m_isCurrentlyDoingCompensation");
 	delete gd.CreateDetourOrFail("CTerrorPlayer::OnTakeDamageInternal", DTR_OnTakeDamageInternal, DTR_OnTakeDamageInternal_Post);
 	delete gd;
 }
@@ -82,6 +111,13 @@ MRESReturn DTR_OnTakeDamageInternal(int victim, DHookParam hParams)
 	int attacker = hParams.GetObjectVar(1, k_iOffs_CTakeDamageInfo_m_hAttacker, ObjectValueType_Ehandle);
 	if (attacker <= 0 || attacker > MaxClients || !IsClientInGame(attacker) || GetClientTeam(attacker) != 2 || IsFakeClient(attacker))
 		return MRES_Ignored;
+	
+	// Player may deal damage while not processing command
+	if (!g_LagCompensationManager.m_isCurrentlyDoingCompensation
+	 || g_LagCompensationManager.m_pCurrentPlayer != GetEntityAddress(attacker))
+	{
+	 	return MRES_Ignored;
+	}
 
 	g_iSaveClient = victim;
 	float flTargetTime = GetLagCompTargetTime(attacker);
