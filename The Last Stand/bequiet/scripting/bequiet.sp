@@ -3,7 +3,7 @@
 
 #include <sourcemod>
 
-#define PLUGIN_VERSION "2.0.2"
+#define PLUGIN_VERSION "2.1"
 
 public Plugin myinfo = 
 {
@@ -14,11 +14,18 @@ public Plugin myinfo =
 	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 }
 
+// 1.12.0.6944
+// https://github.com/alliedmodders/sourcemod/commit/3b4a343274286b31a9b3cf33c64f7ef
+#if ( SOURCEMOD_V_MAJOR == 1 && (SOURCEMOD_V_MINOR < 12 || SOURCEMOD_V_REV < 6944) )
+native int GetPublicChatTriggers(char[] buffer, int maxlength);
+native int GetSilentChatTriggers(char[] buffer, int maxlength);
+#endif
+
 ConVar hCvarCvarChange, hCvarNameChange, hCvarSpecNameChange, hCvarSpecSeeChat;
 
 public void OnPluginStart()
 {
-	//Player name change
+	//Player name change & chat trigger
 	HookUserMessage(GetUserMessageId("SayText2"), UserMsg_OnSayText2, true);
 	
 	//Server CVar
@@ -33,35 +40,45 @@ public void OnPluginStart()
 	AutoExecConfig(true);
 }
 
-public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs)
+bool TryRequireFeature(FeatureType type, const char[] name)
+{
+	FeatureStatus status = GetFeatureStatus(type, name);
+	if (status == FeatureStatus_Unknown)
+		return false;
+	
+	if (status == FeatureStatus_Unavailable)
+		RequireFeature(type, name);
+
+	return true;
+}
+
+bool IsChatTriggerMsg(const char[] text)
 {
 	static char s_sPubChatTrigger[8] = "!", s_sPrivChatTrigger[8] = "/";
 	static int s_iPubTriggerLen = 1, s_iPrivTriggerLen = 1;
 
-// 1.12.0.6944
-// https://github.com/alliedmodders/sourcemod/commit/3b4a343274286b31a9b3cf33c64f7ef
-#if SOURCEMOD_V_MAJOR > 1
-  || (SOURCEMOD_V_MAJOR == 1 && SOURCEMOD_V_MINOR >= 12 && SOURCEMOD_V_REV >= 6944)
-	static bool bInit = false;
-	if (!bInit)
+	static bool s_bInit = false;
+	if (!s_bInit)
 	{
-		s_iPubTriggerLen = GetPublicChatTriggers(s_sPubChatTrigger, sizeof(s_sPubChatTrigger));
-		s_iPrivTriggerLen = GetSilentChatTriggers(s_sPrivChatTrigger, sizeof(s_sPrivChatTrigger));
-		
-		if (!s_iPubTriggerLen)
-			s_iPubTriggerLen = strcopy(s_sPubChatTrigger, sizeof(s_sPubChatTrigger), "!");
-		if (!s_iPrivTriggerLen)
-			s_iPrivTriggerLen = strcopy(s_sPrivChatTrigger, sizeof(s_sPrivChatTrigger), "/");
-		
-		bInit = true;
-	}
-#endif
+		if (CanTestFeatures() && TryRequireFeature(FeatureType_Native, "GetPublicChatTriggers"))
+		{
+			s_iPubTriggerLen = GetPublicChatTriggers(s_sPubChatTrigger, sizeof(s_sPubChatTrigger));
+			s_iPrivTriggerLen = GetSilentChatTriggers(s_sPrivChatTrigger, sizeof(s_sPrivChatTrigger));
+			
+			if (!s_iPubTriggerLen)
+				s_iPubTriggerLen = strcopy(s_sPubChatTrigger, sizeof(s_sPubChatTrigger), "!");
+			if (!s_iPrivTriggerLen)
+				s_iPrivTriggerLen = strcopy(s_sPrivChatTrigger, sizeof(s_sPrivChatTrigger), "/");
+		}
 
-	if (strncmp(sArgs, s_sPubChatTrigger, s_iPubTriggerLen) == 0
-	  || strncmp(sArgs, s_sPrivChatTrigger, s_iPrivTriggerLen) == 0)
-		return Plugin_Handled;
+		s_bInit = true;
+	}
+
+	if (strncmp(text, s_sPubChatTrigger, s_iPubTriggerLen) != 0
+	  && strncmp(text, s_sPrivChatTrigger, s_iPrivTriggerLen) != 0)
+		return false;
 	
-	return Plugin_Continue;
+	return true;
 }
 
 public void OnClientSayCommand_Post(int client, const char[] command, const char[] sArgs)
@@ -76,16 +93,16 @@ public void OnClientSayCommand_Post(int client, const char[] command, const char
 	static const char s_ChatFormats[][] = {
 		"L4D_Chat_Survivor",
 		"L4D_Chat_Infected",
-	/*	"L4D_Chat_Survivor_Dead",
-		"L4D_Chat_Infected_Dead",*/
+		// "L4D_Chat_Survivor_Dead",
+		// "L4D_Chat_Infected_Dead",
 	};
 	
 	int idxTeam = GetClientTeam(client) - 2;
 	if (idxTeam != 0 && idxTeam != 1)
 		return;
 	
-	/*if (!IsPlayerAlive(client))
-		idxTeam += 2;*/
+	// if (!IsPlayerAlive(client))
+	// 	idxTeam += 2;
 	
 	// collect all spectators + SourceTV
 	int[] clients = new int[MaxClients];
@@ -116,28 +133,31 @@ Action UserMsg_OnSayText2(UserMsg msg_id, BfRead msg, const int[] players, int p
 	if (!IsValidClient(client))
 		return Plugin_Continue;
 	
-	msg.ReadByte(); // Skip the second byte
+	msg.ReadByte(); // Skip the second byte (bChat)
 	
-	// Read the message
-	static char sMessage[128];
-	msg.ReadString(sMessage, sizeof(sMessage), true);
+	// Read the format (translation)
+	static char sFormat[128];
+	msg.ReadString(sFormat, sizeof(sFormat), true);
 	
-	if (GetClientTeam(client) == 1)
+	if( (GetClientTeam(client) == 1 && hCvarSpecNameChange.BoolValue)
+	 || hCvarNameChange.BoolValue )
 	{
-		if (!hCvarSpecNameChange.BoolValue)
-			return Plugin_Continue;
+		if (strcmp(sFormat, "#Cstrike_Name_Change") == 0) // don't broadcast player name changes
+			return Plugin_Handled;
 	}
-	else if (!hCvarNameChange.BoolValue)
-		return Plugin_Continue;
 	
-	if (strcmp(sMessage, "#Cstrike_Name_Change") != 0)
-		return Plugin_Continue;
-	
-	return Plugin_Handled;
+	static char text[256];
+	msg.ReadString(text, sizeof(text), true); // name
+	msg.ReadString(text, sizeof(text), true); // text @ param1
+
+	if (IsChatTriggerMsg(text)) // don't broadcast chat trigger messages
+		return Plugin_Handled;
+
+	return Plugin_Continue;
 }
 
 stock bool IsValidClient(int client)
-{ 
+{
     return client > 0 && client <= MaxClients && IsClientInGame(client);
 }
 
