@@ -14,7 +14,7 @@ void RestartCountdowns(bool startOn)
 	if (!inReadyUp && !startOn) {
 		return;
 	}
-	
+
 	if (L4D2_IsScavengeMode())
 	{
 		RestartScvngSetupCountdown(startOn);
@@ -24,8 +24,8 @@ void RestartCountdowns(bool startOn)
 	{
 		RestartVersusStartCountdown(startOn);
 	}
-	
-	RestartMobCountdown(startOn);
+
+	// RestartMobCountdown(startOn);
 }
 
 void ResetAccumulatedTime()
@@ -34,8 +34,7 @@ void ResetAccumulatedTime()
 	if (scavenge_round_initial_time == null)
 		if ((scavenge_round_initial_time = FindConVar("scavenge_round_initial_time")) == null)
 			return;
-	
-	L4D_NotifyNetworkStateChanged();
+
 	GameRules_SetPropFloat("m_flAccumulatedTime", scavenge_round_initial_time.FloatValue);
 }
 
@@ -45,27 +44,40 @@ void RestartVersusStartCountdown(bool startOn)
 	if (s_cv == null)
 		if ((s_cv = FindConVar("versus_force_start_time")) == null)
 			return;
-	
+
 	L4D2_CTimerStart(L4D2CT_VersusStartTimer, startOn ? s_cv.FloatValue : 99999.9);
 }
 
-void RestartMobCountdown(bool startOn)
+// void RestartMobCountdown(bool startOn)
+// {
+// 	static float fDuration = -1.0;
+
+// 	if (startOn)
+// 	{
+// 		if (fDuration != -1.0) L4D2_CTimerStart(L4D2CT_MobSpawnTimer, fDuration);
+// 	}
+// 	else
+// 	{
+// 		float fTemp = L4D2_CTimerGetCountdownDuration(L4D2CT_MobSpawnTimer);
+// 		if (fTemp != -1.0 && fTemp < 99999.9)
+// 		{
+// 			fDuration = fTemp;
+// 			L4D2_CTimerStart(L4D2CT_MobSpawnTimer, 99999.9);
+// 		}
+// 	}
+// }
+
+public Action L4D_OnGetScriptValueFloat(const char[] key, float &retVal)
 {
-	static float fDuration = -1.0;
-	
-	if (startOn)
+	if (!inReadyUp)
+		return Plugin_Continue;
+
+	if (!strcmp(key, "MobSpawnMinTime") || !strcmp(key, "MobSpawnMaxTime"))
 	{
-		if (fDuration != -1.0) L4D2_CTimerStart(L4D2CT_MobSpawnTimer, fDuration);
+		retVal = 99999.9;
+		return Plugin_Handled;
 	}
-	else
-	{
-		float fTemp = L4D2_CTimerGetCountdownDuration(L4D2CT_MobSpawnTimer);
-		if (fTemp != -1.0 && fTemp < 99999.9)
-		{
-			fDuration = fTemp;
-			L4D2_CTimerStart(L4D2CT_MobSpawnTimer, 99999.9);
-		}
-	}
+	return Plugin_Continue;
 }
 
 void RestartScvngSetupCountdown(bool startOn)
@@ -74,11 +86,11 @@ void RestartScvngSetupCountdown(bool startOn)
 	if (s_cv == null)
 		if ((s_cv = FindConVar("scavenge_round_setup_time")) == null)
 			return;
-	
+
 	CountdownTimer timer = L4D2Direct_GetScavengeRoundSetupTimer();
 	if (timer == CTimer_Null)
 		return;
-	
+
 	CTimer_Start(timer, startOn ? s_cv.FloatValue : 99999.9);
 	ToggleCountdownPanel(startOn);
 }
@@ -158,7 +170,7 @@ Action Timer_SetSurvivalButtonStatus(Handle timer, bool InReady)
 
 		GetEntityClassname(iEntity, sName, sizeof(sName));
 
-		if (StrEqual(sName, "func_button") || 
+		if (StrEqual(sName, "func_button") ||
 			StrEqual(sName, "func_button_timed")) 	// `func_button_timed` for c7m1 tank train door/c9m2 generator.
 		{
 			if (InReady)
