@@ -34,8 +34,8 @@ grenade_throw_delay "0.2"
 <hr>
 
 ### Installation
-1. Put the **l4d_grenade_throw.smx** to your _plugins_ folder.
-2. Put the **l4d_grenade_throw.txt** to your _gamedata_ folder.
+1. Put **plugins/l4d_grenade_throw.smx** to your _plugins_ folder.
+2. Put **gamedata/l4d_grenade_throw.txt** to your _gamedata_ folder.
 
 <hr>
 

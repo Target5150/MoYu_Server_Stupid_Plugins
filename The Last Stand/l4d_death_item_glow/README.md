@@ -29,7 +29,7 @@ l4d_death_item_glow_time "-1"
 <hr>
 
 ### Installation
-1. Put the **l4d_death_item_glow.smx** to your _plugins_ folder.
+1. Put **plugins/l4d_death_item_glow.smx** to your _plugins_ folder.
 
 <hr>
 

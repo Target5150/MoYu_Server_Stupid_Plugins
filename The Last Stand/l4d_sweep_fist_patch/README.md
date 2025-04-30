@@ -12,8 +12,8 @@ https://forums.alliedmods.net/showthread.php?t=332046
 <hr>
 
 ### Installation
-1. Put the **l4d_sweep_fist_patch.smx** to your _plugins_ folder.
-2. Put the **l4d_sweep_fist_patch.txt** to your _gamedata_ folder.
+1. Put **plugins/l4d_sweep_fist_patch.smx** to your _plugins_ folder.
+2. Put **gamedata/l4d_sweep_fist_patch.txt** to your _gamedata_ folder.
 
 <hr>
 

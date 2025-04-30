@@ -12,8 +12,8 @@
 <hr>
 
 ### Installation
-1. Put the **l4d_fix_saferoom_ghostspawn.smx** to your _plugins_ folder.
-2. Put the **l4d_fix_saferoom_ghostspawn.txt** to your _gamedata_ folder.
+1. Put **plugins/l4d_fix_saferoom_ghostspawn.smx** to your _plugins_ folder.
+2. Put **gamedata/l4d_fix_saferoom_ghostspawn.txt** to your _gamedata_ folder.
 
 <hr>
 

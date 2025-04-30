@@ -12,7 +12,7 @@
 <hr>
 
 ### Installation
-1. Put the **smart_ai_rock.smx** to your _plugins_ folder.
+1. Put **plugins/smart_ai_rock.smx** to your _plugins_ folder.
 
 <hr>
 

@@ -17,7 +17,7 @@ tank_rock_invuln_duration 0.5
 <hr>
 
 ### Installation
-1. Put the **l4d_rock_invuln_duration.smx** to your _plugins_ folder.
+1. Put **plugins/l4d_rock_invuln_duration.smx** to your _plugins_ folder.
 
 <hr>
 

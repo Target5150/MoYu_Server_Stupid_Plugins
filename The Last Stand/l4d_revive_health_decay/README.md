@@ -13,7 +13,7 @@
 <hr>
 
 ### Installation
-1. Put the **l4d_revive_health_decay.smx** to your _plugins_ folder.
+1. Put **plugins/l4d_revive_health_decay.smx** to your _plugins_ folder.
 
 <hr>
 

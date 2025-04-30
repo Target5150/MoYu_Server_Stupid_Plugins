@@ -40,7 +40,7 @@ l4d2_spit_individual_calc "0"
 <hr>
 
 ### Installation
-1. Put the **l4d2_uniform_spit.smx** to your _plugins_ folder.
+1. Put **plugins/l4d2_uniform_spit.smx** to your _plugins_ folder.
 
 <hr>
 

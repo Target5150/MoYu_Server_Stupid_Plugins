@@ -22,7 +22,7 @@ l4d_despawn_los_time "15.0"
 <hr>
 
 ### Installation
-1. Put the **l4d_despawn_out_of_sight.smx** to your _plugins_ folder.
+1. Put **plugins/l4d_despawn_out_of_sight.smx** to your _plugins_ folder.
 
 <hr>
 

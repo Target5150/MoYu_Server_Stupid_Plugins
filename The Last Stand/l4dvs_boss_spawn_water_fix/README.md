@@ -11,8 +11,8 @@
 <hr>
 
 ### Installation
-1. Put the **l4dvs_boss_spawn_water_fix.smx** to your _plugins_ folder.
-2. Put the **l4dvs_boss_spawn_water_fix.txt** to your _gamedata_ folder.
+1. Put **plugins/l4dvs_boss_spawn_water_fix.smx** to your _plugins_ folder.
+2. Put **gamedata/l4dvs_boss_spawn_water_fix.txt** to your _gamedata_ folder.
 
 <hr>
 

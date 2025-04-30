@@ -10,8 +10,8 @@
 <hr>
 
 ### Installation
-1. Put the **l4d_no_m2_movement_block.smx** to your _plugins_ folder.
-2. Put the **l4d_no_m2_movement_block.txt** to your _gamedata_ folder.
+1. Put **plugins/l4d_no_m2_movement_block.smx** to your _plugins_ folder.
+2. Put **gamedata/l4d_no_m2_movement_block.txt** to your _gamedata_ folder.
 
 <hr>
 
