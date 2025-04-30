@@ -4,13 +4,12 @@
 #include <sourcemod>
 #include <builtinvotes>
 #include <colors>
+#include <imatchext>
 
 #undef REQUIRE_PLUGIN
-#tryinclude <l4d2_changelevel>
-#include <l4d2_mission_manager>
-#define REQUIRE_PLUGIN
+#include <l4d2_changelevel>
 
-#define PLUGIN_VERSION "2.1"
+#define PLUGIN_VERSION "2.2"
 
 public Plugin myinfo =
 {
@@ -24,8 +23,6 @@ public Plugin myinfo =
 /**
  * Globals
  */
-#define TRANSLATION_FILE "vote_custom_campaigns.phrases"
-
 ArrayList g_aCampaignList;
 
 ConVar g_cVotePercent;
@@ -58,7 +55,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
  */
 public void OnPluginStart()
 {
-	LoadPluginTranslations();
+	LoadPluginTranslations("vote_custom_campaigns.phrases");
+	LoadPluginTranslations("missions.phrases");
 	
 	g_cVotePercent =	CreateConVar(	"vcc_votes_percent",	"0.6",		"Votes more than this percent of non-spectator players can a vote result.", FCVAR_NOTIFY);
 	g_cPassPercent =	CreateConVar(	"vcc_pass_percent",		"0.6",		"Approvals greater than this percent of votes can a vote pass.", FCVAR_NOTIFY);
@@ -73,7 +71,7 @@ public void OnPluginStart()
 	g_aCampaignList = new ArrayList();
 }
 
-public void OnLMMUpdateList()
+public void OnMissionCacheReload()
 {
 	ParseCampaigns();
 }
@@ -100,24 +98,25 @@ Action Command_ReloadCampaigns(int client, int args)
 
 Action Command_VoteCampaign(int client, int args) 
 {
-	if( !client ) { return Plugin_Handled; }
+	if( !client || !IsClientInGame(client) ) { return Plugin_Continue; }
 	
 	int arraysize = g_aCampaignList.Length;
 	if( !arraysize ) { return Plugin_Handled; }
 	
-	Menu menu = new Menu(MapMenuHandler);
+	Menu menu = new Menu(MapMenuHandler, MenuAction_DisplayItem|MenuAction_Select|MenuAction_End);
 	menu.SetTitle( "%T", "Command_VoteMenuTitle", client, arraysize );
-	
-	LMM_GAMEMODE gamemode = LMM_GetCurrentGameMode();
 	
 	char sMission[128], sMissionName[128];
 	for( int i = 0; i < arraysize; ++i )
 	{
-		int missionIndex = g_aCampaignList.Get(i);
+		MissionSymbol mission = g_aCampaignList.Get(i);
+		if( !MissionSymbol.IsValid(mission)/* || mission.IsDisabled()*/ )
+			continue;
 		
-		LMM_GetMapName(gamemode, missionIndex, 0, sMission, sizeof(sMission));
-		LMM_GetMissionLocalizedName(gamemode, missionIndex, sMissionName, sizeof(sMissionName), client);
+		if( CurrentMode.GetNumChapters(mission) == 0 )
+			continue;
 		
+		mission.GetName(sMission, sizeof(sMission));
 		menu.AddItem(sMission, sMissionName);
 	}
 	
@@ -134,11 +133,18 @@ Action Command_VoteCampaign(int client, int args)
  */
 int MapMenuHandler(Menu menu, MenuAction action, int param1, int param2)
 {
-	if( action == MenuAction_Select ) 
+	if( action == MenuAction_DisplayItem )
 	{
 		char sMission[128], sMissionName[128];
-		GetMenuItem(menu,
-				param2,
+		menu.GetItem(param2, sMission, sizeof(sMission));
+
+		if (GetMissionLocalizedName(sMission, sMissionName, sizeof(sMissionName), param1) == 0)
+			return RedrawMenuItem(sMissionName);
+	}
+	else if( action == MenuAction_Select ) 
+	{
+		char sMission[128], sMissionName[128];
+		menu.GetItem(param2,
 				sMission, sizeof(sMission),
 				_,
 				sMissionName, sizeof(sMissionName));
@@ -238,27 +244,28 @@ int CampaignVoteResult(Handle vote, int num_votes, int num_clients, const int[][
 	{
 		DisplayBuiltinVotePass2(vote, TRANSLATION_L4D_VOTE_CHANGECAMPAIGN_PASSED, g_sVoteCampaignName);
 		
-		int missionIndex;
-		char buffer[256];
-		LMM_GAMEMODE gamemode = LMM_GetCurrentGameMode();
-		LMM_FindMapIndexByName(gamemode, missionIndex, g_sVoteCampaign);
-		
-		for (int i = 1; i <= MaxClients; ++i)
+		MissionSymbol mission = GetMissionSymbol(g_sVoteCampaign);
+		if( MissionSymbol.IsValid(mission) )
 		{
-			if (!IsClientInGame(i) || IsFakeClient(i))
-				continue;
+			char buffer[255];
 			
-			if (LMM_GetMissionLocalizedName(gamemode, missionIndex, buffer, sizeof(buffer), i) == 1)
+			for (int i = 1; i <= MaxClients; ++i)
 			{
-				CPrintToChat(i, "%t", "Announce_VotePass", buffer);
+				if( !IsClientInGame(i) || IsFakeClient(i) )
+					continue;
+				
+				if( GetMissionLocalizedName(g_sVoteCampaign, buffer, sizeof(buffer), i) )
+				{
+					CPrintToChat(i, "%t", "Announce_VotePass", buffer);
+				}
+				else
+				{
+					CPrintToChat(i, "%t", "Announce_VotePass", g_sVoteCampaignName);
+				}
 			}
-			else
-			{
-				CPrintToChat(i, "%t", "Announce_VotePass", g_sVoteCampaignName);
-			}
+			
+			CreateTimer(3.0, Timer_Changelevel, mission, TIMER_FLAG_NO_MAPCHANGE);
 		}
-		
-		CreateTimer(3.0, Timer_Changelevel, .flags = TIMER_FLAG_NO_MAPCHANGE);
 	}
 	else
 	{
@@ -272,21 +279,34 @@ int CampaignVoteResult(Handle vote, int num_votes, int num_clients, const int[][
 /**
  * Timers
  */
-Action Timer_Changelevel(Handle timer)
+Action Timer_Changelevel(Handle timer, MissionSymbol mission)
 {
-	if( !IsMapValid(g_sVoteCampaign) )
+	if( !MissionSymbol.IsValid(mission) )
 	{
-		CPrintToChatAll("%t", "Announce_ChangeLevelFailure", g_sVoteCampaignName);
+		CPrintToChatAll("%t", "Announce_ChangeLevelFailure", "N/A");
+		return Plugin_Stop;
+	}
+	
+	KeyValues kv = new KeyValues("mission");
+	CurrentMode.ExportChapter(mission, 1, kv);
+	
+	char buffer[255];
+	kv.GetString("Map", buffer, sizeof(buffer));
+	delete kv;
+	
+	if( !IsMapValid(buffer) )
+	{
+		CPrintToChatAll("%t", "Announce_ChangeLevelFailure", buffer);
 		return Plugin_Stop;
 	}
 	
 	if( GetFeatureStatus(FeatureType_Native, "L4D2_ChangeLevel") == FeatureStatus_Available )
 	{
-		L4D2_ChangeLevel(g_sVoteCampaign);
+		L4D2_ChangeLevel(buffer);
 	}
 	else
 	{
-		ForceChangeLevel(g_sVoteCampaign, "Vote custom campaigns");
+		ForceChangeLevel(buffer, "Vote custom campaigns");
 	}
 	
 	return Plugin_Stop;
@@ -297,46 +317,68 @@ Action Timer_Changelevel(Handle timer)
 /**
  * Misc
  */
+int GetMissionLocalizedName(const char[] missionName, char[] localizedName, int maxlen, int client = LANG_SERVER)
+{
+	if( TranslationPhraseExists(missionName) && (client == LANG_SERVER || IsTranslatedForLanguage(missionName, GetClientLanguage(client))) )
+		return FormatEx(localizedName, maxlen, "%T", missionName, client);
+	
+	return 0;
+}
+
 bool ParseCampaigns()
 {
 	g_aCampaignList.Clear();
 	
-	if( GetFeatureStatus(FeatureType_Native, "LMM_GetCurrentGameMode") != FeatureStatus_Available )
-	{
-		return false;
-	}
-	
-	LMM_GAMEMODE gamemode = LMM_GetCurrentGameMode();
-	if( gamemode == LMM_GAMEMODE_UNKNOWN )
-	{
-		return false;
-	}
-	
-	int missionNum = LMM_GetNumberOfMissions(gamemode);
-	if( missionNum <= 0 )
-	{
-		return false;
-	}
-	
 	char buffer[128];
-	for( int i = 0; i < missionNum; ++i )
+	for( MissionSymbol mission = MissionSymbol.First(); MissionSymbol.IsValid(mission); mission = mission.Next() )
 	{
-		if( LMM_GetMissionName(gamemode, i, buffer, sizeof(buffer)) != -1 && strncmp(buffer, "L4D2C", 5) != 0 )
-		{
-			g_aCampaignList.Push(i);
-		}
+		mission.GetName(buffer, sizeof(buffer));
+		
+		if( OfficialMapFilter().ContainsKey(buffer) )
+			continue;
+		
+		g_aCampaignList.Push(mission);
 	}
 	
 	return g_aCampaignList.Length > 0;
 }
 
-void LoadPluginTranslations()
+StringMap OfficialMapFilter()
+{
+	static StringMap s_OfficialMapFilter = null;
+	if (s_OfficialMapFilter == null)
+	{
+		s_OfficialMapFilter = new StringMap();
+		s_OfficialMapFilter.SetValue("credits", 1);
+		s_OfficialMapFilter.SetValue("HoldoutTraining", 1);
+		s_OfficialMapFilter.SetValue("HoldoutChallenge", 1);
+		s_OfficialMapFilter.SetValue("shootzones", 1);
+		s_OfficialMapFilter.SetValue("parishdash", 1);
+		s_OfficialMapFilter.SetValue("L4D2C1", 1);
+		s_OfficialMapFilter.SetValue("L4D2C2", 1);
+		s_OfficialMapFilter.SetValue("L4D2C3", 1);
+		s_OfficialMapFilter.SetValue("L4D2C4", 1);
+		s_OfficialMapFilter.SetValue("L4D2C5", 1);
+		s_OfficialMapFilter.SetValue("L4D2C6", 1);
+		s_OfficialMapFilter.SetValue("L4D2C7", 1);
+		s_OfficialMapFilter.SetValue("L4D2C8", 1);
+		s_OfficialMapFilter.SetValue("L4D2C9", 1);
+		s_OfficialMapFilter.SetValue("L4D2C10", 1);
+		s_OfficialMapFilter.SetValue("L4D2C11", 1);
+		s_OfficialMapFilter.SetValue("L4D2C12", 1);
+		s_OfficialMapFilter.SetValue("L4D2C13", 1);
+		s_OfficialMapFilter.SetValue("L4D2C14", 1);
+	}
+	return s_OfficialMapFilter;
+}
+
+void LoadPluginTranslations(const char[] file)
 {
 	char sPath[PLATFORM_MAX_PATH];
-	BuildPath(Path_SM, sPath, sizeof sPath, "translations/"...TRANSLATION_FILE... ".txt");
+	BuildPath(Path_SM, sPath, sizeof(sPath), "translations/%s.txt", file);
 	if (!FileExists(sPath))
 	{
-		SetFailState("Missing translation file \""...TRANSLATION_FILE...".txt\"");
+		SetFailState("Missing translation file \"%s.txt\"", file);
 	}
-	LoadTranslations(TRANSLATION_FILE);
+	LoadTranslations(file);
 }

@@ -1,21 +1,21 @@
 # vote_custom_campaigns
 
 ### Introduction
-- Self-descriptive.
+- Title.
 - Maps not localized can be fixed via adding them to translations
 
 <hr>
 
 ### Requirement
-- [l4d2_mission_manager](https://github.com/rikka0w0/l4d2_mission_manager)
+- [imatchext](https://github.com/shqke/imatchext)
 - (Optional, recommended for scavenge servers) [Proper Changelevel](https://forums.alliedmods.net/showthread.php?p=2669850)
 
 <hr>
 
 ### Installation
-1. Put the **vote_custom_campaigns.smx** in your _plugins_ folder.
-2. Put the files in **translations** folder to your _trabslations_ folder.
-3. Edit the **translation files** to cover missing localizations of custom campaigns.
+1. Put **plugins/vote_custom_campaigns.smx** in your _plugins_ folder.
+2. Merge your _translations_ folder with the one here.
+3. Edit **missions.phrases.txt** to cover missing localizations of custom campaigns.
 
 <hr>
 
