@@ -1,0 +1,116 @@
+"Games"
+{
+	"left4dead2"
+	{
+		"Functions"
+		{
+			"SurvivorReplacement::Save"
+			{
+				"signature"		"SurvivorReplacement::Save"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"ignore"
+				"arguments"
+				{
+					"a1"
+					{
+						"type"	"cbaseentity"
+					}
+				}
+			}
+
+			"SurvivorReplacement::Restore"
+			{
+				"signature"		"SurvivorReplacement::Restore"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"ignore"
+				"arguments"
+				{
+					"a1"
+					{
+						"type"	"cbaseentity"
+					}
+					"a2"
+					{
+						"type"	"cbaseentity"
+					}
+				}
+			}
+
+			"CCSPlayer::SetModelIndex"
+			{
+				"signature"		"CCSPlayer::SetModelIndex"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"entity"
+				"arguments"
+				{
+					"a1"
+					{
+						"type"	"int"
+					}
+				}
+			}
+		}
+
+		"Offsets"
+		{
+			/* Windows offset:
+			 *
+			 * Search string "PlayerLedgeHangMiddle", which will lead you to "CTerrorPlayerAnimState::HandleActivity_Incapacitated".
+			 * Go to its only xref function, and again, then you are at vtable of "CTerrorPlayerAnimState".
+			 * Double click on the first virtual function "CTerrorPlayerAnimState::ClearAnimationState".
+			 * Go to its function xref 3 times, and you will meet with an enormous constructor function.
+			 * 
+			 * 1. Generate pseudocode and you can easily find the offset where the cursor is.
+			 * 2. See the "mov" instruction below the highlighted "call".
+			 */
+			
+			"CTerrorPlayer::m_PlayerAnimState"
+			{
+				"linux"			"10512"
+				"windows"		"10524"
+			}
+			
+			"CTerrorPlayerAnimState::ResetMainActivity"
+			{
+				"linux"			"5"
+				"windows"		"5"
+			}
+			
+			"CTerrorPlayerAnimState::m_bCharged"
+			{
+				"linux"			"344"
+				"windows"		"344"
+			}
+		}
+
+		"Signatures"
+		{
+			"SurvivorReplacement::Save"
+			{
+				"library"		"server"
+				"linux"			"@_ZN19SurvivorReplacement4SaveEP13CTerrorPlayer"
+				"windows"		"\x55\x8B\xEC\x83\xEC\x20\x53\x56\x8B\x75\x08\x33\xDB"
+				// 55 8B EC 83 EC 20 53 56 8B 75 08 33 DB
+			}
+
+			"SurvivorReplacement::Restore"
+			{
+				"library"		"server"
+				"linux"			"@_ZN19SurvivorReplacement7RestoreEP13CTerrorPlayerS1_"
+				"windows"		"\x55\x8B\xEC\x83\xEC\x18\x53\x56\x8B\x75\x0C\x8B\x06"
+				// 55 8B EC 83 EC 18 53 56 8B 75 0C 8B 06
+			}
+
+			"CCSPlayer::SetModelIndex"
+			{
+				"library"		"server"
+				"linux"			"@_ZN9CCSPlayer13SetModelIndexEi"
+				"windows"		"\x55\x8B\xEC\x56\x57\x8B\x7D\x08\x8B\xF1\x66\x39\xBE\x0E\x01\x00\x00\x74\x2A\x80\x7E\x64\x00\x74\x2A\x80\x4E\x68\x01\xEB\x2A"
+				// 55 8B EC 56 57 8B 7D 08 8B F1 66 39 BE 0E 01 00 00 74 ? 80 7E 64 00 74 ? 80 4E 68 01 EB
+			}
+		}
+	}
+}
