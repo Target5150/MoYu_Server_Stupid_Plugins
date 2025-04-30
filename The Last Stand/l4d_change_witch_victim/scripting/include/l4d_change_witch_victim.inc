@@ -28,6 +28,6 @@ public SharedPlugin __pl_l4d_change_witch_victim =
 #if !defined REQUIRE_PLUGIN
 public void __ext_l4d_change_witch_victim_SetNTVOptional()
 {
-	MarkNativeAsOptional("ForceAITankAttack");
+	MarkNativeAsOptional("ChangeWitchTarget");
 }
 #endif

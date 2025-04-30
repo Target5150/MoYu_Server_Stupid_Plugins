@@ -43,6 +43,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 		default: { strcopy(error, err_max, "Plugin supports L4D & 2 only"); return APLRes_SilentFailure; }
 	}
 
+	RegPluginLibrary("l4d_aggressive_coop_tank");
+
 	CreateNative("ForceAITankAttack", Ntv_ForceAITankAttack);
 	return APLRes_Success;
 }
