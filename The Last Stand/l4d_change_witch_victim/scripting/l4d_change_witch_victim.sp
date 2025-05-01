@@ -111,6 +111,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 		default: { strcopy(error, err_max, "Plugin supports L4D & 2 only"); return APLRes_SilentFailure; }
 	}
 
+	RegPluginLibrary("l4d_change_witch_victim");
+
 	CreateNative("ChangeWitchTarget", Ntv_ChangeWitchTarget);
 	return APLRes_Success;
 }
