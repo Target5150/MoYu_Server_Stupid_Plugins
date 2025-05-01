@@ -64,7 +64,7 @@ jobs:
           done
           if [ "${#error_files[*]}" -gt 0 ]; then
             echo -e "\n${#error_files[*]} plugin(s) failed to compile:"
-            printf '  %s\n' "${error_files[*]}"
+            printf '  \n%s' "${error_files[*]}"
             exit 1
           else
             echo -e "\nAll plugins compiled successfully."
