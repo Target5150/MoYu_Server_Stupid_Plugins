@@ -29,6 +29,7 @@ jobs:
       - name: Set environment variables
         run: |
           echo "SCRIPTS_PATH=$GITHUB_WORKSPACE/The Last Stand" >> $GITHUB_ENV
+          echo "SPINCLUDE_PATH=$GITHUB_WORKSPACE/include" >> $GITHUB_ENV
 
       - name: Setup SourcePawn Compiler ${{ matrix.sm_version }}
         uses: rumblefrog/setup-sp@master
@@ -53,7 +54,7 @@ jobs:
                 if [ -f "$file" ]; then
                   filename=$(basename "$file")
                   echo -e "\nCompiling $file..."
-                  spcomp -O2 -v2 -i "$dir/scripting/include" -o "$dir/plugins/$filename.smx" $file || {
+                  spcomp -O2 -v2 -i "$dir/scripting/include" -i "$SPINCLUDE_PATH" -o "$dir/plugins/$filename.smx" $file || {
                     errors=$((errors + 1))
                     continue
                   }
