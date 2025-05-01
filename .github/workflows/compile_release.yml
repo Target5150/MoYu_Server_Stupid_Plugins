@@ -7,12 +7,14 @@ on:
       - 'The Last Stand/**/*.inc'
     branches:
       - master
+      - workflow
   push:
     paths:
       - 'The Last Stand/**/*.sp'
       - 'The Last Stand/**/*.inc'
     branches:
       - master
+      - workflow
   workflow_dispatch:
 
 jobs:
