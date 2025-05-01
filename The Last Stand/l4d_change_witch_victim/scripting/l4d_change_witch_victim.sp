@@ -57,15 +57,15 @@ enum EHANDLE
 	INVALID_EHANDLE = -1
 };
 
-methodmap EHANDLE {
-	public EHANDLE(int entity) {
-		static int s_iOffs_m_RefEHandle = -1;
-		if (s_iOffs_m_RefEHandle == -1)
-			s_iOffs_m_RefEHandle = FindSendPropInfo("CBaseEntity", "m_angRotation") + 12;
-		
-		return view_as<EHANDLE>(GetEntData(entity, s_iOffs_m_RefEHandle, 4));
-	}
+EHANDLE EHandleFromEdict(int entity) {
+	static int s_iOffs_m_RefEHandle = -1;
+	if (s_iOffs_m_RefEHandle == -1)
+		s_iOffs_m_RefEHandle = FindSendPropInfo("CBaseEntity", "m_angRotation") + 12;
 	
+	return view_as<EHANDLE>(GetEntData(entity, s_iOffs_m_RefEHandle, 4));
+}
+
+methodmap EHANDLE {
 	public int Get() {
 		static int s_iRandomOffsetToAnEHandle = -1;
 		if (s_iRandomOffsetToAnEHandle == -1)
@@ -83,7 +83,7 @@ methodmap EHANDLE {
 methodmap WitchBurn < BehaviorAction {
 	property int m_hTarget {
 		public get() { return view_as<EHANDLE>(this.Get(60, NumberType_Int32)).Get(); }
-		public set(int target) { this.Set(60, EHANDLE(target), NumberType_Int32); }
+		public set(int target) { this.Set(60, EHandleFromEdict(target), NumberType_Int32); }
 	}
 }
 
