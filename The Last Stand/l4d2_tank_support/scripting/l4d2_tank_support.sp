@@ -66,8 +66,8 @@ public void OnPluginStart()
 	g_CvarGlowInfected = CreateConVar("hittable_glow_infected", "0", "Show hittable glows to infected team");
 	g_CvarGlowSpectator = CreateConVar("hittable_glow_spectator", "1", "Show hittable glows to spectators");
 	
-	g_CvarGlowInfected.AddChangeHook(view_as<ConVarChanged>(OnConVarChanged));
-	g_CvarGlowSpectator.AddChangeHook(view_as<ConVarChanged>(OnConVarChanged));
+	g_CvarGlowInfected.AddChangeHook(OnConVarChanged);
+	g_CvarGlowSpectator.AddChangeHook(OnConVarChanged);
 	
 	// Hook First Tank
 	HookEvent("tank_spawn", TankSpawnEvent);
@@ -76,9 +76,9 @@ public void OnPluginStart()
 	HookEvent("player_team", ClearVisionEvent);
 
 	// Clean Arrays.
-	HookEvent("tank_killed", view_as<EventHook>(ClearArrayEvent), EventHookMode_PostNoCopy);
-	HookEvent("round_start", view_as<EventHook>(ClearArrayEvent), EventHookMode_PostNoCopy);
-	HookEvent("round_end", view_as<EventHook>(ClearArrayEvent), EventHookMode_PostNoCopy);
+	HookEvent("tank_killed", ClearArrayEvent, EventHookMode_PostNoCopy);
+	HookEvent("round_start", ClearArrayEvent, EventHookMode_PostNoCopy);
+	HookEvent("round_end", ClearArrayEvent, EventHookMode_PostNoCopy);
 }
 
 public void OnPluginEnd() { KillClones(true); }
@@ -87,7 +87,7 @@ public void OnPluginEnd() { KillClones(true); }
 /**
  *  ConVar Change
  */
-public void OnConVarChanged()
+public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	if (bTankAlive) { KillClones(false); RecreateHittableClones(); }
 }
@@ -96,7 +96,7 @@ public void OnConVarChanged()
 /**
  *  Events
  */
-public void ClearArrayEvent() { KillClones(true); }
+public void ClearArrayEvent(Event event, const char[] name, bool dontBroadcast) { KillClones(true); }
 
 public void ClearVisionEvent(Event event, const char[] name, bool dontBroadcast)
 {
@@ -128,7 +128,7 @@ public void TankSpawnEvent(Event event, const char[] name, bool dontBroadcast)
 	}
 }
 
-public int L4D2_OnTankPassControl(int oldTank, int newTank, int passCount)
+public void L4D2_OnTankPassControl(int oldTank, int newTank, int passCount)
 {
 	KillClones(false);
 	bVision[newTank] = true;
