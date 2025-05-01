@@ -1,11 +1,11 @@
+#pragma semicolon 1
+#pragma newdecls required
+
 #include <sourcemod>
 #include <colors>
 #undef REQUIRE_PLUGIN
 #include <readyup>
 #define REQUIRE_PLUGIN
-
-#pragma semicolon 1
-#pragma newdecls required
 
 #define PLUGIN_VERSION "1.0.4"
 
@@ -73,8 +73,8 @@ public void OnPluginStart()
 									"Decide where the plugin prints the announce. (0: Disable, 1: Chat, 2: Hint, 3: Chat and Hint)",
 									FCVAR_NOTIFY, true, 0.0, true, 3.0);
 									
-	HookEvent("round_start", view_as<EventHook>(Event_RoundStart), EventHookMode_PostNoCopy);
-	HookEvent("round_end", view_as<EventHook>(Event_RoundEnd), EventHookMode_PostNoCopy);
+	HookEvent("round_start", Event_RoundStart, EventHookMode_PostNoCopy);
+	HookEvent("round_end", Event_RoundEnd, EventHookMode_PostNoCopy);
 	HookEvent("player_left_start_area", Event_PlayerLeftStartArea, EventHookMode_Post);
 	HookEvent("player_team", Event_PlayerTeam);
 }
@@ -92,7 +92,7 @@ void ProcessReadyupFooter()
 	}
 }
 
-public void Event_RoundStart()
+void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 {
 	g_bMessagePrinted = false;
 	g_bRoundStarted = true;
@@ -108,7 +108,7 @@ public void Event_RoundStart()
 	}
 }
 
-public void Event_RoundEnd()
+void Event_RoundEnd(Event event, const char[] name, bool dontBroadcast)
 {
 	g_bRoundStarted = false;
 }
@@ -130,16 +130,18 @@ public void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
 	}
 }
 
-public Action UpdateReadyUpFooter(Handle timer)
+Action UpdateReadyUpFooter(Handle timer)
 {
 	g_hAddFooterTimer = null;
 	
 	if (!IsInfectedTeamFullAlive() || !g_bAllowFooter)
-		return;
+		return Plugin_Stop;
 	
 	char msg[65];
 	if (ProcessSIString(msg, sizeof(msg), true))
 		g_bAllowFooter = !(AddStringToReadyFooter(msg) != -1);
+	
+	return Plugin_Stop;
 }
 
 public void OnRoundIsLive()
