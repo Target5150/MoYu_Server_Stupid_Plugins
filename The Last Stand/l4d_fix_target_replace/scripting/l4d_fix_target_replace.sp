@@ -21,15 +21,15 @@ enum EHANDLE
 	INVALID_EHANDLE = -1
 };
 
-methodmap EHANDLE {
-	public EHANDLE(int entity) {
-		static int s_iOffs_m_RefEHandle = -1;
-		if (s_iOffs_m_RefEHandle == -1)
-			s_iOffs_m_RefEHandle = FindSendPropInfo("CBaseEntity", "m_angRotation") + 12;
-		
-		return view_as<EHANDLE>(GetEntData(entity, s_iOffs_m_RefEHandle, 4));
-	}
+EHANDLE EHandleFromEdict(int entity) {
+	static int s_iOffs_m_RefEHandle = -1;
+	if (s_iOffs_m_RefEHandle == -1)
+		s_iOffs_m_RefEHandle = FindSendPropInfo("CBaseEntity", "m_angRotation") + 12;
 	
+	return view_as<EHANDLE>(GetEntData(entity, s_iOffs_m_RefEHandle, 4));
+}
+
+methodmap EHANDLE {
 	public int Get() {
 		static int s_iRandomOffsetToAnEHandle = -1;
 		if (s_iRandomOffsetToAnEHandle == -1)
@@ -182,7 +182,7 @@ void _ReplaceActionVictim(BehaviorAction action, const char[] name, int newTarge
 	if (ehndl.Get() != oldTarget)
 		return;
 	
-	action.Set(offs, EHANDLE(newTarget));
+	action.Set(offs, EHandleFromEdict(newTarget));
 
 	if (!strcmp(name, "WitchAttack"))
 		action.Set(56, GetEntProp(newTarget, Prop_Send, "m_survivorCharacter"));
