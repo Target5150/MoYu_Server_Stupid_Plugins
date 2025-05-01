@@ -31,7 +31,7 @@ CZombieManager ZombieManager;
 // order is foreign referred in `PickTankVariant()`
 #define TANK_VARIANT_SLOT (sizeof(g_sTankModels)-1)
 #define TANK_MODEL_STRLEN 128
-static const char g_sTankModels[][TANK_MODEL_STRLEN] = {
+static char g_sTankModels[][TANK_MODEL_STRLEN] = {
 	"models/infected/hulk.mdl",
 	"models/infected/hulk_dlc3.mdl",
 	"models/infected/hulk_l4d1.mdl",
