@@ -91,6 +91,12 @@ jobs:
         with:
           path: tmp/
 
+      - name: Zip Artifacts
+        working-directory: tmp/
+        run: |
+          # https://unix.stackexchange.com/questions/68489/command-to-zip-multiple-directories-into-individual-zip-files
+          for i in */; do zip -0 -r "${i%/}.zip" "$i" & done; wait
+  
       - name: Create Release
         uses: marvinpinto/action-automatic-releases@v1.2.1
         with:
@@ -98,4 +104,4 @@ jobs:
           automatic_release_tag: "latest"
           prerelease: false
           title: "MoYu-Plugins"
-          files: tmp/**
+          files: tmp/MoYu-Plugins-*.zip
