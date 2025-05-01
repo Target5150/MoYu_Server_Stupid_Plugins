@@ -2,17 +2,13 @@ name: Compile plugins and release
 
 on:
   pull_request:
-    paths:
-      - 'The Last Stand/**/*.sp'
-      - 'The Last Stand/**/*.inc'
     branches:
       - master
+      - workflow
   push:
-    paths:
-      - 'The Last Stand/**/*.sp'
-      - 'The Last Stand/**/*.inc'
     branches:
       - master
+      - workflow
   workflow_dispatch:
 
 jobs:
