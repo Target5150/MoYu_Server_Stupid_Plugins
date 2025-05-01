@@ -5,16 +5,12 @@ on:
     paths:
       - 'The Last Stand/**/*.sp'
       - 'The Last Stand/**/*.inc'
-    paths-ignore:
-      - 'The Last Stand/_deprecated/**'
     branches:
       - master
   push:
     paths:
       - 'The Last Stand/**/*.sp'
       - 'The Last Stand/**/*.inc'
-    paths-ignore:
-      - 'The Last Stand/_deprecated/**'
     branches:
       - master
   workflow_dispatch:
