@@ -81,7 +81,7 @@ char
 	initiatorName[MAX_NAME_LENGTH];
 float
 	pauseTime;
-L4D2_Team
+int
 	pauseTeam;
 
 // Pause Panel
@@ -99,6 +99,7 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	pauseForward = CreateGlobalForward("OnPause", ET_Ignore);
 	unpauseForward = CreateGlobalForward("OnUnpause", ET_Ignore);
 	RegPluginLibrary("pause");
+	return APLRes_Success;
 }
 
 public void OnPluginStart()
@@ -252,7 +253,7 @@ public Action Pause_Cmd(int client, int args)
 	if (pauseDelay == 0 && !isPaused)
 	{
 		initiatorId = GetClientUserId(client);
-		pauseTeam = view_as<L4D2_Team>(GetClientTeam(client));
+		pauseTeam = view_as<int>(GetClientTeam(client));
 		GetClientName(client, initiatorName, sizeof(initiatorName));
 		
 		CPrintToChatAll("%t", "PauseCommand", client);
@@ -296,13 +297,14 @@ public Action ForcePause_Cmd(int client, int args)
 		CPrintToChatAll("%t", "ForcePause", client);
 		Pause();
 	}
+	return Plugin_Handled;
 }
 
 public Action Unpause_Cmd(int client, int args)
 {
 	if (isPaused && IsPlayer(client))
 	{
-		L4D2_Team clientTeam = view_as<L4D2_Team>(GetClientTeam(client));
+		int clientTeam = view_as<int>(GetClientTeam(client));
 		int initiator = GetClientOfUserId(initiatorId);
 		if (!teamReady[clientTeam])
 		{
@@ -364,7 +366,7 @@ public Action Unready_Cmd(int client, int args)
 	if (isPaused && IsPlayer(client))
 	{
 		int initiator = GetClientOfUserId(initiatorId);
-		L4D2_Team clientTeam = view_as<L4D2_Team>(GetClientTeam(client));
+		int clientTeam = view_as<int>(GetClientTeam(client));
 		if (teamReady[clientTeam])
 		{
 			switch (clientTeam)
@@ -422,12 +424,14 @@ public Action ForceUnpause_Cmd(int client, int args)
 		CPrintToChatAll("%t", "ForceUnpause", client);
 		InitiateLiveCountdown();
 	}
+	return Plugin_Handled;
 }
 
 public Action ToggleReady_Cmd(int client, int args)
 {
-	L4D2_Team clientTeam = view_as<L4D2_Team>(GetClientTeam(client));
+	int clientTeam = view_as<int>(GetClientTeam(client));
 	teamReady[clientTeam] ? Unready_Cmd(client, 0) : Unpause_Cmd(client, 0);
+	return Plugin_Handled;
 }
 
 // ======================================
@@ -488,7 +492,7 @@ void Pause()
 	{
 		if (IsClientInGame(client) && !IsFakeClient(client))
 		{
-			L4D2_Team team = view_as<L4D2_Team>(GetClientTeam(client));
+			int team = view_as<int>(GetClientTeam(client));
 			
 			if (team == L4D2Team_Infected && IsInfectedGhost(client))
 			{
@@ -550,7 +554,7 @@ void Unpause(bool real = true)
 					unpauseProcessed = true;
 				}
 				
-				if (view_as<L4D2_Team>(GetClientTeam(client)) == L4D2Team_Spectator)
+				if (view_as<int>(GetClientTeam(client)) == L4D2Team_Spectator)
 				{
 					sv_noclipduringpause.ReplicateToClient(client, "0");
 				}
@@ -573,6 +577,7 @@ public Action Show_Cmd(int client, int args)
 		hiddenPanel[client] = false;
 		CPrintToChat(client, "%t", "PanelShow");
 	}
+	return Plugin_Handled;
 }
 
 public Action Hide_Cmd(int client, int args)
@@ -582,6 +587,7 @@ public Action Hide_Cmd(int client, int args)
 		hiddenPanel[client] = true;
 		CPrintToChat(client, "%t", "PanelHide");
 	}
+	return Plugin_Handled;
 }
 
 public Action MenuRefresh_Timer(Handle timer)
@@ -594,7 +600,7 @@ public Action MenuRefresh_Timer(Handle timer)
 	return Plugin_Stop;
 }
 
-public int DummyHandler(Menu menu, MenuAction action, int param1, int param2) { }
+public int DummyHandler(Menu menu, MenuAction action, int param1, int param2) { return 0; }
 
 void UpdatePanel()
 {
@@ -729,11 +735,13 @@ public Action Spectate_Cmd(int client, int args)
 	}
 	
 	SpecTimer[client] = CreateTimer(3.0, SecureSpec, client);
+	return Plugin_Handled;
 }
 
 public Action SecureSpec(Handle timer, any client)
 {
 	SpecTimer[client] = null;
+	return Plugin_Handled;
 }
 
 // ======================================
@@ -763,7 +771,7 @@ void ToggleCommandListeners(bool enable)
 
 public Action Callvote_Callback(int client, char[] command, int argc)
 {
-	if (view_as<L4D2_Team>(GetClientTeam(client)) == L4D2Team_Spectator)
+	if (view_as<int>(GetClientTeam(client)) == L4D2Team_Spectator)
 	{
 		CPrintToChat(client, "%t", "CallvoteNoSpec");
 		return Plugin_Handled;
@@ -861,7 +869,7 @@ public Action TeamSay_Callback(int client, char[] command, int argc)
 		{
 			return Plugin_Handled;
 		}
-		PrintToTeam(client, view_as<L4D2_Team>(GetClientTeam(client)), buffer);
+		PrintToTeam(client, view_as<int>(GetClientTeam(client)), buffer);
 		return Plugin_Handled;
 	}
 	return Plugin_Continue;
@@ -889,15 +897,15 @@ stock bool IsPlayer(int client)
 {
 	if (client <= 0) return false;
 	
-	L4D2_Team team = view_as<L4D2_Team>(GetClientTeam(client));
+	int team = view_as<int>(GetClientTeam(client));
 	return !SpecTimer[client] && (team == L4D2Team_Survivor || team == L4D2Team_Infected);
 }
 
-stock void PrintToTeam(int author, L4D2_Team team, const char[] buffer)
+stock void PrintToTeam(int author, int team, const char[] buffer)
 {
 	for (int client = 1; client <= MaxClients; client++)
 	{
-		if (IsClientInGame(client) && view_as<L4D2_Team>(GetClientTeam(client)) == team)
+		if (IsClientInGame(client) && view_as<int>(GetClientTeam(client)) == team)
 		{
 			CPrintToChatEx(client, author, "(%s) {teamcolor}%N{default} :  %s", L4D2_TeamName[GetClientTeam(author)], author, buffer);
 		}
@@ -919,13 +927,13 @@ stock int GetSeriousClientCount()
 	return clients;
 }
 
-stock int GetTeamHumanCount(L4D2_Team team)
+stock int GetTeamHumanCount(int team)
 {
 	int humans = 0;
 	
 	for (int client = 1; client <= MaxClients; client++)
 	{
-		if (IsClientInGame(client) && !IsFakeClient(client) && view_as<L4D2_Team>(GetClientTeam(client)) == team)
+		if (IsClientInGame(client) && !IsFakeClient(client) && view_as<int>(GetClientTeam(client)) == team)
 		{
 			humans++;
 		}
@@ -938,7 +946,7 @@ stock bool IsSurvivorReviving()
 {
 	for (int client = 1; client <= MaxClients; client++)
 	{
-		if (IsClientInGame(client) && view_as<L4D2_Team>(GetClientTeam(client)) == L4D2Team_Survivor && IsPlayerAlive(client))
+		if (IsClientInGame(client) && view_as<int>(GetClientTeam(client)) == L4D2Team_Survivor && IsPlayerAlive(client))
 		{
 			if (GetEntProp(client, Prop_Send, "m_reviveTarget") > 0)
 			{
