@@ -98,4 +98,4 @@ jobs:
           automatic_release_tag: "latest"
           prerelease: true
           title: "MoYu-Plugins"
-          files: tmp/MoYu-Plugins-*
+          files: tmp/**
