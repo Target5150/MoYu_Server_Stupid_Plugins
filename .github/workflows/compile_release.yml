@@ -44,7 +44,7 @@ jobs:
       - name: Compile plugins
         working-directory: ${{ env.SCRIPTS_PATH }}/
         run: |
-          errors=0
+          error_files=()
           for dir in */
           do
             dir=${dir%/}
@@ -55,15 +55,16 @@ jobs:
                   filename=$(basename "$file")
                   echo -e "\nCompiling $file..."
                   spcomp -O2 -v2 -i "$dir/scripting/include" -i "$SPINCLUDE_PATH" -o "$dir/plugins/$filename.smx" $file || {
-                    errors=$((errors + 1))
+                    error_files+=("$filename")
                     continue
                   }
                 fi
               done
             fi
           done
-          if [ "$errors" -gt 0 ]; then
-            echo -e "\n$errors plugin(s) failed to compile."
+          if [ "${#error_files[*]}" -gt 0 ]; then
+            echo -e "\n${#error_files[*]} plugin(s) failed to compile:"
+            printf '  %s\n' "${error_files[*]}"
             exit 1
           else
             echo -e "\nAll plugins compiled successfully."
