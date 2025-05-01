@@ -53,7 +53,7 @@ jobs:
                 if [ -f "$file" ]; then
                   filename=$(basename "$file")
                   echo -e "\nCompiling $file..."
-                  spcomp -E -w234 -w217 -O2 -v2 -i "$dir/scripting/include" -o "$dir/plugins/$filename.smx" $file || {
+                  spcomp -O2 -v2 -i "$dir/scripting/include" -o "$dir/plugins/$filename.smx" $file || {
                     errors=$((errors + 1))
                     continue
                   }
