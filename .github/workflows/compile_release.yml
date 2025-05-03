@@ -83,6 +83,8 @@ jobs:
           path: |
             The Last Stand/
             include/
+            LICENSE
+            README.md
 
   release:
     name: Release
