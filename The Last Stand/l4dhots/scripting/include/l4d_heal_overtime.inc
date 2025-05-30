@@ -190,6 +190,7 @@ stock static void __HandlePlayerReplace(int userid, int replaced)
 		dp.Reset();
 		dp.WriteCell(userid);
 		__g_HOTPairList.Erase(index);
+		__g_HOTPairList.Set( __g_HOTPairList.Push(userid), dp, 1 );
 	}
 }
 

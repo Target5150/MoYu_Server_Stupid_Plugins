@@ -5,7 +5,7 @@
 
 #include "include/l4d_heal_overtime.inc"
 
-#define PLUGIN_VERSION "2.6"
+#define PLUGIN_VERSION "2.6.1"
 
 public Plugin myinfo = 
 {
