@@ -5,7 +5,7 @@
 
 #include "include/l4d_heal_overtime.inc"
 
-#define PLUGIN_VERSION "2.6.1"
+#define PLUGIN_VERSION "2.7"
 
 public Plugin myinfo = 
 {
@@ -115,7 +115,7 @@ void HealSuccess_Event(Event event, const char[] name, bool dontBroadcast)
 	int type = hCvarKitType.IntValue;
 	int health_restored = event.GetInt("health_restored");
 
-	if (type > 0) // Non-Vanilla
+	// if (type > 0) // Non-Vanilla
 	{
 		// Restore the health before heal
 		SetEntProp(target, Prop_Send, "m_iHealth", GetClientHealth(target) - health_restored);
