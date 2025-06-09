@@ -5,12 +5,14 @@ on:
     paths:
       - 'The Last Stand/**/*.sp'
       - 'The Last Stand/**/*.inc'
+      - 'pushbuild.txt'
     branches:
       - master
   push:
     paths:
       - 'The Last Stand/**/*.sp'
       - 'The Last Stand/**/*.inc'
+      - 'pushbuild.txt'
     branches:
       - master
   workflow_dispatch:
