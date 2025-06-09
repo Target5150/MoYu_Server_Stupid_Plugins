@@ -5,12 +5,14 @@ on:
     paths:
       - 'The Last Stand/**/*.sp'
       - 'The Last Stand/**/*.inc'
+      - 'pushbuild.txt'
     branches:
       - master
   push:
     paths:
       - 'The Last Stand/**/*.sp'
       - 'The Last Stand/**/*.inc'
+      - 'pushbuild.txt'
     branches:
       - master
   workflow_dispatch:
@@ -23,6 +25,7 @@ jobs:
       fail-fast: false
       matrix:
         sm_version:
+          - "1.11"
           - "1.12"
           - "1.13"
 
@@ -56,6 +59,7 @@ jobs:
               for file in $dir/scripting/*.sp
               do
                 if [ -f "$file" ]; then
+                  mkdir -p $dir/plugins
                   filename=$(basename "$file")
                   filename=${filename%.*}
                   echo -e "\nCompiling $file..."
@@ -88,6 +92,7 @@ jobs:
 
   release:
     name: Release
+    if: contains(fromJson('["push", "workflow_dispatch"]'), github.event_name)
     needs: build
     runs-on: ubuntu-latest
 
