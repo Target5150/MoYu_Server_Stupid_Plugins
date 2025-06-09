@@ -3,6 +3,11 @@
 #endif
 #define _l4d_heal_overtime_included
 
+// v1: Initial release
+// v2: l4dhots: Fix throwing errors after player replace
+// v3: l4d_heal_overtime: Fix `immediate` heal condition
+#define l4d_heal_overtime_version 3
+
 #include <sourcemod>
 
 stock static ArrayList __g_HOTPairList;
@@ -72,19 +77,10 @@ stock static void __HealPlayerOverTime(
 	float interval,
 	bool immediate)
 {
-	if (immediate)
-	{
-		__HealTowardsMax(client, increment, maxHealth, type);
-		remaining -= increment;
-	}
-
-	if (remaining == 0)
-		return;
-
 	int userid = GetClientUserId(client);
 
 	DataPack dp;
-	CreateDataTimer(interval, __HOT_ACTION, dp, TIMER_REPEAT);
+	Handle timer = CreateDataTimer(interval, __HOT_ACTION, dp, TIMER_REPEAT);
 	dp.WriteCell(userid);
 	dp.WriteCell(type);
 	dp.WriteCell(increment);
@@ -92,6 +88,11 @@ stock static void __HealPlayerOverTime(
 	dp.WriteCell(maxHealth);
 
 	__g_HOTPairList.Set( __g_HOTPairList.Push(userid), dp, 1 );
+
+	if (immediate)
+	{
+		TriggerTimer(timer);
+	}
 }
 
 stock static Action __HOT_ACTION(Handle timer, DataPack dp)
@@ -189,8 +190,7 @@ stock static void __HandlePlayerReplace(int userid, int replaced)
 		dp = __g_HOTPairList.Get(index, 1);
 		dp.Reset();
 		dp.WriteCell(userid);
-		__g_HOTPairList.Erase(index);
-		__g_HOTPairList.Set( __g_HOTPairList.Push(userid), dp, 1 );
+		__g_HOTPairList.Set( index, userid, 0 );
 	}
 }
 
