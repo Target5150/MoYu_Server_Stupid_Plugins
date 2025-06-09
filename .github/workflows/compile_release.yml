@@ -90,6 +90,7 @@ jobs:
 
   release:
     name: Release
+    if: contains(fromJson('["push", "workflow_dispatch"]'), github.event_name)
     needs: build
     runs-on: ubuntu-latest
 
