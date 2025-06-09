@@ -56,6 +56,7 @@ jobs:
               for file in $dir/scripting/*.sp
               do
                 if [ -f "$file" ]; then
+                  mkdir -p $dir/plugins
                   filename=$(basename "$file")
                   filename=${filename%.*}
                   echo -e "\nCompiling $file..."
