@@ -7,7 +7,7 @@
 #include <actions>
 #include <l4d2util>
 
-#define PLUGIN_VERSION "3.2"
+#define PLUGIN_VERSION "3.3"
 
 public Plugin myinfo =
 {
@@ -312,16 +312,23 @@ void SDK_OnSpawn_Post(int entity)
 			if (!g_bCEDAFireProof)
 				RemoveInfectedFlags(entity, INFECTED_FLAG_FIRE_IMMUNE);
 		}
-	case L4D2Gender_Jimmy:
+	}
+
+	if (gender != L4D2Gender_Fallen)
+	{
+		float scale;
+
+		if (gender == L4D2Gender_Jimmy)
 		{
-			int iHealth = RoundToFloor(z_health.FloatValue * g_flJimmyHealthScale); // classic cast to int
-			ResetEntityHealth(entity, iHealth);
+			scale = g_flJimmyHealthScale;
 		}
-	default:
+		else
 		{
-			int iHealth = RoundToFloor(z_health.FloatValue * g_flHealthScale); // classic cast to int
-			ResetEntityHealth(entity, iHealth);
+			scale = g_flHealthScale;
 		}
+
+		int iHealth = RoundToFloor(z_health.FloatValue * scale); // classic cast to int
+		ResetEntityHealth(entity, iHealth);
 	}
 }
 
