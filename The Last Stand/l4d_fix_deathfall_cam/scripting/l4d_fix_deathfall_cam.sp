@@ -4,39 +4,51 @@
 #include <sourcemod>
 #include <sdktools_engine>
 #include <left4dhooks>
+#include <dhooks>
 
-#define PLUGIN_VERSION "1.6.1"
+#include <gamedatawrapper>
+
+#define PLUGIN_VERSION "1.7"
 
 public Plugin myinfo = 
 {
-	name = "[L4D2] Fix DeathFall Camera",
+	name = "[L4D & 2] Fix DeathFall Camera",
 	author = "Forgetest",
 	description = "Prevent \"point_deathfall_camera\" and \"point_viewcontrol*\" permanently locking view.",
 	version = PLUGIN_VERSION,
 	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 };
 
+ArrayList g_aDeathFallClients;
+bool g_bCustomDetour = false;
+
+#include "l4d_fix_deathfall_cam/natives.sp"
+
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
-	CreateNative("L4D_ReleaseFromViewControl", Ntv_ReleaseFromViewControl);
+	Natives_Init();
 	return APLRes_Success;
 }
 
-public any Ntv_ReleaseFromViewControl(Handle plugin, int numParams)
-{
-	return ReleaseFromViewControl(_, GetNativeCell(1));
-}
-
-ArrayList g_aDeathFallClients;
-
 public void OnPluginStart()
 {
+	if (GetEngineVersion() == Engine_Left4Dead)
+	{
+		GameDataWrapper gd = new GameDataWrapper("l4d_fix_deathfall_cam");
+		if (gd.GetOffset("OS") == 1)
+		{
+			delete gd.CreateDetourOrFail("CDeathFallCamera::InputEnable", DTR_CDeathFallCamera_InputEnable);
+			g_bCustomDetour = true;
+		}
+		delete gd;
+	}
+
+	g_aDeathFallClients = new ArrayList();
+
 	CreateConVar("l4d2_fix_deathfall_cam_version", PLUGIN_VERSION, "Fix Deathfall Camera Version", FCVAR_DONTRECORD|FCVAR_NOTIFY|FCVAR_REPLICATED|FCVAR_SPONLY);
 	
-	g_aDeathFallClients = new ArrayList();
-	
-	HookEvent("round_start", Event_RoundStart, EventHookMode_PostNoCopy);
-	HookEvent("gameinstructor_nodraw", Event_NoDraw, EventHookMode_PostNoCopy);
+	HookEvent("round_start", Event_RoundStart);
+	HookEvent("gameinstructor_nodraw", Event_NoDraw);
 	HookEvent("player_team", Event_PlayerTeam);
 	HookEvent("player_death", Event_PlayerDeath);
 }
@@ -60,15 +72,11 @@ void Event_NoDraw(Event event, const char[] name, bool dontBroadcast)
 
 void Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast)
 {
-	if (!g_aDeathFallClients.Length) return;
-	
 	Timer_ReleaseView(null, event.GetInt("userid"));
 }
 
 void Event_PlayerDeath(Event event, const char[] name, bool dontBroadcast)
 {
-	if (!g_aDeathFallClients.Length) return;
-	
 	// the player's view locks for approximately 6.0s after died
 	CreateTimer(6.0, Timer_ReleaseView, event.GetInt("userid"), TIMER_FLAG_NO_MAPCHANGE);
 }
@@ -80,30 +88,50 @@ Action Timer_ReleaseView(Handle timer, any userid)
 		return Plugin_Stop;
 	
 	g_aDeathFallClients.Erase(index);
-	ReleaseFromViewControl(userid);
+
+	int client = GetClientOfUserId(userid);
+	if (!client || !IsClientInGame(client))
+		return Plugin_Stop;
+
+	ReleaseFromViewControl(client);
 	
 	return Plugin_Stop;
 }
 
+// TODO: Maybe replace with some inputhook API
+MRESReturn DTR_CDeathFallCamera_InputEnable(int entity, DHookParam hParams)
+{
+	int activator = hParams.GetObjectVar(1, 0, ObjectValueType_CBaseEntityPtr);
+	if (activator <= 0 || activator > MaxClients || !IsClientInGame(activator))
+		return MRES_Ignored;
+
+	return CheckBlockDeathfallCamera(activator) ? MRES_Supercede : MRES_Ignored;
+}
+
 public Action L4D_OnFatalFalling(int client, int camera)
 {
-	if (!client)
+	if (g_bCustomDetour || client <= 0)
 		return Plugin_Continue;
 	
-	if (!AllowDamage())
-		return Plugin_Handled;
-	
-	if (GetClientTeam(client) == 2 && !IsFakeClient(client) && IsPlayerAlive(client))
+	return CheckBlockDeathfallCamera(client) ? Plugin_Handled : Plugin_Continue;
+}
+
+bool CheckBlockDeathfallCamera(int client)
+{
+	if (AllowDamage())
 	{
-		// keep deathcam for a period until the player dies
-		int userid = GetClientUserId(client);
-		if (g_aDeathFallClients.FindValue(userid) == -1)
-			g_aDeathFallClients.Push(userid);
-		
-		return Plugin_Continue;
+		if (GetClientTeam(client) == 2 && !IsFakeClient(client) && IsPlayerAlive(client))
+		{
+			// keep deathcam for a period until the player dies
+			int userid = GetClientUserId(client);
+			if (g_aDeathFallClients.FindValue(userid) == -1)
+				g_aDeathFallClients.Push(userid);
+			
+			return false;
+		}
 	}
 	
-	return Plugin_Handled;
+	return true;
 }
 
 void SetViewEntity(int client, int view)
@@ -125,11 +153,8 @@ void SetViewEntity(int client, int view)
 #define HIDEHUD_VEHICLE_CROSSHAIR   (1 << 9)	// Hide vehicle crosshair
 #define HIDEHUD_INVEHICLE           (1 << 10)
 #define HIDEHUD_BONUS_PROGRESS      (1 << 11)	// Hide bonus progress display (for bonus map challenges)
-stock void ReleaseFromViewControl(int userid = 0, int client = 0)
+stock void ReleaseFromViewControl(int client)
 {
-	if (userid) client = GetClientOfUserId(userid);
-	if (!client) return;
-	
 	SetEntityFlags(client, GetEntityFlags(client) & ~FL_FROZEN);
 	SetEntProp(client, Prop_Send, "m_bDrawViewmodel", 1, 1);
 	SetViewEntity(client, -1);
@@ -151,7 +176,7 @@ void UTIL_ReleaseAllExceptSurv()
 {
 	for (int i = 1; i <= MaxClients; ++i)
 		if (IsClientInGame(i) && !IsFakeClient(i) && GetClientTeam(i) != 2)
-			ReleaseFromViewControl(_, i);
+			ReleaseFromViewControl(i);
 }
 
 bool AllowDamage()

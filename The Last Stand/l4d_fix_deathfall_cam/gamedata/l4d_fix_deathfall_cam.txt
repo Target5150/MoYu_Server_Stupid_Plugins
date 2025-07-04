@@ -1,0 +1,41 @@
+"Games"
+{
+	"left4dead"
+	{
+		"Functions"
+		{
+			"CDeathFallCamera::InputEnable"
+			{
+				"signature"		"CDeathFallCamera::InputEnable"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"entity"
+				"arguments"
+				{
+					"inputdata_t &"
+					{
+						"type"	"objectptr"
+					}
+				}
+			}
+		}
+
+		"Signatures"
+		{
+			"CDeathFallCamera::InputEnable"
+			{
+				"library"		"server"
+				"linux"			"@_ZN16CDeathFallCamera11InputEnableER11inputdata_t"
+			}
+		}
+		
+		"Offsets"
+		{
+			"OS"
+			{
+				"windows"	"0"
+				"linux"		"1"
+			}
+		}
+	}
+}
