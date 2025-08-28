@@ -80,7 +80,8 @@ typeset ActionHandler
 	function Action (any action, int actor, float interval, ActionResult result);
 
 	/* OnEnd */
-	function void (any action, int actor, any priorAction, ActionResult result);
+	function void (any action, int actor, any nextAction, ActionResult result);
+	function Action (any action, int actor, any nextAction, ActionResult result);
 
 	/* InitialContainedAction */
 	function Action (any action, int actor, any& child);
@@ -89,13 +90,13 @@ typeset ActionHandler
 	function Action (any action, int actor, int entity, ActionDesiredResult result);
 
 	/* OnContact */
-	function Action (any action, int actor, int entity, Address trace, ActionDesiredResult result);
+	function Action (any action, int actor, int entity, any trace, ActionDesiredResult result);
 
 	/* OnMoveToSuccess */
-	function Action (any action, int actor, Address path, ActionDesiredResult result);
+	function Action (any action, int actor, any path, ActionDesiredResult result);
 	
 	/* OnMoveToFailure */
-	function Action (any action, int actor, Address path, any type, ActionDesiredResult result);
+	function Action (any action, int actor, any path, any type, ActionDesiredResult result);
 
 	/* OnStuck, OnUnStuck, OnPostureChanged, OnIgnite, OnModelChanged, OnEnteredSpit, OnCommandAssault, OnCommandResume  */
 	function Action (any action, int actor, ActionDesiredResult result);
@@ -104,25 +105,25 @@ typeset ActionHandler
 	function Action (any action, int actor, int activity, ActionDesiredResult result);
 
 	/* OnAnimationEvent */
-	function Action (any action, int actor, Address animevent, ActionDesiredResult result);
+	function Action (any action, int actor, any animevent, ActionDesiredResult result);
 
 	/* OnInjured, OnKilled */
-	function Action (any action, int actor, Address takedamageinfo, ActionDesiredResult result);
+	function Action (any action, int actor, any takedamageinfo, ActionDesiredResult result);
 
 	/* OnOtherKilled */
-	function Action (any action, int actor, int other, Address takedamageinfo, ActionDesiredResult result);
+	function Action (any action, int actor, int other, any takedamageinfo, ActionDesiredResult result);
 
 	/* OnSight, OnLostSight, OnThreatChanged */
 	function Action (any action, int actor, int entity, ActionDesiredResult result);
 
 	/* OnSound */
-	function Action (any action, int actor, int entity, const float pos[3], Address keyvalues, ActionDesiredResult result);
+	function Action (any action, int actor, int entity, const float pos[3], any keyvalues, ActionDesiredResult result);
 
 	/* OnSpokeConcept */
-	function Action (any action, int actor, int who, Address concept, Address response, Address unknown, ActionDesiredResult result);
+	function Action (any action, int actor, int who, any concept, any response, any unknown, ActionDesiredResult result);
 	
 	/* OnNavAreaChanged */
-	function Action (any action, int actor, Address newArea, Address oldArea, ActionDesiredResult result);
+	function Action (any action, int actor, any newArea, any oldArea, ActionDesiredResult result);
 	
 	/* OnPickUp */
 	function Action (any action, int actor, int entity, int giver, ActionDesiredResult result);
@@ -143,7 +144,7 @@ typeset ActionHandler
 	function Action (any action, int actor, const char[] command, ActionDesiredResult result);
 
 	/* IsAbleToBlockMovementOf */
-	function Action (any action, int actor, Address nextbot, ActionDesiredResult result);
+	function Action (any action, int actor, any nextbot, ActionDesiredResult result);
 
 	/* OnTerritoryContested, OnTerritoryCaptured, OnTerritoryLost */
 	function Action (any action, int actor, int territory);
@@ -161,25 +162,25 @@ typeset ActionHandler
 typeset ActionContextualHandler
 {
 	/* ShouldPickUp, IsHindrance*/
-	function Action (any action, Address nextbot, int entity, QueryResultType& result);
+	function Action (any action, any nextbot, int entity, QueryResultType& result);
 	
 	/* ShouldHurry, ShouldRetreat */
-	function Action (any action, Address nextbot, QueryResultType& result);
+	function Action (any action, any nextbot, QueryResultType& result);
 
 	/* ShouldAttack */
-	function Action (any action, Address nextbot, Address knownEntity, QueryResultType& result);
+	function Action (any action, any nextbot, any knownEntity, QueryResultType& result);
 
 	/* SelectTargetPoint */
-	function Action (any action, Address nextbot, int entity, float vec[3]);
+	function Action (any action, any nextbot, int entity, float vec[3]);
 
 	/* IsPositionAllowed */
-	function Action (any action, Address nextbot, float vec[3], QueryResultType& result);
+	function Action (any action, any nextbot, float vec[3], QueryResultType& result);
 	
 	/* QueryCurrentPath */
-	function Action (any action, Address nextbot, Address& path);
+	function Action (any action, any nextbot, any& path);
 	
 	/* SelectMoreDangerousThreat */
-	function Action (any action, Address nextbot, int entity, Address threat1, Address threat2, Address& knownEntity);
+	function Action (any action, any nextbot, int entity, any threat1, any threat2, any& knownEntity);
 }
 
 methodmap BehaviorActionListeners
