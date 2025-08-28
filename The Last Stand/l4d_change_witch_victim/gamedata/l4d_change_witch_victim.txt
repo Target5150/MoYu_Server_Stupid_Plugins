@@ -4,7 +4,7 @@
 	{
 		"ActionConstructors"
 		{
-			"WitchAttack::WitchAttack"
+			"Forgetest::WitchAttack"
 			{
 				"signature" "WitchAttack::WitchAttack"
 				"size"  "18540"
@@ -51,7 +51,7 @@
 	{
 		"ActionConstructors"
 		{
-			"WitchAttack::WitchAttack"
+			"Forgetest::WitchAttack"
 			{
 				"signature"	"WitchAttack::WitchAttack"
 				"size"	"18556"
