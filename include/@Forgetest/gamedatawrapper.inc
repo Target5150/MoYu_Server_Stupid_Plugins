@@ -1,7 +1,7 @@
-#if defined _gamedatawrapper_included_
+#if defined _Forgetest_gamedatawrapper_included_
 	#endinput
 #endif
-#define _gamedatawrapper_included_
+#define _Forgetest_gamedatawrapper_included_
 
 #include <sourcemod>
 

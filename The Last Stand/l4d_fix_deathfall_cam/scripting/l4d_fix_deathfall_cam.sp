@@ -6,7 +6,7 @@
 #include <left4dhooks>
 #include <dhooks>
 
-#include <gamedatawrapper>
+#include <@Forgetest/gamedatawrapper>
 
 #define PLUGIN_VERSION "1.7"
 
