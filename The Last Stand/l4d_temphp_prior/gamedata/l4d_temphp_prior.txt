@@ -1,0 +1,57 @@
+"Games"
+{
+	"#default"
+	{
+		"#supported"
+		{
+			"game"	"left4dead"
+			"game"	"left4dead2"
+		}
+
+		"Functions"
+		{
+			"l4d_temphp_prior::CBaseCombatCharacter::OnTakeDamage_Alive"
+			{
+				"signature"		"CBaseCombatCharacter::OnTakeDamage_Alive"
+				"callconv"		"thiscall"
+				"return"		"int"
+				"this"			"entity"
+				"arguments"
+				{
+					"a1"
+					{
+						"type"	"objectptr"
+					}
+				}			
+			}
+		}
+	}
+
+	"left4dead"
+	{
+		"Signatures"
+		{
+			"CBaseCombatCharacter::OnTakeDamage_Alive"
+			{
+				"library"		"server"
+				"linux"			"@_ZN20CBaseCombatCharacter18OnTakeDamage_AliveERK15CTakeDamageInfo"
+				"windows"		"\x83\xEC\x18\xA1\x2A\x2A\x2A\x2A\x8B\x15"
+								// 83 EC 18 A1 ? ? ? ? 8B 15
+			}
+		}
+	}
+
+	"left4dead2"
+	{
+		"Signatures"
+		{
+			"CBaseCombatCharacter::OnTakeDamage_Alive"
+			{
+				"library"		"server"
+				"linux"			"@_ZN20CBaseCombatCharacter18OnTakeDamage_AliveERK15CTakeDamageInfo"
+				"windows"		"\x55\x8B\xEC\x83\xEC\x10\xA1\x2A\x2A\x2A\x2A\x8B\x15"
+								// 55 8B EC 83 EC 10 A1 ? ? ? ? 8B 15
+			}
+		}
+	}
+}
