@@ -226,6 +226,23 @@
 				}
 			}
 
+			"ZombieManager::AccumulateSpawnAreaCollection__skip_PanicEventActive"
+			{
+				"signature"		"ZombieManager::AccumulateSpawnAreaCollection"
+				"linux"
+				{
+					"offset"	"6D9h"
+					"verify"	"\x0F\x85"
+					"patch"		"\x90\x90\x90\x90\x90\x90"
+				}
+				"windows"
+				{
+					"offset"	"19Bh"
+					"verify"	"\x74"
+					"patch"		"\xEB"
+				}
+			}
+
 			"battlefield_special_spawn"
 			{
 				"signature"		"CDirector::ShouldAllowSpecialSpawns"
@@ -283,6 +300,14 @@
 				"linux"			"@_ZNK13ZombieManager17CollectSpawnAreasENS_15MobLocationTypeE15ZombieClassType"
 				"windows"		"\x55\x8B\xEC\x83\xEC\x48\xA1\x2A\x2A\x2A\x2A\x53\x56\x57\x33\xFF\x89\x7D\xEC\x89\x7D\xF0\x8B\xF1\x39\x78\x08\x74\x2A\x8B\x40\x08\x68\x2A\x2A\x2A\x2A\x8B\x50\x50\x68\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\x68\x2A\x2A\x2A\x2A\x68\x1A\x07\x00\x00"
 								/* 55 8B EC 83 EC 48 A1 ? ? ? ? 53 56 57 33 FF 89 7D EC 89 7D F0 8B F1 39 78 08 74 ? 8B 40 08 68 ? ? ? ? 8B 50 50 68 ? ? ? ? 68 ? ? ? ? 68 ? ? ? ? 68 1A 07 00 00 */
+			}
+
+			"ZombieManager::AccumulateSpawnAreaCollection"
+			{
+				"library"		"server"
+				"linux"			"@_ZNK13ZombieManager17CollectSpawnAreasENS_15MobLocationTypeE15ZombieClassType"
+				"windows"		"\x55\x8B\xEC\x83\xEC\x48\xA1\x2A\x2A\x2A\x2A\x53\x56\x33\xF6\x89\x75\xDC"
+								// 55 8B EC 83 EC 48 A1 ? ? ? ? 53 56 33 F6 89 75 DC
 			}
 
 			"CDirector::ShouldAllowSpecialSpawns"

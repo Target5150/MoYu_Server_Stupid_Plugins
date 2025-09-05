@@ -3,11 +3,10 @@
 
 #include <sourcemod>
 #include <sourcescramble>
-#include <left4dhooks>
 
 #include <@Forgetest/gamedatawrapper>
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo = 
 {
@@ -28,7 +27,8 @@ bool g_bCollectSpawnAreas;
 
 // (L4D1) Enabling this prevents Common Infected from spawning on cleared areas.
 // NOTE: In L4D2 provided a script value "ShouldIgnoreClearStateForSpawn"
-MemoryPatch g_patch_AccumulateSpawnAreaCollection[5];
+MemoryPatch g_patch_AccumulateSpawnAreaCollection;
+MemoryPatch g_patch_AccumulateSpawnAreaCollection_inlined[4];
 bool g_bAccumulateSpawnAreaCollection;
 
 // Enabling this allows specials to spawn on battlefield areas before/after a panic starts/ends.
@@ -47,14 +47,14 @@ public void OnPluginStart()
 	g_patch_CollectSpawnAreas = gd.CreatePatchOrFail("ZombieManager::CollectSpawnAreas__skip_PanicEventActive", false);
 	g_patch_BattlefieldSpecialSpawn = gd.CreatePatchOrFail("battlefield_special_spawn", false);
 	g_patch_BattlefieldMobSpawn = gd.CreatePatchOrFail("battlefield_mob_spawn", false);
+	g_patch_AccumulateSpawnAreaCollection = gd.CreatePatchOrFail("ZombieManager::AccumulateSpawnAreaCollection__skip_PanicEventActive", false);
 
 	if (GetEngineVersion() == Engine_Left4Dead)
 	{
-		g_patch_AccumulateSpawnAreaCollection[0] = gd.CreatePatchOrFail("ZombieManager::AccumulateSpawnAreaCollection__skip_PanicEventActive", false);
-		g_patch_AccumulateSpawnAreaCollection[1] = gd.CreatePatchOrFail("ZombieManager::AccumulateSpawnAreaCollection__skip_PanicEventActive_inlined_1", false);
-		g_patch_AccumulateSpawnAreaCollection[2] = gd.CreatePatchOrFail("ZombieManager::AccumulateSpawnAreaCollection__skip_PanicEventActive_inlined_2", false);
-		g_patch_AccumulateSpawnAreaCollection[3] = gd.CreatePatchOrFail("ZombieManager::AccumulateSpawnAreaCollection__skip_PanicEventActive_inlined_3", false);
-		g_patch_AccumulateSpawnAreaCollection[4] = gd.CreatePatchOrFail("ZombieManager::AccumulateSpawnAreaCollection__skip_PanicEventActive_inlined_4", false);
+		g_patch_AccumulateSpawnAreaCollection_inlined[0] = gd.CreatePatchOrFail("ZombieManager::AccumulateSpawnAreaCollection__skip_PanicEventActive_inlined_1", false);
+		g_patch_AccumulateSpawnAreaCollection_inlined[1] = gd.CreatePatchOrFail("ZombieManager::AccumulateSpawnAreaCollection__skip_PanicEventActive_inlined_2", false);
+		g_patch_AccumulateSpawnAreaCollection_inlined[2] = gd.CreatePatchOrFail("ZombieManager::AccumulateSpawnAreaCollection__skip_PanicEventActive_inlined_3", false);
+		g_patch_AccumulateSpawnAreaCollection_inlined[3] = gd.CreatePatchOrFail("ZombieManager::AccumulateSpawnAreaCollection__skip_PanicEventActive_inlined_4", false);
 	}
 
 	delete gd;
@@ -154,28 +154,22 @@ void CvarChg_IgnoreClearState(ConVar convar, const char[] oldValue, const char[]
 	{
 		g_bAccumulateSpawnAreaCollection = convar.BoolValue;
 
-		if (g_patch_AccumulateSpawnAreaCollection[0] != null)
+		if (g_bAccumulateSpawnAreaCollection)
+			g_patch_AccumulateSpawnAreaCollection.Enable();
+		else
+			g_patch_AccumulateSpawnAreaCollection.Disable();
+
+		if (g_patch_AccumulateSpawnAreaCollection_inlined[0] != null)
 		{
-			for (int i = 0; i < sizeof(g_patch_AccumulateSpawnAreaCollection); ++i)
+			for (int i = 0; i < sizeof(g_patch_AccumulateSpawnAreaCollection_inlined); ++i)
 			{
 				if (g_bAccumulateSpawnAreaCollection)
-					g_patch_AccumulateSpawnAreaCollection[i].Enable();
+					g_patch_AccumulateSpawnAreaCollection_inlined[i].Enable();
 				else
-					g_patch_AccumulateSpawnAreaCollection[i].Disable();
+					g_patch_AccumulateSpawnAreaCollection_inlined[i].Disable();
 			}
 		}
 	}
-}
-
-public Action L4D_OnGetScriptValueInt(const char[] key, int &retVal)
-{
-	if (key[0] == 'S' && !strcmp(key, "ShouldIgnoreClearStateForSpawn"))
-	{
-		retVal = g_bAccumulateSpawnAreaCollection ? 1 : 0;
-		return Plugin_Handled;
-	}
-
-	return Plugin_Continue;
 }
 
 stock ConVar CreateConVarHook(const char[] name,
