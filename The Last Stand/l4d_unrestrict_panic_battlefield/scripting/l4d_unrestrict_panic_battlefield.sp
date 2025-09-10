@@ -25,8 +25,7 @@ bool g_bGetRandomPZSpawnPosition;
 MemoryPatch g_patch_CollectSpawnAreas;
 bool g_bCollectSpawnAreas;
 
-// (L4D1) Enabling this prevents Common Infected from spawning on cleared areas.
-// NOTE: In L4D2 provided a script value "ShouldIgnoreClearStateForSpawn"
+// Enabling this allows infected/specials to spawn on cleared areas.
 MemoryPatch g_patch_AccumulateSpawnAreaCollection;
 MemoryPatch g_patch_AccumulateSpawnAreaCollection_inlined[4];
 bool g_bAccumulateSpawnAreaCollection;
