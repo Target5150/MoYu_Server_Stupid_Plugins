@@ -4,7 +4,7 @@
 #include <sourcemod>
 #include <actions>
 
-#define PLUGIN_VERSION "2.0"
+#define PLUGIN_VERSION "2.0.1"
 
 public Plugin myinfo = 
 {
@@ -42,6 +42,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	}
 
 	CreateNative("ChangeWitchTarget", Ntv_ChangeWitchTarget);
+	RegPluginLibrary("l4d_change_witch_victim");
+
 	return APLRes_Success;
 }
 
