@@ -305,7 +305,7 @@
 			"ZombieManager::AccumulateSpawnAreaCollection"
 			{
 				"library"		"server"
-				"linux"			"@_ZNK13ZombieManager17CollectSpawnAreasENS_15MobLocationTypeE15ZombieClassType"
+				"linux"			"@_ZNK13ZombieManager29AccumulateSpawnAreaCollectionERK10CUtlVectorIP8CNavArea10CUtlMemoryIS2_iEENS_15MobLocationTypeE15ZombieClassTypefPS5_bb"
 				"windows"		"\x55\x8B\xEC\x83\xEC\x48\xA1\x2A\x2A\x2A\x2A\x53\x56\x33\xF6\x89\x75\xDC"
 								// 55 8B EC 83 EC 48 A1 ? ? ? ? 53 56 33 F6 89 75 DC
 			}
