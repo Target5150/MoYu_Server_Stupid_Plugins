@@ -16,7 +16,7 @@
 <hr>
 
 ### Installation
-1. Put **plugins/l4d_fix_target_replace.smx** to your _plugins_ folder.
+
 
 <hr>
 

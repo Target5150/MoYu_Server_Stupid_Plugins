@@ -20,7 +20,7 @@ climb_filter_remove_class <classname> // support wildcard '*' at the end of stri
 <hr>
 
 ### Installation
-1. Put **plugins/l4d_climb_filter.smx** to your _plugins_ folder.
+
 2. Put **gamedata/l4d_climb_filter.txt** to your _gamedata_ folder.
 
 <hr>

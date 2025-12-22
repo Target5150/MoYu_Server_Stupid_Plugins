@@ -27,7 +27,7 @@ tongue_release_fatigue_scale_max_time "1.0"
 <hr>
 
 ### Installation
-1. Put **plugins/l4d_tongue_fatigue_control.smx** to your _plugins_ folder.
+
 
 <hr>
 

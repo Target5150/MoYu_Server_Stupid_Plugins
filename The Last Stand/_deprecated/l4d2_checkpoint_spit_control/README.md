@@ -16,7 +16,7 @@
 <hr>
 
 ### Installation
-1. Put **plugins/l4d2_checkpoint_spit_control.smx** to your _plugins_ folder.
+
 2. Put **gamedata/l4d2_checkpoint_spit_control.txt** to your _gamedata_ folder.
 
 <hr>

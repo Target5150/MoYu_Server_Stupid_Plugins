@@ -26,7 +26,7 @@ charge_interrupt_stagger_except_level "1"
 <hr>
 
 ### Installation
-1. Put **plugins/l4d2_charge_interrupt_stagger.smx** to your _plugins_ folder.
+
 
 <hr>
 

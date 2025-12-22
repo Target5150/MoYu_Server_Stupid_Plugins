@@ -6,7 +6,7 @@
 <hr>
 
 ### Installation
-1. Put **plugins/l4d_lagcomp_skeet.smx** to your _plugins_ folder.
+
 
 <hr>
 

@@ -32,7 +32,7 @@ sm_example | sm_instance | !example | !instance
 <hr>
 
 ### Installation
-1. Put **plugins/{PLUGIN_FILENAME}.smx** to your _plugins_ folder.
+
 2. Put **gamedata/{GAMEDATA_FILENAME}.txt** to your _gamedata_ folder.
 
 <hr>

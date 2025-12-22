@@ -6,7 +6,7 @@
 <hr>
 
 ### Installation
-1. Put **plugins/l4d2_charge_fall_damage.smx** to your _plugins_ folder.
+
 1. Put **gamedata/l4d2_charge_fall_damage.smx** to your _gamedata_ folder.
 
 <hr>

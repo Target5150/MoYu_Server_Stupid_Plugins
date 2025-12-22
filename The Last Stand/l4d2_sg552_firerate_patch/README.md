@@ -6,7 +6,7 @@
 <hr>
 
 ### Installation
-1. Put **plugins/l4d2_sg552_firerate_patch.smx** to your _plugins_ folder.
+
 1. Put **gamedata/l4d2_sg552_firerate_patch.txt** to your _gamedata_ folder.
 
 <hr>

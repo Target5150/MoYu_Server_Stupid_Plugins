@@ -6,7 +6,7 @@
 <hr>
 
 ### Installation
-1. Put **plugins/l4d_fix_deathfall_cam.smx** to your _plugins_ folder.
+
 
 <hr>
 

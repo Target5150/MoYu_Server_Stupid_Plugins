@@ -11,7 +11,7 @@
 <hr>
 
 ### Installation
-1. Put **plugins/l4d_return_thrown_items.smx** to your _plugins_ folder.
+
 
 <hr>
 

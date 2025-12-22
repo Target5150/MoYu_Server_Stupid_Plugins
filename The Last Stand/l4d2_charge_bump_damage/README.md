@@ -17,7 +17,7 @@ z_charge_damage_carry_victim "10"
 <hr>
 
 ### Installation
-1. Put **plugins/l4d2_charge_bump_damage.smx** to your _plugins_ folder.
+
 
 <hr>
 

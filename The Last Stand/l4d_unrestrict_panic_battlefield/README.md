@@ -56,7 +56,7 @@ z_panic_ignore_clear_state "1"
 <hr>
 
 ### Installation
-1. Put **plugins/l4d_unrestrict_panic_battlefield.smx** to your _plugins_ folder.
+
 2. Put **gamedata/l4d_unrestrict_panic_battlefield.txt** to your _gamedata_ folder.
 
 <hr>
