@@ -7,7 +7,7 @@
 <hr>
 
 ### Installation
-
+1. Put **plugins/l4d2_fix_jockey_hitbox.smx** to your _plugins_ folder.
 
 <hr>
 

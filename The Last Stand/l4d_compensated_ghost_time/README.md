@@ -17,7 +17,7 @@
 <hr>
 
 ### Installation
-
+1. Put **plugins/l4d_compensated_ghost_time.smx** to your _plugins_ folder.
 
 <hr>
 

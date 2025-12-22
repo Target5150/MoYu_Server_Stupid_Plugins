@@ -7,7 +7,7 @@
 <hr>
 
 ### Installation
-
+1. Put **plugins/l4d_no_drag_shove.smx** to your _plugins_ folder.
 
 <hr>
 

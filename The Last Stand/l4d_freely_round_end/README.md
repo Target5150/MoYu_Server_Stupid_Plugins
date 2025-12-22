@@ -6,7 +6,7 @@
 <hr>
 
 ### Installation
-
+1. Put **plugins/l4d_freely_round_end.smx** to your _plugins_ folder.
 
 <hr>
 

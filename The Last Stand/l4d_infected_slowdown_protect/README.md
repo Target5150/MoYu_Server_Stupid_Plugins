@@ -7,7 +7,7 @@
 <hr>
 
 ### Installation
-
+1. Put **plugins/l4d_infected_slowdown_protest.smx** to your _plugins_ folder.
 
 <hr>
 

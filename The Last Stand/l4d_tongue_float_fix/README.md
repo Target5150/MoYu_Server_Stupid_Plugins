@@ -7,7 +7,7 @@
 <hr>
 
 ### Installation
-
+1. Put **plugins/l4d_tongue_float_fix.smx** to your _plugins_ folder.
 
 <hr>
 

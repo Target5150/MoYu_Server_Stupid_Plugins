@@ -11,7 +11,7 @@
 <hr>
 
 ### Installation
-
+1. Put **plugins/l4dvs_witch_spawn_fix.smx** to your _plugins_ folder.
 2. Put **gamedata/l4dvs_witch_spawn_fix.txt** to your _gamedata_ folder.
 
 <hr>

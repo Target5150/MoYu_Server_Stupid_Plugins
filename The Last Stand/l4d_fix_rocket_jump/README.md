@@ -7,7 +7,7 @@
 <hr>
 
 ### Installation
-
+1. Put **plugins/l4d_fix_rocket_jump.smx** to your _plugins_ folder.
 1. Put **gamedata/l4d_fix_rocket_jump.txt** to your _gamedata_ folder.
 
 <hr>

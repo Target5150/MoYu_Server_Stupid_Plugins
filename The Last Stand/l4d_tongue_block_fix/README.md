@@ -23,7 +23,7 @@ tongue_tip_through_teammate 0
 <hr>
 
 ### Installation
-
+1. Put **plugins/l4d_tongue_block_fix.smx** to your _plugins_ folder.
 2. Put **gamedata/l4d_tongue_block_fix.txt** to your _gamedata_ folder.
 
 <hr>

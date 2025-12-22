@@ -11,7 +11,7 @@
 <hr>
 
 ### Installation
-
+1. Put **plugins/l4d_fix_finale_breakable.smx** to your _plugins_ folder.
 2. Put **gamedata/l4d_fix_finale_breakable.txt** to your _gamedata_ folder.
 
 <hr>

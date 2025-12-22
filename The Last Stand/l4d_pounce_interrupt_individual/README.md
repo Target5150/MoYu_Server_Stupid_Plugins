@@ -7,7 +7,7 @@
 <hr>
 
 ### Installation
-
+1. Put **plugins/l4d_pounce_interrupt_individual.smx** to your _plugins_ folder.
 
 <hr>
 

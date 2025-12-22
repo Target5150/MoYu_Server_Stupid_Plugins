@@ -31,7 +31,7 @@ l4d_tankdamage_text_style 2
 <hr>
 
 ### Installation
-
+1. Put **plugins/l4d_tank_damage_announce.smx** to your _plugins_ folder.
 2. Merge **translations** with your _translations_ folder.
 
 <hr>

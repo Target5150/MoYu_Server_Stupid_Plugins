@@ -20,7 +20,7 @@
 <hr>
 
 ### Installation
-
+1. Put **plugins/l4d2_spit_spread_patch.smx** to your _plugins_ folder.
 2. Put **gamedata/l4d2_spit_spread_patch.txt** to your _gamedata_ folder.
 
 <hr>

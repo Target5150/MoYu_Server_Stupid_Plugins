@@ -25,7 +25,7 @@ l4d_common_shove_flag "15"
 <hr>
 
 ### Installation
-
+1. Put **plugins/l4d_fix_common_shove.smx** to your _plugins_ folder.
 2. Put **gamedata/l4d_fix_common_shove.txt** to your _gamedata_ folder.
 
 <hr>

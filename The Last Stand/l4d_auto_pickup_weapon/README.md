@@ -42,7 +42,7 @@ sm_absorb | sm_pickup | !absorb | !pickup
 <hr>
 
 ### Installation
-
+1. Put **plugins/l4d_auto_pickup_weapon.smx** to your _plugins_ folder.
 2. Merge your _translations_ folder with the one here.
 
 <hr>

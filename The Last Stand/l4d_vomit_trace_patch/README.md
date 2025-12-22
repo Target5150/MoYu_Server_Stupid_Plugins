@@ -12,7 +12,7 @@
 <hr>
 
 ### Installation
-
+1. Put **plugins/l4d_vomit_trace_patch.smx** to your _plugins_ folder.
 2. Put **gamedata/l4d_vomit_trace_patch.txt** to your _gamedata_ folder.
 
 <hr>

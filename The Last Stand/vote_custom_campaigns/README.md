@@ -13,7 +13,7 @@
 <hr>
 
 ### Installation
-
+1. Put **plugins/vote_custom_campaigns.smx** in your _plugins_ folder.
 2. Merge your _translations_ folder with the one here.
 3. Edit **missions.phrases.txt** to cover missing localizations of custom campaigns.
 
