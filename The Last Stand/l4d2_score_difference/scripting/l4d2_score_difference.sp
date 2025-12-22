@@ -18,12 +18,12 @@
  native int LGO_BuildConfigPath(char[] buffer, int maxlength, const char[] sFileName);
 #endif
 
-#define PLUGIN_VERSION "1.5.1"
+#define PLUGIN_VERSION "1.5.2"
 
 public Plugin myinfo = 
 {
 	name = "[L4D & 2] Score Difference",
-	author = "Forgetest, vikingo12",
+	author = "Forgetest, vikingo12, apples1949",
 	description = "ez",
 	version = PLUGIN_VERSION,
 	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
@@ -35,6 +35,8 @@ float g_flDelay;
 bool g_bLeft4Dead2;
 char g_sNextMap[64];
 int g_iMapDistance, g_iNextMapDistance, g_iNextMapInfoDistance;
+bool g_bFirstRoundCompleted;
+bool g_bFirstRoundOnly;
 
 #define TRANSLATION_FILE "l4d2_score_difference.phrases"
 void LoadPluginTranslations()
@@ -67,14 +69,21 @@ public void OnPluginStart()
 {
 	LoadPluginTranslations();
 	
+	g_bFirstRoundCompleted = false;
+	
 	ConVar cv = CreateConVar("l4d2_scorediff_print_delay", "5.0", "Delay in printing score difference.", FCVAR_SPONLY|FCVAR_NOTIFY, true, 0.0);
 	OnConVarChanged(cv, "", "");
 	cv.AddChangeHook(OnConVarChanged);
+	
+	ConVar cvFirstRoundOnly = CreateConVar("l4d2_scorediff_first_round_only", "0", "0 = Print score difference every round, 1 = Print only after first round", FCVAR_SPONLY|FCVAR_NOTIFY, true, 0.0, true, 1.0);
+	g_bFirstRoundOnly = cvFirstRoundOnly.BoolValue;
+	cvFirstRoundOnly.AddChangeHook(OnConVarChanged);
 }
 
 void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	g_flDelay = convar.FloatValue;
+	g_bFirstRoundOnly = convar.BoolValue;
 }
 
 public void L4D_OnFirstSurvivorLeftSafeArea_Post(int client)
@@ -87,6 +96,7 @@ public void OnMapEnd()
 	g_iNextMapDistance = 0;
 	g_sNextMap[0] = '\0';
 	g_iNextMapInfoDistance = 0;
+	g_bFirstRoundCompleted = false;
 }
 
 public void OnGetMissionInfo(int pThis)
@@ -126,6 +136,15 @@ public void OnGetMissionInfo(int pThis)
 
 public void L4D2_OnEndVersusModeRound_Post()
 {
+	if (g_bFirstRoundOnly && !g_bFirstRoundCompleted)
+	{
+		g_bFirstRoundCompleted = true;
+	}
+	else
+	{
+		g_bFirstRoundCompleted = false;
+		return;
+	}
 	if (g_iNextMapInfoDistance != 0)
 	{
 		g_iNextMapDistance = g_iNextMapInfoDistance;
