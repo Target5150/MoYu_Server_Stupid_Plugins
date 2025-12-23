@@ -21,10 +21,7 @@ l4d_despawn_los_time "15.0"
 
 <hr>
 
-### Installation
-1. Put **plugins/l4d_despawn_out_of_sight.smx** to your _plugins_ folder.
 
-<hr>
 
 ### Changelog
 (v1.0 2023/10/12 UTC+8) Initial release.

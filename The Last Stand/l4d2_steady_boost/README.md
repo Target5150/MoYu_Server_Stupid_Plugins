@@ -11,8 +11,7 @@
 <hr>
 
 ### Installation
-1. Put **plugins/l4d2_steady_boost.smx** to your _plugins_ folder.
-2. Put **gamedata/l4d2_steady_boost.txt** to your _gamedata_ folder.
+1. Put **gamedata/l4d2_steady_boost.txt** to your _gamedata_ folder.
 
 <hr>
 

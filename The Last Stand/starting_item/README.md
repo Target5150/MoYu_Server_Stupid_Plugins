@@ -17,10 +17,7 @@ starting_item_list "pain_pills,first_aid_kit,smg_silenced,katana"
 
 <hr>
 
-### Installation
-1. Put **plugins/starting_items.smx** to your _plugins_ folder.
 
-<hr>
 
 ### Changelog
 (v3.0 2022/7/16 UTC+8) Initial release.

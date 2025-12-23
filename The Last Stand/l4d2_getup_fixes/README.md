@@ -16,8 +16,7 @@
   - `double_getup`
   - `l4d2_charger_getup_fix`
 
-1. Put **plugins/l4d2_getup_fixes.smx** to your _plugins_ folder.
-2. Put **gamedata/l4d2_getup_fixes.txt** to your _gamedata_ folder.
+1. Put **gamedata/l4d2_getup_fixes.txt** to your _gamedata_ folder.
 
 <hr>
 

@@ -67,7 +67,6 @@
 
 # Installation
 
-- Put _readyup.smx_ to **addons/sourcemod/plugins** (or you can compile it yourself)
 - Put _readyup.phrases.txt_ to **addons/sourcemod/translations**
 - Edit the translation file to your language if you want to.
 	- Remember to save the edition as another file in the correct language folder.

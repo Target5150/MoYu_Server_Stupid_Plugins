@@ -15,10 +15,6 @@
 
 <hr>
 
-### Installation
-
-- Put _readyup_togglecvars.smx_ to **addons/sourcemod/plugins**
-
 ### Changelog
 (v1.1 2022/1/18) Implement info and improvement
 

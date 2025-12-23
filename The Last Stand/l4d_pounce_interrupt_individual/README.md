@@ -6,10 +6,7 @@
 
 <hr>
 
-### Installation
-1. Put **plugins/l4d_pounce_interrupt_individual.smx** to your _plugins_ folder.
 
-<hr>
 
 ### Changelog
 (v1.0 2022/12/24 UTC+8) Initial release.

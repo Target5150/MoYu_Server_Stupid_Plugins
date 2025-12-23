@@ -6,8 +6,7 @@
 - Remarks that only if the **Text File** is empty or missing will it instead read the hostname from convar **sn_main_name**
 
 ### Installation
-1. Put **plugins/server_namer.smx** to your _plugins_ folder.
-2. Put **configs/server_namer.txt** to your _configs_ folder.
-3. Put a **Text File containing Hostname** to anywhere within _sourcemod/configs/_ folder.
-4. Set the convars in your _server.cfg_.
+1. Put **configs/server_namer.txt** to your _configs_ folder.
+2. Put a **Text File containing Hostname** to anywhere within _sourcemod/configs/_ folder.
+3. Set the convars in your _server.cfg_.
 	- The value of `sn_main_name_path` should be the path where the **Text File** is (i.e. `hostname/sn_main_name.txt`).

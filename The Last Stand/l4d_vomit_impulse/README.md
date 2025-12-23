@@ -30,10 +30,7 @@ spit_shove_impulse_first_time "0.0"
 
 <hr>
 
-### Installation
-1. Put **plugins/l4d_vomit_impulse.smx** to your _plugins_ folder.
 
-<hr>
 
 ### Changelog
 (v1.0 2023/5/2 UTC+8) Initial release.

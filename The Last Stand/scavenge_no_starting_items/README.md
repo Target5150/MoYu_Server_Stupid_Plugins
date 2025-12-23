@@ -11,8 +11,7 @@
 <hr>
 
 ### Installation
-1. Put **plugins/scavenge_no_starting_items.smx** to your _plugins_ folder.
-2. Put **gamedata/scavenge_no_starting_items.txt** to your _gamedata_ folder.
+1. Put **gamedata/scavenge_no_starting_items.txt** to your _gamedata_ folder.
 
 <hr>
 

@@ -24,10 +24,7 @@ friendly_fire_immune_crouch_self "0"
 
 <hr>
 
-### Installation
-1. Put **l4d_ff_immune_crouch.smx** to your _plugins_ folder.
 
-<hr>
 
 ### Changelog
 (v1.0 2024/11/29 UTC+8) Initial release.

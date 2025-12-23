@@ -35,8 +35,7 @@ charger_knockdown_getup_window "0.1"
 <hr>
 
 ### Installation
-1. Put **plugins/l4d2_charge_target_fix.smx** to your _plugins_ folder.
-2. Put **gamedata/l4d2_charge_target_fix.txt** to your _gamedata_ folder.
+1. Put **gamedata/l4d2_charge_target_fix.txt** to your _gamedata_ folder.
 
 <hr>
 

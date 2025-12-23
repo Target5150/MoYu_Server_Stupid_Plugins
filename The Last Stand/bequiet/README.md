@@ -31,10 +31,7 @@ bq_show_player_team_chat_spec "1.0"
 
 <hr>
 
-### Installation
-1. Put **plugins/bequiet.smx** to your _plugins_ folder.
 
-<hr>
 
 ### Changelog
 (v2.0 2023/4/12 UTC+8) Initial release.

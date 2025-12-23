@@ -6,10 +6,7 @@
 
 <hr>
 
-### Installation
-1. Put **plugins/l4d2_fix_jockey_hitbox.smx** to your _plugins_ folder.
 
-<hr>
 
 ### Changelog
 (v2.0 2023/7/3 UTC+8) Jockey Hitbox: Fix unaligned hitboxes when riding

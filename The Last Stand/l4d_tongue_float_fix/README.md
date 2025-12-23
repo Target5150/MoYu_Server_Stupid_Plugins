@@ -6,10 +6,7 @@
 
 <hr>
 
-### Installation
-1. Put **plugins/l4d_tongue_float_fix.smx** to your _plugins_ folder.
 
-<hr>
 
 ### Changelog
 (v2.0 2023/6/23 UTC+8) More correct fix for instant tongue choking

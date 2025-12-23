@@ -9,10 +9,7 @@
 
 <hr>
 
-### Installation
-1. Put **plugins/l4d_fix_linux_surface.smx** to your _plugins_ folder.
 
-<hr>
 
 ### Changelog
 (v1.0 2024/04/23 UTC+8) Initial release.

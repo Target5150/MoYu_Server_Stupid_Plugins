@@ -11,10 +11,7 @@
 
 <hr>
 
-### Installation
-1. Put **plugins/smart_ai_rock.smx** to your _plugins_ folder.
 
-<hr>
 
 ### Changelog
 (v2.0 2022/12/21 UTC+8) Initial release.

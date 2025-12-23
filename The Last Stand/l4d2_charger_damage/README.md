@@ -36,8 +36,7 @@ z_charge_stumble_damage "2.0"
 <hr>
 
 ### Installation
-1. Put **plugins/l4d2_charger_damage.smx** to your _plugins_ folder.
-2. Put **gamedata/l4d2_charger_damage.txt** to your _gamedata_ folder.
+1. Put **gamedata/l4d2_charger_damage.txt** to your _gamedata_ folder.
 
 <hr>
 

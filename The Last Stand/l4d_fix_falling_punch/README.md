@@ -11,8 +11,7 @@
 <hr>
 
 ### Installation
-1. Put **plugins/l4d_fix_falling_punch.smx** to your _plugins_ folder.
-2. Put **gamedata/l4d_fix_falling_punch.txt** to your _gamedata_ folder.
+1. Put **gamedata/l4d_fix_falling_punch.txt** to your _gamedata_ folder.
 
 <hr>
 
