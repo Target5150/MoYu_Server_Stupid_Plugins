@@ -36,7 +36,6 @@ bool g_bLeft4Dead2;
 char g_sNextMap[64];
 int g_iMapDistance, g_iNextMapDistance, g_iNextMapInfoDistance;
 bool g_bFirstRoundCompleted;
-bool g_bFirstRoundOnly;
 
 #define TRANSLATION_FILE "l4d2_score_difference.phrases"
 void LoadPluginTranslations()
@@ -75,15 +74,11 @@ public void OnPluginStart()
 	OnConVarChanged(cv, "", "");
 	cv.AddChangeHook(OnConVarChanged);
 	
-	ConVar cvFirstRoundOnly = CreateConVar("l4d2_scorediff_first_round_only", "0", "0 = Print score difference every round, 1 = Print only after first round", FCVAR_SPONLY|FCVAR_NOTIFY, true, 0.0, true, 1.0);
-	g_bFirstRoundOnly = cvFirstRoundOnly.BoolValue;
-	cvFirstRoundOnly.AddChangeHook(OnConVarChanged);
 }
 
 void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	g_flDelay = convar.FloatValue;
-	g_bFirstRoundOnly = convar.BoolValue;
 }
 
 public void L4D_OnFirstSurvivorLeftSafeArea_Post(int client)
@@ -136,15 +131,15 @@ public void OnGetMissionInfo(int pThis)
 
 public void L4D2_OnEndVersusModeRound_Post()
 {
-	if (g_bFirstRoundOnly && !g_bFirstRoundCompleted)
+	if (!g_bFirstRoundCompleted)
 	{
 		g_bFirstRoundCompleted = true;
 	}
 	else
 	{
 		g_bFirstRoundCompleted = false;
-		return;
 	}
+
 	if (g_iNextMapInfoDistance != 0)
 	{
 		g_iNextMapDistance = g_iNextMapInfoDistance;
@@ -248,7 +243,7 @@ Action Timer_PrintDifference(Handle timer)
 	{
 		if (!L4D_IsMissionFinalMap() && g_iNextMapDistance > 0)
 		{
-			if (iTotalDifference <= g_iNextMapDistance)
+			if (iTotalDifference <= g_iNextMapDistance && g_bFirstRoundCompleted)
 			{
 				if (TranslationPhraseExists("Announce_ComebackWithDistance"))
 					CPrintToChatAll("%t", "Announce_ComebackWithDistance", iTotalDifference);
