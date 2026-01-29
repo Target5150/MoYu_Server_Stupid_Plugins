@@ -1,0 +1,275 @@
+"Games"
+{
+	"#default"
+	{
+		"#supported"
+		{
+			"game"	"left4dead"
+			"game"	"left4dead2"
+		}
+
+		"Functions"
+		{
+			"l4d_transition_entity::InfoChangelevel::SaveEntities"
+			{
+				"signature"		"InfoChangelevel::SaveEntities"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"entity"
+			}
+
+			"l4d_transition_entity::InfoChangelevel::IsEntitySaveable"
+			{
+				"signature"		"InfoChangelevel::IsEntitySaveable"
+				"callconv"		"thiscall"
+				"return"		"bool"
+				"this"			"entity"
+				"arguments"
+				{
+					"a1"
+					{
+						"type"	"cbaseentity"
+					}
+				}
+			}
+
+			"l4d_transition_entity::SavedEntity::PostSpawn"
+			{
+				"offset"		"SavedEntity::PostSpawn"
+				"hooktype"		"raw"
+				"return"		"void"
+				"this"			"address"
+				"arguments"
+				{
+					"a1"
+					{
+						"type"	"cbaseentity"
+					}
+				}
+			}
+		}
+
+		"Addresses"
+		{
+			"g_SavedWeapons"
+			{
+				"linux"
+				{
+					"signature"	"g_SavedWeapons"
+				}
+			}
+			"g_SavedWeaponSpawns"
+			{
+				"linux"
+				{
+					"signature"	"g_SavedWeaponSpawns"
+				}
+			}
+		}
+
+		"Offsets"
+		{
+			"SavedEntity::PostSpawn"
+			{
+				"linux"			"3"
+				"windows"		"2"
+			}
+		}
+
+		"Signatures"
+		{
+			"g_SavedWeapons"
+			{
+				"library"		"server"
+				"linux"			"@_ZL14g_SavedWeapons"
+			}
+
+			"g_SavedWeaponSpawns"
+			{
+				"library"		"server"
+				"linux"			"@_ZL19g_SavedWeaponSpawns"
+			}
+		}
+	}
+
+	"left4dead"
+	{
+		"Functions"
+		{
+			"l4d_transition_entity::InfoChangelevel::SaveEntities"
+			{
+				"arguments"
+				{
+					"a1"
+					{
+						"type"	"objectptr"
+					}
+				}
+			}
+		}
+
+		"Addresses"
+		{
+			"g_SavedWeapons"
+			{
+				"windows"
+				{
+					"signature"	"InfoChangelevel::SaveEntities"
+					"read" "15"
+				}
+			}
+			"g_SavedWeaponSpawns"
+			{
+				"windows"
+				{
+					"signature"	"InfoChangelevel::SaveEntities"
+					"read" "29"
+				}
+			}
+		}
+
+		"Signatures"
+		{
+			"InfoChangelevel::SaveEntities"
+			{
+				"library"		"server"
+				"linux"			"@_ZN15InfoChangelevel12SaveEntitiesEP9KeyValues"
+				"windows"		"\x55\x8B\xEC\x83\xE4\xF8\x83\xEC\x24"
+								// 55 8B EC 83 E4 F8 83 EC 24
+			}
+
+			"InfoChangelevel::IsEntitySaveable"
+			{
+				"library"		"server"
+				"linux"			"@_ZN15InfoChangelevel16IsEntitySaveableEP11CBaseEntity"
+				"windows"		"\x53\x56\x8B\x74\x24\x0C\x8B\x06\x8B\x90\x84\x00\x00\x00"
+								// 53 56 8B 74 24 0C 8B 06 8B 90 84 00 00 00
+			}
+
+			/**
+			 * KeyValues::GetString(char const*, char const*)
+			 *
+			 * How to find on Windows:
+			 * 1. Search for the "%3.2f: Director: Finale state = FINALE_HORDE_ATTACK_1\n" string.
+			 * 2. Both functions that reference the string call this function.
+			 * 3. The second function call below the string should be this function.
+			 **/
+			"KeyValues::GetString"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9KeyValues9GetStringEPKcS1_"
+				"mac"		"@_ZN9KeyValues9GetStringEPKcS1_"
+				"windows"	"\x2A\x2A\x2A\x2A\x2A\x2A\x53\x8B\x9C\x2A\x2A\x2A\x2A\x2A\x56\x57\x6A\x2A\x53\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x8B\x2A\x85\x2A\x0F\x84\x2A\x2A\x2A\x2A\x0F\x2A\x2A\x2A\x83\x2A\x2A\x83\x2A\x2A\x0F"
+						/* ? ? ? ? ? ? 53 8B 9C ? ? ? ? ? 56 57 6A ? 53 8B ? E8 ? ? ? ? 8B ? 85 ? 0F 84 ? ? ? ? 0F ? ? ? 83 ? ? 83 ? ? 0F */
+			}
+
+			/**
+			 * KeyValues::SetString(char const*, char const*)
+			 *
+			 * How to find on Windows:
+			 * 1. Locate the "KeyValues::GetString" function.
+			 * 2. This function should be the last function call in that function.
+			 **/
+			"KeyValues::SetString"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9KeyValues9SetStringEPKcS1_"
+				"mac"		"@_ZN9KeyValues9SetStringEPKcS1_"
+				"windows"	"\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x50\xE8\x2A\x2A\x2A\x2A\x8B\x2A\x85\x2A\x74\x2A\x8B\x2A\x2A\x53"
+						/* ? ? ? ? ? ? ? 50 E8 ? ? ? ? 8B ? 85 ? 74 ? 8B ? ? 53 */
+			}
+		}
+	}
+
+	"left4dead2"
+	{
+		"Addresses"
+		{
+			"g_SavedPropPhysics"
+			{
+				"linux"
+				{
+					"signature"	"g_SavedPropPhysics"
+				}
+				"windows"
+				{
+					"signature"	"InfoChangelevel::SaveEntities"
+					"read" "34"
+				}
+			}
+			"g_SavedWeapons"
+			{
+				"windows"
+				{
+					"signature"	"InfoChangelevel::SaveEntities"
+					"read" "11"
+				}
+			}
+			"g_SavedWeaponSpawns"
+			{
+				"windows"
+				{
+					"signature"	"InfoChangelevel::SaveEntities"
+					"read" "24"
+				}
+			}
+		}
+
+		"Signatures"
+		{
+			"g_SavedPropPhysics"
+			{
+				"library"		"server"
+				"linux"			"@_ZL18g_SavedPropPhysics"
+			}
+
+			"InfoChangelevel::SaveEntities"
+			{
+				"library"		"server"
+				"linux"			"@_ZN15InfoChangelevel12SaveEntitiesEv"
+				"windows"		"\x55\x8B\xEC\x83\xEC\x10\x53\x56\x8B\xF1\xB9"
+								// 55 8B EC 83 EC 10 53 56 8B F1 B9
+			}
+
+			"InfoChangelevel::IsEntitySaveable"
+			{
+				"library"		"server"
+				"linux"			"@_ZN15InfoChangelevel16IsEntitySaveableEP11CBaseEntity"
+				"windows"		"\x55\x8B\xEC\x53\x56\x8B\x75\x08\x8B\x06\x8B\x90\x2A\x2A\x2A\x2A\x8B\xCE\xFF\xD2\x8B"
+								// 55 8B EC 53 56 8B 75 08 8B 06 8B 90 ? ? ? ? 8B CE FF D2 8B
+			}
+
+			/**
+			 * KeyValues::GetString(char const*, char const*)
+			 *
+			 * How to find on Windows:
+			 * 1. Search for the "L4D2C" string.
+			 * 2. Both functions that reference the string call this function.
+			 **/
+			"KeyValues::GetString"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9KeyValues9GetStringEPKcS1_"
+				"mac"		"@_ZN9KeyValues9GetStringEPKcS1_"
+				"windows"	"\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x33\x2A\x89\x2A\x2A\x53\x8B\x2A\x2A\x56\x57\x6A\x2A\x53\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x8B\x2A\x85\x2A\x0F\x84\x2A\x2A\x2A\x2A\x0F\x2A\x2A\x2A\x48\x83\x2A\x2A\x0F\x87\x2A\x2A\x2A\x2A\xFF\x24\x2A\x2A\x2A\x2A\x2A\xD9\x2A\x2A\x83\x2A\x2A\xDD\x2A\x2A\x68"
+						/* ? ? ? ? ? ? ? ? ? A1 ? ? ? ? 33 ? 89 ? ? 53 8B ? ? 56 57 6A ? 53 8B ? E8 ? ? ? ? 8B ? 85 ? 0F 84 ? ? ? ? 0F ? ? ? 48 83 ? ? 0F 87 ? ? ? ? FF 24 ? ? ? ? ? D9 ? ? 83 ? ? DD ? ? 68 */
+			}
+
+			/**
+			 * KeyValues::SetString(char const*, char const*)
+			 *
+			 * How to find on Windows:
+			 * 1. Locate the "KeyValues::GetString" function.
+			 * 2. This function should be the last function call in that function.
+			 **/
+			"KeyValues::SetString"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9KeyValues9SetStringEPKcS1_"
+				"mac"		"@_ZN9KeyValues9SetStringEPKcS1_"
+				"windows"	"\x2A\x2A\x2A\x2A\x2A\x2A\x56\x6A\x2A\x50\xE8\x2A\x2A\x2A\x2A\x8B\x2A\x85\x2A\x74\x2A\x8B\x2A\x2A\x53\x57\x51\xE8\x2A\x2A\x2A\x2A\x8B\x2A\x2A\x52\xE8\x2A\x2A\x2A\x2A\x8B\x2A\x2A\x83\x2A\x2A\xC7\x46\x2A\x2A\x2A\x2A\x2A\x85\x2A\x75\x2A\xBB\x2A\x2A\x2A\x2A\x53"
+						/* ? ? ? ? ? ? 56 6A ? 50 E8 ? ? ? ? 8B ? 85 ? 74 ? 8B ? ? 53 57 51 E8 ? ? ? ? 8B ? ? 52 E8 ? ? ? ? 8B ? ? 83 ? ? C7 46 ? ? ? ? ? 85 ? 75 ? BB ? ? ? ? 53 */
+			}
+		}
+	}
+}
