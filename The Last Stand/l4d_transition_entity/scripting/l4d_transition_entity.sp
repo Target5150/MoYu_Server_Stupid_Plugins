@@ -204,8 +204,7 @@ void ClearHookIDs()
 {
 	for (int i = g_HookIDs.Length-1; i >= 0; --i)
 	{
-		if (!DynamicHook.RemoveHook(g_HookIDs.Get(i)))
-			LogError("Failed to remove dhook (%d)", g_HookIDs.Get(i));
+		DynamicHook.RemoveHook(g_HookIDs.Get(i));
 	}
 
 	g_HookIDs.Clear();
