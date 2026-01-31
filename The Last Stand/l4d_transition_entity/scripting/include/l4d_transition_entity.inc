@@ -6,6 +6,7 @@
 /**
  * @brief Called when a weapon/spawner/prop in checkpoint is being saved for next level.
  * @note Weapons owned by player are not included.
+ * @remarks Called before the event "map_transition"
  * 
  * @param entity		Transitioning entity index
  *
