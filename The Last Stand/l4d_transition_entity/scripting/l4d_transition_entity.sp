@@ -2,7 +2,7 @@
 #pragma newdecls required
 
 #define DEBUG 0
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 #include <sourcemod>
 #include <dhooks>
@@ -32,8 +32,8 @@ CUtlVector g_SavedPropPhysics;		// (L4D2 only) CUtlVector<SavedEntity>
 CUtlVector g_SavedWeapons;			// (L4D1) CUtlVector<SavedEntity> / (L4D2) CUtlVector<SavedEntity*>
 CUtlVector g_SavedWeaponSpawns;		// (L4D1) CUtlVector<SavedEntity> / (L4D2) CUtlVector<SavedEntity*>
 
-Handle g_call_KeyValues_GetString;
-Handle g_call_KeyValues_SetString;
+Handle g_call_KeyValues_GetInt;
+Handle g_call_KeyValues_SetInt;
 
 DynamicHook g_hook_PostSpawn;
 
@@ -41,6 +41,7 @@ GlobalForward g_fwdOnEntityTransitioning;
 GlobalForward g_fwdOnEntityTransitioned;
 
 bool g_bL4D2;
+ArrayList g_HookIDs;
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
 {
@@ -74,10 +75,10 @@ public void OnPluginStart()
 
 	SDKCallParamsWrapper params[] = {
 		{SDKType_String, SDKPass_Pointer},
-		{SDKType_String, SDKPass_Pointer},
+		{SDKType_PlainOldData, SDKPass_Plain},
 	};
-	g_call_KeyValues_GetString = gd.CreateSDKCallOrFail(SDKCall_Raw, SDKConf_Signature, "KeyValues::GetString", params, 2, true, params[0]);
-	g_call_KeyValues_SetString = gd.CreateSDKCallOrFail(SDKCall_Raw, SDKConf_Signature, "KeyValues::SetString", params, 2, false);
+	g_call_KeyValues_GetInt = gd.CreateSDKCallOrFail(SDKCall_Raw, SDKConf_Signature, "KeyValues::GetInt", params, 2, true, params[1]);
+	g_call_KeyValues_SetInt = gd.CreateSDKCallOrFail(SDKCall_Raw, SDKConf_Signature, "KeyValues::SetInt", params, 2, false);
 
 	g_hook_PostSpawn = gd.CreateDHookOrFail("l4d_transition_entity::SavedEntity::PostSpawn");
 
@@ -85,13 +86,13 @@ public void OnPluginStart()
 	delete gd.CreateDetourOrFail("l4d_transition_entity::InfoChangelevel::IsEntitySaveable", _, DTR_IsEntitySaveable_Post);
 
 	delete gd;
+
+	g_HookIDs = new ArrayList();
 }
 
 void OnSavingEntity(int entity, Address pKV)
 {
-	char buffer[16];
-	IntToString(entity, buffer, sizeof(buffer));
-	SDKCall(g_call_KeyValues_SetString, pKV, "l4d_transition_entity_oldindex", buffer);
+	SDKCall(g_call_KeyValues_SetInt, pKV, "l4d_transition_entity_oldindex", entity);
 
 #if DEBUG
 	char classname[64];
@@ -100,6 +101,24 @@ void OnSavingEntity(int entity, Address pKV)
 #endif
 
 	CallOnEntityTransitioning(entity);
+}
+
+void HookSavedEntities(CUtlVector vec, bool isPtr)
+{
+	for (int i = vec.m_Size-1; i >= 0; --i)
+	{
+		Address pSavedEntity = isPtr ?
+						LoadFromAddress(vec.m_pElements + view_as<Address>(4 * i), NumberType_Int32) :
+						(vec.m_pElements + view_as<Address>(8 * i));
+
+		int hookid = g_hook_PostSpawn.HookRaw(Hook_Post, pSavedEntity, Hook_SavedEntity_PostSpawnPost);
+		if (hookid == INVALID_HOOK_ID)
+		{
+			LogError("Failed to hook SavedEntity_PostSpawn");
+			continue;
+		}
+		g_HookIDs.Push(hookid);
+	}
 }
 
 void CallOnEntityTransitioning(int entity)
@@ -116,56 +135,40 @@ void PostSaveEntities()
 {
 	if (g_bL4D2)
 	{
-		for (int i = g_SavedPropPhysics.m_Size-1; i >= 0; --i)
-		{
-			Address pSavedEntity = g_SavedPropPhysics.m_pElements + view_as<Address>(8 * i);
-			g_hook_PostSpawn.HookRaw(Hook_Post, pSavedEntity, Hook_SavedEntity_PostSpawnPost);
-		}
-		for (int i = g_SavedWeapons.m_Size-1; i >= 0; --i)
-		{
-			Address pSavedEntity = LoadFromAddress(g_SavedWeapons.m_pElements + view_as<Address>(4 * i), NumberType_Int32);
-			g_hook_PostSpawn.HookRaw(Hook_Post, pSavedEntity, Hook_SavedEntity_PostSpawnPost);
-		}
-		for (int i = g_SavedWeaponSpawns.m_Size-1; i >= 0; --i)
-		{
-			Address pSavedEntity = LoadFromAddress(g_SavedWeaponSpawns.m_pElements + view_as<Address>(4 * i), NumberType_Int32);
-			g_hook_PostSpawn.HookRaw(Hook_Post, pSavedEntity, Hook_SavedEntity_PostSpawnPost);
-		}
+		HookSavedEntities(g_SavedPropPhysics, false);
+		HookSavedEntities(g_SavedWeapons, true);
+		HookSavedEntities(g_SavedWeaponSpawns, true);
+	#if DEBUG
+		PrintToServer("PostSaveEntities (%d physics) (%d weapons) (%d spawners)", g_SavedPropPhysics.m_Size, g_SavedWeapons.m_Size, g_SavedWeaponSpawns.m_Size);
+	#endif
 	}
 	else
 	{
-		for (int i = g_SavedWeapons.m_Size-1; i >= 0; --i)
-		{
-			Address pSavedEntity = g_SavedWeapons.m_pElements + view_as<Address>(8 * i);
-			g_hook_PostSpawn.HookRaw(Hook_Post, pSavedEntity, Hook_SavedEntity_PostSpawnPost);
-		}
-		for (int i = g_SavedWeaponSpawns.m_Size-1; i >= 0; --i)
-		{
-			Address pSavedEntity = g_SavedWeaponSpawns.m_pElements + view_as<Address>(8 * i);
-			g_hook_PostSpawn.HookRaw(Hook_Post, pSavedEntity, Hook_SavedEntity_PostSpawnPost);
-		}
+		HookSavedEntities(g_SavedWeapons, false);
+		HookSavedEntities(g_SavedWeaponSpawns, false);
+	#if DEBUG
+		PrintToServer("PostSaveEntities (%d weapons) (%d spawners)", g_SavedWeapons.m_Size, g_SavedWeaponSpawns.m_Size);
+	#endif
 	}
-
-#if DEBUG
-	PrintToServer("PostSaveEntities (%d physics) (%d weapons) (%d weapon spawns)", g_bL4D2 ? g_SavedPropPhysics.m_Size : 0, g_SavedWeapons.m_Size, g_SavedWeaponSpawns.m_Size);
-#endif
 }
 
 MRESReturn Hook_SavedEntity_PostSpawnPost(Address pThis, DHookParam hParams)
 {
-	if (hParams.IsNull(1))
-		return MRES_Ignored;
-
-	int entity = hParams.Get(1);
-	if (!IsValidEntity(entity)) // just in case
-		return MRES_Ignored;
-
 	Address pKV = LoadFromAddress(pThis + view_as<Address>(4), NumberType_Int32);
+	int oldindex = SDKCall(g_call_KeyValues_GetInt, pKV, "l4d_transition_entity_oldindex", -1);
 
-	char buffer[16];
-	SDKCall(g_call_KeyValues_GetString, pKV, buffer, sizeof(buffer), "l4d_transition_entity_oldindex", "-1");
+	int entity = -1;
+	if (!hParams.IsNull(1))
+		entity = hParams.Get(1);
 
-	int oldindex = StringToInt(buffer);
+	if (!IsValidEntity(entity))
+	{
+	#if DEBUG
+		PrintToServer("SavedEntity_PostSpawn !! failed to spawn entity (%d)", oldindex);
+	#endif
+		return MRES_Ignored;
+	}
+
 	if (oldindex == -1)
 	{
 		char classname[64];
@@ -195,16 +198,28 @@ void CallOnEntityTransitioned(int entity, int oldindex)
 	Call_Finish();
 }
 
-static int g_iCurrentEntity;
+void ClearHookIDs()
+{
+	for (int i = g_HookIDs.Length-1; i >= 0; --i)
+	{
+		if (!DynamicHook.RemoveHook(g_HookIDs.Get(i)))
+			LogError("Failed to remove dhook (%d)", g_HookIDs.Get(i));
+	}
+
+	g_HookIDs.Clear();
+}
+
+static int g_iLastEntity;
 static int g_iLastPhysicProps;
 static int g_iLastWeapons;
 static int g_iLastWeaponSpawns;
 MRESReturn DTR_SaveEntities(int entity, DHookParam hParams)
 {
-	g_iCurrentEntity = -1;
+	g_iLastEntity = -1;
 	g_iLastPhysicProps = 0;
 	g_iLastWeapons = 0;
 	g_iLastWeaponSpawns = 0;
+	ClearHookIDs();
 	return MRES_Ignored;
 }
 
@@ -234,11 +249,11 @@ void CheckLastSavedEntity(int entity)
 	
 #if DEBUG
 	if (g_bL4D2 && g_SavedPropPhysics.m_Size - 1 == g_iLastPhysicProps)
-		PrintToServer("CheckLastSavedEntity (physic)");
+		PrintToServer("CheckLastSavedEntity (physic) (%d now)", g_SavedPropPhysics.m_Size);
 	else if (g_SavedWeaponSpawns.m_Size - 1 == g_iLastWeaponSpawns)
-		PrintToServer("CheckLastSavedEntity (weapon spawn)");
+		PrintToServer("CheckLastSavedEntity (spawner) (%d now)", g_SavedWeaponSpawns.m_Size);
 	else if (g_SavedWeapons.m_Size - 1 == g_iLastWeapons)
-		PrintToServer("CheckLastSavedEntity (weapon)");
+		PrintToServer("CheckLastSavedEntity (weapon) (%d now)", g_SavedWeapons.m_Size);
 #endif
 
 	if (g_bL4D2)
@@ -257,15 +272,15 @@ void CheckLastSavedEntity(int entity)
 
 MRESReturn DTR_IsEntitySaveable_Post(int entity, DHookReturn hReturn, DHookParam hParams)
 {
-	CheckLastSavedEntity(g_iCurrentEntity);
-	g_iCurrentEntity = hReturn.Value == true ? hParams.Get(1) : -1;
+	CheckLastSavedEntity(g_iLastEntity);
+	g_iLastEntity = hReturn.Value == true ? hParams.Get(1) : -1;
 	
 	return MRES_Ignored;
 }
 
 MRESReturn DTR_SaveEntities_Post(int entity, DHookParam hParams)
 {
-	CheckLastSavedEntity(g_iCurrentEntity);
+	CheckLastSavedEntity(g_iLastEntity);
 	PostSaveEntities();
 
 	return MRES_Ignored;
