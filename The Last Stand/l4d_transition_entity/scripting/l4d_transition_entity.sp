@@ -58,6 +58,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	g_fwdOnEntityTransitioning = new GlobalForward("L4D_OnEntityTransitioning", ET_Ignore, Param_Cell);
 	g_fwdOnEntityTransitioned = new GlobalForward("L4D_OnEntityTransitioned", ET_Ignore, Param_Cell, Param_Cell);
 
+	RegPluginLibrary("l4d_transition_entity");
+
 	return APLRes_Success;
 }
 
