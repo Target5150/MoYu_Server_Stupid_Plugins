@@ -1,0 +1,169 @@
+"Games"
+{
+	"left4dead2"
+	{
+		"Functions"
+		{
+			"l4d2_fix_character_mixed::CTerrorPlayer::GetPlayerByCharacter"
+			{
+				"signature"		"CTerrorPlayer::GetPlayerByCharacter"
+				"callconv"		"cdecl"
+				"return"		"cbaseentity"
+				"arguments"
+				{
+					"SurvivorCharacterType"
+					{
+						"type"	"int"
+					}
+				}
+			}
+
+			"l4d2_fix_character_mixed::CL4D1SurvivorSpawn::InputSpawnSurvivor"
+			{
+				"signature"		"CL4D1SurvivorSpawn::InputSpawnSurvivor"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"entity"
+				"arguments"
+				{
+					"inputdata_t &"
+					{
+						"type"	"objectptr"
+					}
+				}
+			}
+
+			"l4d2_fix_character_mixed::CTerrorPlayer::GetCharacterDisplayName"
+			{
+				"signature"		"CTerrorPlayer::GetCharacterDisplayName"
+				"callconv"		"thiscall"
+				"return"		"charptr"
+				"this"			"entity"
+			}
+
+			"l4d2_fix_character_mixed::CTerrorPlayer::InputTeleportToSurvivorPosition"
+			{
+				"signature"		"CTerrorPlayer::InputTeleportToSurvivorPosition"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"entity"
+				"arguments"
+				{
+					"inputdata_t &"
+					{
+						"type"	"objectptr"
+					}
+				}
+			}
+
+			"l4d2_fix_character_mixed::CTerrorPlayer::InputReleaseFromSurvivorPosition"
+			{
+				"signature"		"CTerrorPlayer::InputReleaseFromSurvivorPosition"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"entity"
+				"arguments"
+				{
+					"inputdata_t &"
+					{
+						"type"	"objectptr"
+					}
+				}
+			}
+
+			"l4d2_fix_character_mixed::CGlobalEntityList::FindEntityByName"
+			{
+				"signature"		"CGlobalEntityList::FindEntityByName"
+				"callconv"		"thiscall"
+				"return"		"cbaseentity"
+				"this"			"ignore"
+				"arguments"
+				{
+					"pStartEntity"
+					{
+						"type"	"cbaseentity"
+					}
+					"szName"
+					{
+						"type"	"charptr"
+					}
+					"pSearchingEntity"
+					{
+						"type"	"cbaseentity"
+					}
+					"pActivator"
+					{
+						"type"	"cbaseentity"
+					}
+					"pCaller"
+					{
+						"type"	"cbaseentity"
+					}
+					"pFilter"
+					{
+						"type"	"int"
+					}
+				}
+			}
+		}
+
+		"Signatures"
+		{
+			"CTerrorPlayer::GetPlayerByCharacter"
+			{
+				"library"		"server"
+				"linux"			"@_ZN13CTerrorPlayer20GetPlayerByCharacterE21SurvivorCharacterType"
+				"windows"		"\x55\x8B\xEC\x8B\x45\x08\x83\xEC\x08\x83\xF8\x08"
+								/* 55 8B EC 8B 45 08 83 EC 08 83 F8 08 */
+			}
+
+			"CL4D1SurvivorSpawn::InputSpawnSurvivor"
+			{
+				"library"		"server"
+				"linux"			"@_ZN18CL4D1SurvivorSpawn18InputSpawnSurvivorER11inputdata_t"
+				"windows"		"\x56\x8B\xF1\x8B\x86\x2C\x04\x00\x00\x83\xF8\x04"
+								/* 56 8B F1 8B 86 2C 04 00 00 83 F8 04 */
+			}
+
+			"CDirector::OnForceSurvivorPositions"
+			{
+				"library"		"server"
+				"linux"			"@_ZN9CDirector24OnForceSurvivorPositionsERK10CUtlVectorIP13CTerrorPlayer10CUtlMemoryIS2_iEE"
+				"windows"		"\x55\x8B\xEC\x83\xEC\x58\x53\x56\x33\xF6"
+								/* 55 8B EC 83 EC 58 53 56 33 F6 */
+			}
+
+			"CTerrorPlayer::GetCharacterDisplayName"
+			{
+				"library"		"server"
+				"linux"			"@_ZN13CTerrorPlayer23GetCharacterDisplayNameEv"
+				"windows"		"\x56\x8B\xF1\xE8\x2A\x2A\x2A\x2A\x50\xE8\x2A\x2A\x2A\x2A\x83\xC4\x04\x84\xC0\x74\x2A\x8B\xB6\xB4\x2B\x00\x00"
+								/* 56 8B F1 E8 ? ? ? ? 50 E8 ? ? ? ? 83 C4 04 84 C0 74 ? 8B B6 B4 2B 00 00 */
+			}
+
+			"CTerrorPlayer::InputTeleportToSurvivorPosition"
+			{
+				"library"		"server"
+				"linux"			"@_ZN13CTerrorPlayer31InputTeleportToSurvivorPositionER11inputdata_t"
+				"windows"		"\x55\x8B\xEC\x8B\x45\x08\x53\x56\x83\xC0\x08"
+								/* 55 8B EC 8B 45 08 53 56 83 C0 08 */
+			}
+
+			"CTerrorPlayer::InputReleaseFromSurvivorPosition"
+			{
+				"library"		"server"
+				"linux"			"@_ZN13CTerrorPlayer32InputReleaseFromSurvivorPositionER11inputdata_t"
+				"windows"		"\x56\x6A\x00\x8B\xF1\xE8\x2A\x2A\x2A\x2A\x8B\x8E"
+								/* 56 6A 00 8B F1 E8 ? ? ? ? 8B 8E */
+			}
+
+			"CGlobalEntityList::FindEntityByName"
+			{
+				"library"		"server"
+				"linux"			"@_ZN17CGlobalEntityList16FindEntityByNameEP11CBaseEntityPKcS1_S1_S1_P17IEntityFindFilter"
+				"windows"		"\x55\x8B\xEC\x53\x8B\x5D\x0C\x56\x8B\xF1\x85\xDB\x0F\x84"
+								/* 55 8B EC 53 8B 5D 0C 56 8B F1 85 DB 0F 84 */
+			}
+		}
+	}
+}
