@@ -32,14 +32,6 @@ methodmap CountdownTimer {
 	}
 }
 
-public void OnMapStart()
-{
-	for (int i = 1; i <= MaxClients; ++i)
-	{
-		if (IsClientInGame(i)) OnClientPutInServer(i);
-	}
-}
-
 public void OnClientPutInServer(int client)
 {
 	SDKHook(client, SDKHook_WeaponDropPost, SDK_OnWeaponDrop_Post);
@@ -47,10 +39,10 @@ public void OnClientPutInServer(int client)
 
 void SDK_OnWeaponDrop_Post(int client, int weapon)
 {
-	if (GetClientTeam(client) == 3 || !IsPlayerAlive(client))
+	if (GetClientTeam(client) != 2 || !IsPlayerAlive(client))
 		return;
 	
-	if (weapon <= 0 || !IsWeaponGiveable(weapon))
+	if (weapon <= MaxClients || !IsWeaponGiveable(weapon))
 		return;
 	
 	// NOTE: Next weapon giving think defaults to 0.5s later, but the drop timer lasts 5.0s long.
@@ -79,7 +71,7 @@ bool CheckWeaponGiving(int weapon)
 		return false;
 
 	int owner = GetWeaponDroppingPlayer(weapon);
-	if (owner == -1 || !IsClientInGame(owner) || !IsPlayerAlive(owner))
+	if (owner == -1 || !IsClientInGame(owner) || GetClientTeam(owner) != 2 || !IsPlayerAlive(owner))
 		return false;
 	
 	// yeah if empty, actually doesn't matter though, but yeah it feels good :)
@@ -124,7 +116,7 @@ int GetWeaponDroppingPlayer(int weapon)
 	static int s_iOffs_m_hDroppingPlayer = -1;
 	if (s_iOffs_m_hDroppingPlayer == -1)
 		s_iOffs_m_hDroppingPlayer = L4D_IsEngineLeft4Dead1() ? 
-				FindSendPropInfo("CTerrorWeapon", "m_flVsLastSwingTime") + 16 : FindSendPropInfo("CTerrorWeapon", "m_nUpgradedPrimaryAmmoLoaded") + 8;
+				FindSendPropInfo("CTerrorWeapon", "m_flVsLastSwingTime") + 12 : FindSendPropInfo("CTerrorWeapon", "m_nUpgradedPrimaryAmmoLoaded") + 8;
 	
 	return GetEntDataEnt2(weapon, s_iOffs_m_hDroppingPlayer);
 }
@@ -134,7 +126,7 @@ int GetWeaponDroppingPlayer(int weapon)
 // 	static int s_iOffs_m_hDropTarget = -1;
 // 	if (s_iOffs_m_hDropTarget == -1)
 // 		s_iOffs_m_hDropTarget = L4D_IsEngineLeft4Dead1() ? 
-// 				FindSendPropInfo("CTerrorWeapon", "m_flVsLastSwingTime") + 12 : FindSendPropInfo("CTerrorWeapon", "m_nUpgradedPrimaryAmmoLoaded") + 12;
+// 				FindSendPropInfo("CTerrorWeapon", "m_flVsLastSwingTime") + 16 : FindSendPropInfo("CTerrorWeapon", "m_nUpgradedPrimaryAmmoLoaded") + 12;
 	
 // 	return GetEntDataEnt2(weapon, s_iOffs_m_hDropTarget);
 // }
