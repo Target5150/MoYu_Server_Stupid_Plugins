@@ -47,7 +47,7 @@ public void OnClientPutInServer(int client)
 
 void SDK_OnWeaponDrop_Post(int client, int weapon)
 {
-	if (GetClientTeam(client) == 3)
+	if (GetClientTeam(client) == 3 || !IsPlayerAlive(client))
 		return;
 	
 	if (weapon <= 0 || !IsWeaponGiveable(weapon))
@@ -79,7 +79,7 @@ bool CheckWeaponGiving(int weapon)
 		return false;
 
 	int owner = GetWeaponDroppingPlayer(weapon);
-	if (owner == -1 || !IsClientInGame(owner))
+	if (owner == -1 || !IsClientInGame(owner) || !IsPlayerAlive(owner))
 		return false;
 	
 	// yeah if empty, actually doesn't matter though, but yeah it feels good :)
