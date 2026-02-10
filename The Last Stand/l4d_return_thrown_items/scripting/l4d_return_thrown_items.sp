@@ -6,7 +6,7 @@
 #include <sdktools_functions>
 #include <left4dhooks>
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo = 
 {
@@ -30,6 +30,49 @@ methodmap CountdownTimer {
 	property float m_timestamp {
 		public get() { return LoadFromAddress(view_as<Address>(this) + view_as<Address>(8), NumberType_Int32); }
 	}
+}
+
+bool g_bL4D2Version;
+bool bLate;
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+	EngineVersion test = GetEngineVersion();
+
+	if( test == Engine_Left4Dead )
+	{
+		g_bL4D2Version = false;
+	}
+	else if( test == Engine_Left4Dead2 )
+	{
+		g_bL4D2Version = true;
+	}
+	else
+	{
+		strcopy(error, err_max, "Plugin only supports Left 4 Dead 1 & 2.");
+		return APLRes_SilentFailure;
+	}
+
+	bLate = late;
+	return APLRes_Success;
+}
+
+public void OnPluginStart()
+{
+    if(bLate)
+    {
+        LateLoad();
+    }
+}
+
+void LateLoad()
+{
+    for (int client = 1; client <= MaxClients; client++)
+    {
+        if (!IsClientInGame(client))
+            continue;
+
+        OnClientPutInServer(client);
+    }
 }
 
 public void OnClientPutInServer(int client)
@@ -105,7 +148,7 @@ CountdownTimer GetWeaponDropTimer(int weapon)
 {
 	static int s_iOffs_m_dropTimer = -1;
 	if (s_iOffs_m_dropTimer == -1)
-		s_iOffs_m_dropTimer = L4D_IsEngineLeft4Dead1() ? 
+		s_iOffs_m_dropTimer = !g_bL4D2Version ? 
 				FindSendPropInfo("CTerrorWeapon", "m_flVsLastSwingTime") + 20 : FindSendPropInfo("CTerrorWeapon", "m_nUpgradedPrimaryAmmoLoaded") + 16;
 	
 	return view_as<CountdownTimer>(GetEntityAddress(weapon) + view_as<Address>(s_iOffs_m_dropTimer));
@@ -115,7 +158,7 @@ int GetWeaponDroppingPlayer(int weapon)
 {
 	static int s_iOffs_m_hDroppingPlayer = -1;
 	if (s_iOffs_m_hDroppingPlayer == -1)
-		s_iOffs_m_hDroppingPlayer = L4D_IsEngineLeft4Dead1() ? 
+		s_iOffs_m_hDroppingPlayer = !g_bL4D2Version ? 
 				FindSendPropInfo("CTerrorWeapon", "m_flVsLastSwingTime") + 12 : FindSendPropInfo("CTerrorWeapon", "m_nUpgradedPrimaryAmmoLoaded") + 8;
 	
 	return GetEntDataEnt2(weapon, s_iOffs_m_hDroppingPlayer);
@@ -125,7 +168,7 @@ int GetWeaponDroppingPlayer(int weapon)
 // {
 // 	static int s_iOffs_m_hDropTarget = -1;
 // 	if (s_iOffs_m_hDropTarget == -1)
-// 		s_iOffs_m_hDropTarget = L4D_IsEngineLeft4Dead1() ? 
+// 		s_iOffs_m_hDropTarget = !g_bL4D2Version ? 
 // 				FindSendPropInfo("CTerrorWeapon", "m_flVsLastSwingTime") + 16 : FindSendPropInfo("CTerrorWeapon", "m_nUpgradedPrimaryAmmoLoaded") + 12;
 	
 // 	return GetEntDataEnt2(weapon, s_iOffs_m_hDropTarget);
