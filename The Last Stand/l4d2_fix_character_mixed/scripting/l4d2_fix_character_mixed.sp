@@ -3,11 +3,11 @@
 
 #include <sourcemod>
 #include <dhooks>
-#include <left4dhooks>
+#include <sdktools>
 #include <@Forgetest/gamedatawrapper>
 
 #define DEBUG 0
-#define PLUGIN_VERSION "1.6"
+#define PLUGIN_VERSION "1.7"
 
 public Plugin myinfo = 
 {
@@ -41,6 +41,8 @@ static const char g_sCharacterNames[MAX_CHARACTERS][] = {
 	"Louis",
 };
 
+Handle g_call_GetMissionInfo;
+Handle g_call_KeyValues_GetInt;
 int g_iOrigSurvivorSet = 0;
 
 public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
@@ -56,6 +58,14 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 public void OnPluginStart()
 {
 	GameDataWrapper gd = new GameDataWrapper("l4d2_fix_character_mixed");
+
+	SDKCallParamsWrapper params[] = {
+		{ SDKType_String, SDKPass_Pointer },
+		{ SDKType_PlainOldData, SDKPass_Plain },
+	};
+	g_call_GetMissionInfo = gd.CreateSDKCallOrFail(SDKCall_Static, SDKConf_Signature, "CTerrorGameRules::GetMissionInfo", _, 0, true, params[1]);
+	g_call_KeyValues_GetInt = gd.CreateSDKCallOrFail(SDKCall_Raw, SDKConf_Signature, "KeyValues::GetInt", params, 2, true, params[1]);
+
 	delete gd.CreateDetourOrFail("l4d2_fix_character_mixed::CL4D1SurvivorSpawn::InputSpawnSurvivor", DTR_InputSpawnSurvivor, DTR_InputSpawnSurvivor_Post);
 	delete gd.CreateDetourOrFail("l4d2_fix_character_mixed::CTerrorPlayer::GetPlayerByCharacter", DTR_GetPlayerByCharacter);
 	delete gd.CreateDetourOrFail("l4d2_fix_character_mixed::CTerrorPlayer::GetCharacterDisplayName", DTR_GetCharacterDisplayName);
@@ -65,7 +75,7 @@ public void OnPluginStart()
 	delete gd;
 }
 
-public void OnMapStart()
+public void OnMapEnd()
 {
 	g_iOrigSurvivorSet = 0;
 }
@@ -74,7 +84,12 @@ int GetMissionSurvivorSet()
 {
 	if (g_iOrigSurvivorSet == 0)
 	{
-		g_iOrigSurvivorSet = L4D2_GetSurvivorSetMap();
+		Address pKV = SDKCall(g_call_GetMissionInfo);
+		if (pKV != Address_Null)
+		{
+			g_iOrigSurvivorSet = SDKCall(g_call_KeyValues_GetInt, pKV, "survivor_set", 2);
+			DebugMsg("> Read mission survivor set (L4D%d)", g_iOrigSurvivorSet);
+		}
 	}
 	return g_iOrigSurvivorSet;
 }
@@ -99,16 +114,14 @@ MRESReturn DTR_FindEntityByName(DHookReturn hReturn, DHookParam hParams)
 	if (testCharacter == -1)
 		return MRES_Ignored;
 	
-	int i = 1;
+	int start = 1;
 	if (!hParams.IsNull(1))
-		i = hParams.Get(1) + 1;
-	
-	DebugMsg("\x04FindEntityByName [L4D%d] (%s) (starting from #%d)", GetMissionSurvivorSet(), g_sCharacterNames[testCharacter], i);
+		start = hParams.Get(1) + 1;
 	
 	if (testCharacter >= 4 && GetMissionSurvivorSet() == 2)
 	{
 		// Special care when looking for a L4D1 character on L4D2 maps
-		for ( ; i <= MaxClients; ++i )
+		for (int i = start; i <= MaxClients; ++i)
 		{
 			// Hand in only Team 4 bots
 			if (IsClientInGame(i)
@@ -116,7 +129,7 @@ MRESReturn DTR_FindEntityByName(DHookReturn hReturn, DHookParam hParams)
 			 && IsFakeClient(i)
 			 && GetPlayerSurvivorCharacter(i) == testCharacter)
 			{
-				DebugMsg("\x05> Returning team 4 BOT [%N]", i);
+				DebugMsg("\x05> (start from #%d) Returning team 4 BOT (#%d [%N]) matching (%s)", start, i, i, g_sCharacterNames[testCharacter]);
 				hReturn.Value = i;
 				return MRES_Supercede;
 			}
@@ -125,19 +138,20 @@ MRESReturn DTR_FindEntityByName(DHookReturn hReturn, DHookParam hParams)
 	else
 	{
 		// General lookup for any character
-		for ( ; i <= MaxClients; ++i )
+		for (int i = start; i <= MaxClients; ++i)
 		{
 			if (IsClientInGame(i)
 			 && GetClientTeam(i) == 2
 			 && (GetPlayerSurvivorCharacter(i) == testCharacter || GetPlayerSurvivorCharacter(i) == ConvertCharacter(testCharacter)))
 			{
-				DebugMsg("\x05> Returning serial-matched character [%N]", i);
+				DebugMsg("\x05> (start from #%d) Returning team 2 player (#%d [%N]) serial-matching (%s)", start, i, i, g_sCharacterNames[testCharacter]);
 				hReturn.Value = i;
 				return MRES_Supercede;
 			}
 		}
 	}
 
+	DebugMsg("\x04> (start from #%d) Found nobody matching (%s)", start, g_sCharacterNames[testCharacter]);
 	hReturn.Value = -1;
 	return MRES_Supercede;
 }
@@ -173,7 +187,7 @@ MRESReturn DTR_GetPlayerByCharacter(DHookReturn hReturn, DHookParam hParams)
 			if (IsClientInGame(i)
 			&& GetClientTeam(i) == 4
 			&& IsFakeClient(i)
-			&& GetEntProp(i, Prop_Send, "m_survivorCharacter") == character)
+			&& GetPlayerSurvivorCharacter(i) == character)
 			{
 				DebugMsg("\x05> Returning team 4 BOT [%N]", i);
 				hReturn.Value = i;
@@ -206,7 +220,7 @@ MRESReturn DTR_GetCharacterDisplayName(int client, DHookReturn hReturn)
 	// Workaround character's display name so intro cutscenes can work on non-main characters
 	if (g_bForceSurvivorPositions && GetClientTeam(client) == 2)
 	{
-		int character = GetEntProp(client, Prop_Send, "m_survivorCharacter");
+		int character = GetPlayerSurvivorCharacter(client);
 		if (character >= MAX_CHARACTERS)
 			character = GetCharacterFromModel(client);
 		
@@ -216,7 +230,7 @@ MRESReturn DTR_GetCharacterDisplayName(int client, DHookReturn hReturn)
 		if ((GetMissionSurvivorSet() == 1 && character < 4) || (GetMissionSurvivorSet() == 2 && character >= 4))
 			character = ConvertCharacter(character);
 
-		DebugMsg("\x04GetCharacterDisplayName (%N) (%d / %d) [%s]", client, character, GetEntProp(client, Prop_Send, "m_survivorCharacter"), g_sCharacterNames[character]);
+		DebugMsg("\x04GetCharacterDisplayName (%N) (%d / %d) [%s]", client, character, GetPlayerSurvivorCharacter(client), g_sCharacterNames[character]);
 		hReturn.SetString(g_sCharacterNames[character]);
 		return MRES_Supercede;
 	}

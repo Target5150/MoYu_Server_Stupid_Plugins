@@ -164,6 +164,33 @@
 				"windows"		"\x55\x8B\xEC\x53\x8B\x5D\x0C\x56\x8B\xF1\x85\xDB\x0F\x84"
 								/* 55 8B EC 53 8B 5D 0C 56 8B F1 85 DB 0F 84 */
 			}
+
+			/*
+			* KeyValues *CTerrorGameRules::GetMissionInfo(void)
+			*/
+			"CTerrorGameRules::GetMissionInfo"
+			{
+				"library"	"server"
+				"linux"		"@_ZN16CTerrorGameRules14GetMissionInfoEv"
+				"windows"	"\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x8B\x01\x8B\x50\x28\x56\xFF\xD2\x8B\x10\x8B\xC8\x8B\x42"
+				/* 2A 2A 2A 2A 2A 2A 2A 2A 2A 2A 8B 01 8B 50 28 56 FF D2 8B 10 8B C8 8B 42 */
+			}
+			
+			"KeyValues::GetInt"
+			{
+				"library"		"server"
+				"linux"			"@_ZN9KeyValues6GetIntEPKci"
+				"windows"		"\x55\x8B\xEC\x8B\x45\x08\x6A\x00\x50\xE8\x2A\x2A\x2A\x2A\x85\xC0\x74\x2A\x0F\xBE\x48\x10"
+								// 55 8B EC 8B 45 08 6A 00 50 E8 ? ? ? ? 85 C0 74 ? 0F BE 48 10
+			}
+
+			"KeyValues::SetInt"
+			{
+				"library"		"server"
+				"linux"			"@_ZN9KeyValues6SetIntEPKci"
+				"windows"		"\x55\x8B\xEC\x8B\x45\x08\x6A\x01\x50\xE8\x2A\x2A\x2A\x2A\x85\xC0\x74\x2A\x8B\x4D\x0C\x89\x48\x0C\xC6\x40\x10\x02"
+								// 55 8B EC 8B 45 08 6A 01 50 E8 ? ? ? ? 85 C0 74 ? 8B 4D 0C 89 48 0C C6 40 10 02
+			}
 		}
 	}
 }
