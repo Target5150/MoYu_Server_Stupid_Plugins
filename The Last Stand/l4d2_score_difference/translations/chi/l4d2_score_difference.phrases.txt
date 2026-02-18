@@ -40,8 +40,8 @@
 	
 	"Announce_ComebackWithBonus"
 	{
-		"#format"	"{1:d},{2:d}"
-		"chi"		"{default}[{green}!{default}] 超分需要: {olive}{1} {default}+ {green}{2}"
+		"#format"	"{1:d},{2:d},{3:d}"
+		"chi"		"{default}[{green}!{default}] 超分需要: {olive}{1} {default}+ {green}{2} {default}+ {green}{3} {default}"
 	}
 	
 	"Announce_ComebackWithBonus_L4D1"
