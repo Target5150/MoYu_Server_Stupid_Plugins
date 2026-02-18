@@ -74,7 +74,7 @@ public void OnPluginStart()
 	cv.AddChangeHook(OnConVarChanged);
 	
 	g_cvWitchBonus = CreateConVar("l4d2_scorediff_witch_bonus", "0", "Extra Witch bonus score when sm_witch_can_spawn is 1.", FCVAR_SPONLY|FCVAR_NOTIFY, true, 0.0);
-	g_iWitchBonus = g_cvWitchBonus.IntValue;
+	OnConVarChanged(g_cvWitchBonus, "", "");
 	g_cvWitchBonus.AddChangeHook(OnConVarChanged);
 }
 
