@@ -8,6 +8,7 @@
 
 ### Requirement
 - **DHooks**
+- [Source Scramble](https://forums.alliedmods.net/showthread.php?t=317175)
 
 <hr>
 

@@ -47,6 +47,40 @@
 					}
 				}
 			}
+
+			"l4d_transition_entity::PlayerSaveData::PlayerSaveData"
+			{
+				"signature"		"PlayerSaveData::PlayerSaveData"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"address"
+				"arguments"
+				{
+					"a1"
+					{
+						"type"	"cbaseentity"
+					}
+					"a2"
+					{
+						"type"	"charptr"
+					}
+				}
+			}
+
+			"l4d_transition_entity::PlayerSaveData::Restore"
+			{
+				"signature"		"PlayerSaveData::Restore"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"address"
+				"arguments"
+				{
+					"a1"
+					{
+						"type"	"cbaseentity"
+					}
+				}
+			}
 		}
 
 		"Addresses"
@@ -106,6 +140,28 @@
 					}
 				}
 			}
+			"l4d_transition_entity::CTerrorPlayer::GiveNamedItem"
+			{
+				"signature"		"CTerrorPlayer::GiveNamedItem"
+				"callconv"		"thiscall"
+				"return"		"cbaseentity"
+				"this"			"entity"
+				"arguments"
+				{
+					"a1"
+					{
+						"type"	"charptr"
+					}
+					"a2"
+					{
+						"type"	"int"
+					}
+					"a3"
+					{
+						"type"	"bool"
+					}
+				}
+			}
 		}
 
 		"Addresses"
@@ -128,6 +184,15 @@
 			}
 		}
 
+		"Offsets"
+		{
+			"KeyValues::m_pPeer"
+			{
+				"linux"			"20"
+				"windows"		"20"
+			}
+		}
+
 		"Signatures"
 		{
 			"InfoChangelevel::SaveEntities"
@@ -146,6 +211,22 @@
 								// 53 56 8B 74 24 0C 8B 06 8B 90 84 00 00 00
 			}
 
+			"PlayerSaveData::PlayerSaveData"
+			{
+				"library"		"server"
+				"linux"			"@_ZN14PlayerSaveDataC2EP13CTerrorPlayerPKc"
+				"windows"		"\x83\xEC\x0C\x53\x56\x57\x6A\x24"
+								// 83 EC 0C 53 56 57 6A 24
+			}
+
+			"PlayerSaveData::Restore"
+			{
+				"library"		"server"
+				"linux"			"@_ZN14PlayerSaveData7RestoreEP13CTerrorPlayer"
+				"windows"		"\x83\xEC\x5C\x53\x8B\x5C\x24\x64"
+								// 83 EC 5C 53 8B 5C 24 64
+			}
+
 			"KeyValues::GetInt"
 			{
 				"library"		"server"
@@ -161,11 +242,78 @@
 				"windows"		"\x8B\x44\x24\x04\x6A\x01\x50\xE8\x2A\x2A\x2A\x2A\x85\xC0\x74\x2A\x8B\x4C\x24\x08\x89\x48\x0C\xC6\x40\x10\x02"
 								// 8B 44 24 04 6A 01 50 E8 ? ? ? ? 85 C0 74 ? 8B 4C 24 08 89 48 0C C6 40 10 02
 			}
+
+			"KeyValues::FindKey"
+			{
+				"library"		"server"
+				"linux"			"@_ZN9KeyValues7FindKeyEPKcb"
+				"windows"		"\x81\xEC\x08\x01\x00\x00\x8B\xC1"
+								// 81 EC 08 01 00 00 8B C1
+			}
+
+			"CTerrorPlayer::GiveNamedItem"
+			{
+				"library"		"server"
+				"linux"			"@_ZN13CTerrorPlayer13GiveNamedItemEPKcib"
+				"windows"		"\x81\xEC\x14\x01\x00\x00\x56\x57\x8B\xBC\x24\x20\x01\x00\x00"
+				// 81 EC 14 01 00 00 56 57 8B BC 24 20 01 00 00
+				// Search string "NULL Ent '%s' in GiveNamedItem!"
+			}
 		}
 	}
 
 	"left4dead2"
 	{
+		"MemPatches"
+		{
+			"restore_last_secondary_hack"
+			{
+				"signature"		"PlayerSaveData::Restore"
+				"linux"
+				{
+					"offset"	"1F89h"
+					"verify"	"\xC7\x44\x24\x08\x00\x00\x00\x00"
+					"patch"		"\xC7\x44\x24\x08\x2A"
+				}
+				"windows"
+				{
+					"offset"	"B7Ah"
+					"verify"	"\x6A\x00"
+					"patch"		"\x6A\x2A"
+				}
+			}
+		}
+
+		"Functions"
+		{
+			"l4d_transition_entity::CTerrorPlayer::GiveNamedItem"
+			{
+				"signature"		"CTerrorPlayer::GiveNamedItem"
+				"callconv"		"thiscall"
+				"return"		"cbaseentity"
+				"this"			"entity"
+				"arguments"
+				{
+					"a1"
+					{
+						"type"	"charptr"
+					}
+					"a2"
+					{
+						"type"	"int"
+					}
+					"a3"
+					{
+						"type"	"bool"
+					}
+					"a4"
+					{
+						"type"	"cbaseentity"
+					}
+				}
+			}
+		}
+
 		"Addresses"
 		{
 			"g_SavedPropPhysics"
@@ -198,6 +346,15 @@
 			}
 		}
 
+		"Offsets"
+		{
+			"KeyValues::m_pPeer"
+			{
+				"linux"			"28"
+				"windows"		"28"
+			}
+		}
+
 		"Signatures"
 		{
 			"g_SavedPropPhysics"
@@ -222,6 +379,22 @@
 								// 55 8B EC 53 56 8B 75 08 8B 06 8B 90 ? ? ? ? 8B CE FF D2 8B
 			}
 
+			"PlayerSaveData::PlayerSaveData"
+			{
+				"library"		"server"
+				"linux"			"@_ZN14PlayerSaveDataC2EP13CTerrorPlayerPKc"
+				"windows"		"\x55\x8B\xEC\x83\xEC\x0C\x56\x57\x6A\x2C\x8B\xF1"
+								// 55 8B EC 83 EC 0C 56 57 6A 2C 8B F1
+			}
+
+			"PlayerSaveData::Restore"
+			{
+				"library"		"server"
+				"linux"			"@_ZN14PlayerSaveData7RestoreEP13CTerrorPlayer"
+				"windows"		"\x55\x8B\xEC\x83\xEC\x60\x53\x8B\x5D\x08\x8B\x43\x28"
+								// 55 8B EC 83 EC 60 53 8B 5D 08 8B 43 28
+			}
+
 			"KeyValues::GetInt"
 			{
 				"library"		"server"
@@ -236,6 +409,23 @@
 				"linux"			"@_ZN9KeyValues6SetIntEPKci"
 				"windows"		"\x55\x8B\xEC\x8B\x45\x08\x6A\x01\x50\xE8\x2A\x2A\x2A\x2A\x85\xC0\x74\x2A\x8B\x4D\x0C\x89\x48\x0C\xC6\x40\x10\x02"
 								// 55 8B EC 8B 45 08 6A 01 50 E8 ? ? ? ? 85 C0 74 ? 8B 4D 0C 89 48 0C C6 40 10 02
+			}
+
+			"KeyValues::GetName"
+			{
+				"library"		"server"
+				"linux"			"@_ZNK9KeyValues7GetNameEv"
+				"windows"		"\x56\x8B\xF1\x85\xF6\x74\x2A\x8B\x46\x14"
+								// 56 8B F1 85 F6 74 ? 8B 46 14
+			}
+
+			"CTerrorPlayer::GiveNamedItem"
+			{
+				"library"		"server"
+				"linux"			"@_ZN13CTerrorPlayer13GiveNamedItemEPKcibP11CBaseEntity"
+				"windows"		"\x55\x8B\xEC\x81\xEC\x28\x01\x00\x00\xA1\x2A\x2A\x2A\x2A\x33\xC5\x89\x45\xFC\x8B\x45\x14"
+				// 55 8B EC 81 EC 28 01 00 00 A1 ? ? ? ? 33 C5 89 45 FC 8B 45 14
+				// Search string "NULL Ent '%s' in GiveNamedItem!"
 			}
 		}
 	}
