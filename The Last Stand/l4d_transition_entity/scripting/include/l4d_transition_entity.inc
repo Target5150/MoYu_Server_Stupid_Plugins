@@ -5,7 +5,7 @@
 
 /**
  * @brief Called when a weapon/spawner/prop in checkpoint is being saved for next level.
- * @note For player inventory see "L4D_OnPlayerItemTransitioning".
+ * @remarks For player inventory see "L4D_OnPlayerItemTransitioning".
  * @note Called before event "map_transition".
  * @note Not called in versus mode.
  * 
@@ -17,9 +17,8 @@ forward void L4D_OnEntityTransitioning(int entity);
 
 /**
  * @brief Called when a weapon/spawner/prop is restored from the previous level (Post-spawned).
- * @note For player inventory see "L4D_OnPlayerItemTransitioning".
- * @note This will be called after the level-transitioning.
- * @note This will be called once the level failed and restarted.
+ * @remarks For player inventory see "L4D_OnPlayerItemTransitioned".
+ * @remarks Always called after level transitions or restarts except in versus mode.
  * @note Chance that the entity is marked for deletion if for some reason something bad happens during restore.
  * @note Not called in versus mode.
  * 
@@ -32,7 +31,7 @@ forward void L4D_OnEntityTransitioned(int entity, int oldindex);
 
 /**
  * @brief Called when a humen/bot survivor's info is being saved for next level.
- * @note Called after event "map_transition".
+ * @remarks Called after event "map_transition".
  * @note Called also in versus mode.
  * 
  * @param client		Transitioning client index
@@ -43,11 +42,12 @@ forward void L4D_OnPlayerTransitioning(int client);
 
 /**
  * @brief Called when a humen/bot survivor's info is restored from the previous level (Post-spawned).
- * @note Always called after level transitions or restarts except in versus mode.
+ * @remarks Always called after level transitions or restarts except in versus mode.
  * @note For survivor bots, their player name might not be correct.
  * @note For infected, the player might not be alive at the moment.
  * @note Use a delay to avoid conflicts setting "m_bIsOnThirdStrike" and health (Healing Gnome Mode).
  * @note Called for survivor bots in versus mode, but will not restore any inventory.
+ * @note (L4D2) for 4+ survivors the info might not belong to this client.
  * 
  * @param client		New client index
  * @param oldindex		Client index saved in last level
@@ -59,7 +59,7 @@ forward void L4D_OnPlayerTransitioned(int client, int oldindex, int olduserid);
 
 /**
  * @brief Called when a humen/bot survivor's item is being saved for next level.
- * @note Called after event "map_transition".
+ * @remarks Called after event "map_transition".
  * 
  * @param client		Weapon owner index
  * @param weapon		Transitioning weapon index
@@ -70,8 +70,9 @@ forward void L4D_OnPlayerItemTransitioning(int client, int weapon);
 
 /**
  * @brief Called when a humen/bot survivor's item is restored from the previous level (Post-spawned).
- * @note Always called after level transitions or restarts except in versus mode.
+ * @remarks Always called after level transitions or restarts except in versus mode.
  * @note For secondary weapon it might have been marked for deletion if the player has a hidden secondary weapon.
+ * @note (L4D2) for 4+ survivors the info might not belong to this client.
  * 
  * @param client		Weapon owner index
  * @param weapon		New weapon index

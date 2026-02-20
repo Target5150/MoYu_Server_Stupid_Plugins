@@ -3,6 +3,7 @@
 ### Introduction
 - Provide events for weapons/spawners/props transition across level change.
   - See __scripting/include/l4d_transition_entity.inc__ for detail.
+- L4D2 NOTE: For 4+ survivors, use along with [Transition Restore Fix by sorallll](https://forums.alliedmods.net/showthread.php?p=2770962) to prevent issues.
 
 <hr>
 

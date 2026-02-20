@@ -19,6 +19,9 @@ public Plugin myinfo =
 	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins",
 }
 
+#define	MAX_EDICT_BITS 11
+#define	MAX_EDICT_MASK ((1 << MAX_EDICT_BITS) - 1)
+
 methodmap Address {}
 
 Handle g_call_KeyValues_GetInt;
@@ -384,7 +387,7 @@ MRESReturn DTR_PlayerSaveData_Post(Address pThis, DHookParam hParams)
 					continue;
 				
 				int reloaded = pSub.GetInt("reloaded", 0);
-				reloaded |= (weapon << 10);
+				reloaded |= (weapon << 8);
 				pSub.SetInt("reloaded", reloaded);
 
 				OnSavingPlayerItem(client, weapon);
@@ -429,7 +432,7 @@ MRESReturn DTR_PlayerSaveData_Post(Address pThis, DHookParam hParams)
 				continue;
 			
 			int reloaded = pSub.GetInt("reloaded", 0);
-			reloaded |= (weapon << 10);
+			reloaded |= (weapon << 8);
 			pSub.SetInt("reloaded", reloaded);
 
 			OnSavingPlayerItem(client, weapon);
@@ -467,7 +470,7 @@ MRESReturn DTR_GiveNamedItem(int client, DHookReturn hReturn, DHookParam hParams
 		return MRES_Ignored;
 
 	int reloaded = hParams.Get(2);
-	int oldindex = (reloaded >> 10) & ((1 << 10)-1);
+	int oldindex = (reloaded >> 8) & MAX_EDICT_MASK;
 	reloaded = reloaded & 0xFF;
 
 	if (oldindex == 0)
@@ -484,7 +487,7 @@ MRESReturn DTR_GiveNamedItem(int client, DHookReturn hReturn, DHookParam hParams
 		g_iPlayerItemOldIndex = oldindex;
 	}
 
-	hParams.Set(2, reloaded & 0xFF);
+	hParams.Set(2, reloaded);
 	return MRES_ChangedHandled;
 }
 
