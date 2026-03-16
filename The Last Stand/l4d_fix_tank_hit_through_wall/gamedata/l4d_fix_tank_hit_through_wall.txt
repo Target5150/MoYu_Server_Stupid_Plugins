@@ -1,0 +1,114 @@
+"Games"
+{
+	"#default"
+	{
+		"#supported"
+		{
+			"game"	"left4dead"
+			"game"	"left4dead2"
+		}
+
+		"Functions"
+		{
+			"CTankClaw::OnHit"
+			{
+				"signature"		"CTankClaw::OnHit"
+				"callconv"		"thiscall"
+				"return"		"bool"
+				"this"			"entity"
+				"arguments"
+				{
+					"pTrace"
+					{
+						"type"	"objectptr"
+					}
+					"vDir"
+					{
+						"type"	"vectorptr"
+					}
+					"bDamage"
+					{
+						"type"	"bool"
+					}
+				}
+			}
+
+			"CTankClaw::SweepFist"
+			{
+				"signature"		"CTankClaw::SweepFist"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"entity"
+				"arguments"
+				{
+					"vStart"
+					{
+						"type"	"vectorptr"
+					}
+					"vEnd"
+					{
+						"type"	"vectorptr"
+					}
+				}
+			}
+		}
+	}
+
+	"left4dead"
+	{
+		"Signatures"
+		{
+			/**
+			 * CTankClaw::SweepFist(Vector const&, Vector const&)
+			 *
+			 * How to find on Windows:
+			 * 1. Locate the "CTankClaw::DoSwing" function.
+			 * 2. The last function call should be this function.
+			 **/
+			"CTankClaw::SweepFist"
+			{
+				"library"		"server"
+				"linux"			"@_ZN9CTankClaw9SweepFistERK6VectorS2_"
+				"windows"		"\x2A\x2A\x2A\x2A\x2A\x2A\x55\x56\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x8B\x2A\x85\x2A\x0F\x84\x2A\x2A\x2A\x2A\x8B\x2A\x2A\x2A\x2A\x2A\xD9\x2A\x8B"
+								/* ? ? ? ? ? ? 55 56 8B ? E8 ? ? ? ? 8B ? 85 ? 0F 84 ? ? ? ? 8B ? ? ? ? ? D9 ? 8B */
+			}
+
+			"CTankClaw::OnHit"
+			{
+				"library"		"server"
+				"linux"			"@_ZN9CTankClaw5OnHitER10CGameTraceRK6Vectorb"
+				"windows"		"\x81\xEC\x30\x01\x00\x00\x53\x55\x56\x8B\xE9"
+								// 81 EC 30 01 00 00 53 55 56 8B E9
+			}
+		}
+	}
+
+	"left4dead2"
+	{
+		"Signatures"
+		{
+			/**
+			 * CTankClaw::SweepFist(Vector const&, Vector const&)
+			 *
+			 * How to find on Windows:
+			 * 1. Locate the "CTankClaw::DoSwing" function.
+			 * 2. The last function call should be this function.
+			 **/
+			"CTankClaw::SweepFist"
+			{
+				"library"		"server"
+				"linux"			"@_ZN9CTankClaw9SweepFistERK6VectorS2_"
+				"windows"		"\x2A\x2A\x2A\x2A\x2A\x2A\x83\x2A\x2A\x83\x2A\x2A\x55\x8B\x2A\x2A\x89\x2A\x2A\x2A\x8B\x2A\x81\xEC\x2A\x2A\x2A\x2A\xA1\x2A\x2A\x2A\x2A\x33\x2A\x89\x2A\x2A\x8B\x2A\x2A\x56\x57\x8B\x2A\x2A\x89\x8D"
+								/* ? ? ? ? ? ? 83 ? ? 83 ? ? 55 8B ? ? 89 ? ? ? 8B ? 81 EC ? ? ? ? A1 ? ? ? ? 33 ? 89 ? ? 8B ? ? 56 57 8B ? ? 89 8D */
+			}
+
+			"CTankClaw::OnHit"
+			{
+				"library"		"server"
+				"linux"			"@_ZN9CTankClaw5OnHitER10CGameTraceRK6Vectorb"
+				"windows"		"\x55\x8B\xEC\x81\xEC\x44\x01\x00\x00\x53"
+								// 55 8B EC 81 EC 44 01 00 00 53
+			}
+		}
+	}
+}
