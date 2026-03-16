@@ -18,13 +18,13 @@
  native int LGO_BuildConfigPath(char[] buffer, int maxlength, const char[] sFileName);
 #endif
 
-#define PLUGIN_VERSION "1.5.1"
+#define PLUGIN_VERSION "1.5.2"
 
 public Plugin myinfo = 
 {
 	name = "[L4D & 2] Score Difference",
-	author = "Forgetest, vikingo12",
-	description = "ez",
+	author = "Forgetest, vikingo12, apples1949",
+	description = "Output score differences when round end in confogl mode",
 	version = PLUGIN_VERSION,
 	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 };
@@ -35,6 +35,8 @@ float g_flDelay;
 bool g_bLeft4Dead2;
 char g_sNextMap[64];
 int g_iMapDistance, g_iNextMapDistance, g_iNextMapInfoDistance;
+ConVar g_cvWitchBonus;
+int g_iWitchBonus;
 
 #define TRANSLATION_FILE "l4d2_score_difference.phrases"
 void LoadPluginTranslations()
@@ -70,12 +72,19 @@ public void OnPluginStart()
 	ConVar cv = CreateConVar("l4d2_scorediff_print_delay", "5.0", "Delay in printing score difference.", FCVAR_SPONLY|FCVAR_NOTIFY, true, 0.0);
 	OnConVarChanged(cv, "", "");
 	cv.AddChangeHook(OnConVarChanged);
+	
+	g_cvWitchBonus = CreateConVar("l4d2_scorediff_witch_bonus", "0", "Extra Witch bonus score when sm_witch_can_spawn is 1.", FCVAR_SPONLY|FCVAR_NOTIFY, true, 0.0);
+	OnConVarChanged(g_cvWitchBonus, "", "");
+	g_cvWitchBonus.AddChangeHook(OnConVarChanged);
 }
 
 void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	g_flDelay = convar.FloatValue;
+	g_iWitchBonus = convar.IntValue;
 }
+
+
 
 public void L4D_OnFirstSurvivorLeftSafeArea_Post(int client)
 {
@@ -170,6 +179,7 @@ Action Timer_PrintComeback(Handle timer)
 	int iInfCampaignScore = GetCampaignScore(L4D2_TeamNumberToTeamIndex(3));
 	
 	int iTotalDifference = ABS(iSurvCampaignScore - iInfCampaignScore);
+	int iWitchBonus = GetWitchBonus();
 	
 	if (TranslationPhraseExists("Announce_Survivor"))
 		CPrintToChatAll("%t", "Announce_Survivor", iSurvCampaignScore);
@@ -187,7 +197,7 @@ Action Timer_PrintComeback(Handle timer)
 		else
 		{
 			if (TranslationPhraseExists("Announce_ComebackWithBonus"))
-				CPrintToChatAll("%t", "Announce_ComebackWithBonus", g_iMapDistance, iTotalDifference - g_iMapDistance);
+				CPrintToChatAll("%t", "Announce_ComebackWithBonus", g_iMapDistance, iTotalDifference - g_iMapDistance, iWitchBonus);
 		}
 	}
 	else
@@ -208,6 +218,7 @@ Action Timer_PrintDifference(Handle timer)
 	
 	int iRoundDifference = ABS(iSurvRoundScore - iInfRoundScore);
 	int iTotalDifference = ABS(iSurvCampaignScore - iInfCampaignScore);
+	int iWitchBonus = GetWitchBonus();
 	
 	if (iRoundDifference != iTotalDifference) 
 	{
@@ -237,7 +248,7 @@ Action Timer_PrintDifference(Handle timer)
 			else
 			{
 				if (TranslationPhraseExists("Announce_ComebackWithBonus"))
-					CPrintToChatAll("%t", "Announce_ComebackWithBonus", g_iNextMapDistance, iTotalDifference - g_iNextMapDistance);
+					CPrintToChatAll("%t", "Announce_ComebackWithBonus", g_iNextMapDistance, iTotalDifference - g_iNextMapDistance, iWitchBonus);
 			}
 		}
 	}
@@ -273,6 +284,17 @@ int GetChapterScore(int team)
 int GetCampaignScore(int team)
 {
 	return GameRules_GetProp("m_iCampaignScore", _, team);
+}
+
+int GetWitchBonus()
+{
+	ConVar cvWitchSpawn = null;
+	cvWitchSpawn = FindConVar("sm_witch_can_spawn");
+	if (cvWitchSpawn != null && cvWitchSpawn.IntValue > 0)
+	{
+		return g_iWitchBonus;
+	}
+	return 0;
 }
 
 int InSecondHalfOfRound()
