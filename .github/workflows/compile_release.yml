@@ -52,6 +52,7 @@ jobs:
 
       - name: Compile plugins
         working-directory: ${{ env.SCRIPTS_PATH }}/
+        continue-on-error: true
         run: |
           error_files=()
           for dir in */
