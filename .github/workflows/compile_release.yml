@@ -83,7 +83,7 @@ jobs:
           else
             echo -e "\nAll plugins compiled successfully."
             echo "SP_COMPILE_SUCCESS=1" >> $GITHUB_OUTPUT
-            exit 0
+            exit 1
           fi
 
       - name: Package
