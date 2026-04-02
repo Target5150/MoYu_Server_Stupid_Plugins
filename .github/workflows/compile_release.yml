@@ -99,7 +99,7 @@ jobs:
   release:
     name: Release
     needs: build
-    if: contains(fromJson('["push", "workflow_dispatch"]'), github.event_name) && needs.build.outputs.SP_COMPILE_SUCCESS == '1'
+    if: always() && contains(fromJson('["push", "workflow_dispatch"]'), github.event_name) && needs.build.outputs.SP_COMPILE_SUCCESS == '1'
     runs-on: ubuntu-latest
 
     steps:
