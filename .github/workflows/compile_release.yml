@@ -83,7 +83,7 @@ jobs:
           else
             echo -e "\nAll plugins compiled successfully."
             echo "SP_COMPILE_SUCCESS=1" >> $GITHUB_OUTPUT
-            exit 1
+            exit 0
           fi
 
       - name: Package
@@ -95,11 +95,22 @@ jobs:
             include/
             LICENSE
             README.md
+  
+  debug:
+    name: Debug
+    needs: build
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Echo
+        env:
+          SP_COMPILE_SUCCESS: ${{needs.build.outputs.SP_COMPILE_SUCCESS}}
+        run: echo "SP_COMPILE_SUCCESS=$SP_COMPILE_SUCCESS"
 
   release:
     name: Release
     needs: build
-    if: always() && contains(fromJson('["push", "workflow_dispatch"]'), github.event_name) && needs.build.outputs.SP_COMPILE_SUCCESS == '1'
+    if: contains(fromJson('["push", "workflow_dispatch"]'), github.event_name) && needs.build.outputs.SP_COMPILE_SUCCESS == '1'
     runs-on: ubuntu-latest
 
     steps:
