@@ -5,7 +5,7 @@
 #include <sdkhooks>
 #include <sdktools>
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo = 
 {
@@ -100,7 +100,7 @@ public void OnEntityCreated(int entity, const char[] classname)
 	{
 		RequestFrame(NextFrame_BlockerCreated, EntIndexToEntRef(entity));
 	}
-	else if (classname[0] == 'p' && (!strcmp(classname, "prop_physics") || !strcmp(classname, "prop_car_alarm")))
+	else if (classname[0] == 'p' && (!strncmp(classname, "prop_physics", 12) || !strcmp(classname, "physics_prop") || !strcmp(classname, "prop_car_alarm")))
 	{
 		RequestFrame(NextFrame_HittableCreated, EntIndexToEntRef(entity));
 	}
@@ -175,7 +175,7 @@ ArrayList CollectTankHittables()
 	ArrayList list = new ArrayList();
 
 	int entity = MaxClients+1;
-	while ((entity = FindEntityByClassname(entity, "prop_physics")) != INVALID_ENT_REFERENCE)
+	while ((entity = FindEntityByClassname(entity, "prop_physics*")) != INVALID_ENT_REFERENCE)
 	{
 		list.Push(entity);
 	}

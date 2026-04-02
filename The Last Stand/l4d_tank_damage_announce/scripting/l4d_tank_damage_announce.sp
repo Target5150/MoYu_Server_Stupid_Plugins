@@ -518,7 +518,7 @@ void OnTankAttackDamage(int tank, int victim, int damage, const char[] weapon)
 		survivorVector.Add(victimid, 1, SurvivorInfo::punch);
 	else if (strcmp(weapon, "tank_rock") == 0)
 		survivorVector.Add(victimid, 1, SurvivorInfo::rock);
-	else if (strcmp(weapon, "prop_physics") == 0 || strcmp(weapon, "prop_car_alarm") == 0)
+	else if (strncmp(weapon, "prop_physics", 12) == 0 || strcmp(weapon, "prop_car_alarm") == 0)
 		survivorVector.Add(victimid, 1, SurvivorInfo::hittable);
 
 	survivorVector.Add(victimid, damage, SurvivorInfo::damageReceived);

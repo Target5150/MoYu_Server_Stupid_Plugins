@@ -263,7 +263,7 @@ void HookProps()
 {
 	int iEntity = MaxClients+1;
 	
-	while ((iEntity = FindEntityByClassname(iEntity, "prop_physics")) != -1) 
+	while ((iEntity = FindEntityByClassname(iEntity, "prop_physics*")) != -1) 
 	{
 		if (IsValidEntity(iEntity) && GetEntProp(iEntity, Prop_Send, "m_hasTankGlow", 1))
 		{
@@ -284,7 +284,7 @@ void HookProps()
 
 public void PossibleTankPropCreated(int entity, const char[] classname)
 {
-    if (StrEqual(classname, "prop_physics")) // Hooks onto c2m2_fairgrounds Forklift, c11m4_terminal World Sphere and Custom Campaign hittables.
+    if (!strncmp(classname, "prop_physics", 12)) // Hooks onto c2m2_fairgrounds Forklift, c11m4_terminal World Sphere and Custom Campaign hittables.
     {
         // Use SpawnPost to just push it into the Array right away.
         // These entities get spawned after the Tank has punched them, so doing anything here will not work smoothly.
@@ -402,7 +402,7 @@ stock bool IsTankHittable(int iEntity) {
 	char className[64];
 	
 	GetEdictClassname(iEntity, className, sizeof(className));
-	if ( strcmp(className, "prop_physics") == 0 ) {
+	if ( strncmp(className, "prop_physics", 12) == 0 ) {
 		if ( GetEntProp(iEntity, Prop_Send, "m_hasTankGlow", 1) ) {
 			return true;
 		}
