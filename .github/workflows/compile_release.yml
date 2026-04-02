@@ -92,9 +92,10 @@ jobs:
             include/
             LICENSE
             README.md
-  
+
   release:
     name: Release
+    if: contains(fromJson('["push", "workflow_dispatch"]'), github.event_name)
     runs-on: ubuntu-latest
 
     steps:
