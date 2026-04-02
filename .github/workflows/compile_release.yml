@@ -94,8 +94,8 @@ jobs:
 
   release:
     name: Release
-    if: contains(fromJson('["push", "workflow_dispatch"]'), github.event_name)
     needs: build
+    if: always() && contains(fromJson('["push", "workflow_dispatch"]'), github.event_name)
     runs-on: ubuntu-latest
 
     steps:
