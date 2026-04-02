@@ -6,7 +6,7 @@
 #include <left4dhooks>
 #include <@Forgetest/gamedatawrapper>
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo = 
 {
@@ -48,6 +48,9 @@ bool UTIL_IsTankHittable(int entity)
 // CTankClaw::OnHit(CGameTrace &,Vector const&,bool)
 MRESReturn DTR_CTankClaw_OnHit(int weapon, DHookReturn hReturn, DHookParam hParams)
 {
+	if (GetEntProp(weapon, Prop_Send, "m_isLowAttack"))
+		return MRES_Ignored;
+
 	int hitent = hParams.GetObjectVar(1, 76, ObjectValueType_CBaseEntityPtr);
 	if (hitent <= 0)
 		return MRES_Ignored;
