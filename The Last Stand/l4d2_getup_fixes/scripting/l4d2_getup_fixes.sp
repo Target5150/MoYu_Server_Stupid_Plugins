@@ -49,11 +49,10 @@
 #include <sdkhooks>
 #include <dhooks>
 #include <left4dhooks>
-#include <l4d2util_constants>
 
 native void GiveClientGodFrames(int client, float time, int zclass);
 
-#define PLUGIN_VERSION "4.20"
+#define PLUGIN_VERSION "4.21"
 
 public Plugin myinfo = 
 {
@@ -643,7 +642,7 @@ void Event_ChargerKilled(Event event, const char[] name, bool dontBroadcast)
 					}
 					SetInvulnerableForSlammed(victim, duration);
 				}
-				L4D2Direct_DoAnimationEvent(victim, ANIM_CHARGER_GETUP);
+				L4D2Direct_DoAnimationEvent(victim, PLAYERANIMEVENT_POUNDED_BY_CHARGER);
 			}
 			
 			g_fLastChargedEndTime[victim] = GetGameTime();
