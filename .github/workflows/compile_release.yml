@@ -99,6 +99,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Prepare env:
+        run: |
+          echo "DATETIME=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
+          
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -114,7 +118,7 @@ jobs:
         uses: marvinpinto/action-automatic-releases@v1.2.1
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "latest"
+          automatic_release_tag: "${{ env.DATETIME }}"
           prerelease: false
-          title: "MoYu-Plugins"
+          title: "MoYu-Plugins-${{ env.DATETIME }}"
           files: tmp/MoYu-Plugins-*.zip
