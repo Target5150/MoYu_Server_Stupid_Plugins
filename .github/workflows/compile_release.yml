@@ -99,7 +99,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Prepare env:
+      - name: Prepare env
         run: |
           echo "DATETIME=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
           
