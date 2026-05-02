@@ -1,0 +1,174 @@
+"Games"
+{
+	"#default"
+	{
+		"Signatures"
+		{
+			"COM_ParseLine"
+			{
+				"library"		"engine"
+				"linux"			"@_Z13COM_ParseLinePKc"
+			}
+		}
+	}
+
+	"left4dead"
+	{
+		"MemPatches"
+		{
+			"COM_ParseLine_unsigned_patch1"
+			{
+				"signature"		"COM_ParseLine"
+				"linux"
+				{
+					"offset"	"1Bh"
+					"verify"	"\x0F\xBE"	// movsx
+					"patch"		"\x0F\xB6"	// movzx
+				}
+				"windows"
+				{
+					"offset"	"10h"
+					"verify"	"\x0F\xBE"	// movsx
+					"patch"		"\x0F\xB6"	// movzx
+				}
+			}
+			"COM_ParseLine_unsigned_patch2"
+			{
+				"signature"		"COM_ParseLine"
+				"linux"
+				{
+					"offset"	"25h"
+					"verify"	"\x0F\xBE"	// movsx
+					"patch"		"\x0F\xB6"	// movzx
+				}
+				"windows"
+				{
+					"offset"	"23h"
+					"verify"	"\x0F\xBE"	// movsx
+					"patch"		"\x0F\xB6"	// movzx
+				}
+			}
+			"COM_ParseLine_unsigned_patch3"
+			{
+				"signature"		"COM_ParseLine"
+				"linux"
+				{
+					"offset"	"60h"
+					"verify"	"\x0F\xBE"	// movsx
+					"patch"		"\x0F\xB6"	// movzx
+				}
+				"windows"
+				{
+					"offset"	"43h"
+					"verify"	"\x0F\xBE"	// movsx
+					"patch"		"\x0F\xB6"	// movzx
+				}
+			}
+			"COM_ParseLine_unsigned_patch4"
+			{
+				"signature"		"COM_ParseLine"
+				"linux"
+				{
+					"offset"	"6Dh"
+					"verify"	"\x0F\xBE"	// movsx
+					"patch"		"\x0F\xB6"	// movzx
+				}
+				"windows"
+				{
+					"offset"	"54h"
+					"verify"	"\x0F\xBE"	// movsx
+					"patch"		"\x0F\xB6"	// movzx
+				}
+			}
+		}
+
+		"Signatures"
+		{
+			"COM_ParseLine"
+			{
+				"library"		"engine"
+				"windows"		"\x8B\x44\x24\x04\x33\xD2\x85\xC0"
+			}
+		}
+	}
+
+	"left4dead2"
+	{
+		"MemPatches"
+		{
+			"COM_ParseLine_unsigned_patch1"
+			{
+				"signature"		"COM_ParseLine"
+				"linux"
+				{
+					"offset"	"11h"
+					"verify"	"\x0F\xBE"	// movsx
+					"patch"		"\x0F\xB6"	// movzx
+				}
+				"windows"
+				{
+					"offset"	"12h"
+					"verify"	"\x0F\xBE"	// movsx
+					"patch"		"\x0F\xB6"	// movzx
+				}
+			}
+			"COM_ParseLine_unsigned_patch2"
+			{
+				"signature"		"COM_ParseLine"
+				"linux"
+				{
+					"offset"	"23h"
+					"verify"	"\x0F\xBE"	// movsx
+					"patch"		"\x0F\xB6"	// movzx
+				}
+				"windows"
+				{
+					"offset"	"21h"
+					"verify"	"\x0F\xBE"	// movsx
+					"patch"		"\x0F\xB6"	// movzx
+				}
+			}
+			"COM_ParseLine_unsigned_patch3"
+			{
+				"signature"		"COM_ParseLine"
+				"linux"
+				{
+					"offset"	"5Bh"
+					"verify"	"\x0F\xBE"	// movsx
+					"patch"		"\x0F\xB6"	// movzx
+				}
+				"windows"
+				{
+					"offset"	"41h"
+					"verify"	"\x0F\xBE"	// movsx
+					"patch"		"\x0F\xB6"	// movzx
+				}
+			}
+			"COM_ParseLine_unsigned_patch4"
+			{
+				"signature"		"COM_ParseLine"
+				"linux"
+				{
+					"offset"	"6Bh"
+					"verify"	"\x0F\xBE"	// movsx
+					"patch"		"\x0F\xB6"	// movzx
+				}
+				"windows"
+				{
+					"offset"	"54h"
+					"verify"	"\x0F\xBE"	// movsx
+					"patch"		"\x0F\xB6"	// movzx
+				}
+			}
+		}
+
+		"Signatures"
+		{
+			"COM_ParseLine"
+			{
+				"library"		"engine"
+				"windows"		"\x55\x8B\xEC\x8B\x45\x08\x33\xD2\x88\x15"
+			}
+		}
+	}
+}
