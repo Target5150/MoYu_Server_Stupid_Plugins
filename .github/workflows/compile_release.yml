@@ -2,19 +2,15 @@ name: Compile plugins and release
 
 on:
   pull_request:
-    paths:
-      - 'The Last Stand/**/*.sp'
-      - 'The Last Stand/**/*.inc'
-      - 'include/**/*.inc'
-      - 'pushbuild.txt'
+    paths-ignore:
+      - 'LICENSE'
+      - 'README.md'
     branches:
       - master
   push:
-    paths:
-      - 'The Last Stand/**/*.sp'
-      - 'The Last Stand/**/*.inc'
-      - 'include/**/*.inc'
-      - 'pushbuild.txt'
+    paths-ignore:
+      - 'LICENSE'
+      - 'README.md'
     branches:
       - master
   workflow_dispatch:
@@ -95,7 +91,7 @@ jobs:
   release:
     name: Release
     needs: build
-    if: always() && contains(fromJson('["push", "workflow_dispatch"]'), github.event_name)
+    if: always() && github.ref_name == 'master'
     runs-on: ubuntu-latest
 
     steps:
