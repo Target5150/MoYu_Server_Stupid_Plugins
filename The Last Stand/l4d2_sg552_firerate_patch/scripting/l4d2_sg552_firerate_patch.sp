@@ -3,7 +3,7 @@
 
 #include <sourcemod>
 
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.1"
 
 public Plugin myinfo = 
 {
@@ -119,6 +119,6 @@ void AddressToSignature(Address addr, char[] buffer, int maxlength)
 {
 	for (int i = 0; i < 4; ++i)
 	{
-		FormatEx(buffer[i * 4], maxlength - i * 4, "\\x%X", ((view_as<int>(addr) >> (i * 8)) & 0xFF));
+		FormatEx(buffer[i * 4], maxlength - i * 4, "\\x%02X", ((view_as<int>(addr) >> (i * 8)) & 0xFF));
 	}
 }
