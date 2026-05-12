@@ -126,26 +126,6 @@ stock int WeaponNameToId(const char[] weaponName)
 }
 
 /**
- * Tries to look up a MeleeWeaponId for a given Melee Weapon Name.
- *
- * @param meleeWeaponName    Melee weapon name string to look up Id from
- * @return int               The corresponding MeleeWeaponId if found, else WEPID_MELEE_NONE
- */
-stock int MeleeWeaponNameToId(const char[] meleeWeaponName)
-{
-	if (hMeleeWeaponNamesTrie == null) {
-		InitWeaponNamesTrie();
-	}
-	
-	int id;
-	if (hMeleeWeaponNamesTrie.GetValue(meleeWeaponName, id)) {
-		return id;
-	}
-	
-	return WEPID_MELEE_NONE;
-}
-
-/**
  * Tries to look up L4D2's internal weapon name for a given WeaponId.
  *
  * @param wepid            WeaponId To get name of.
