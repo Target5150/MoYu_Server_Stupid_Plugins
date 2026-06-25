@@ -105,6 +105,22 @@
 					}
 				}
 			}
+
+			// Copied from left4dhooks
+			"l4d2_fix_character_mixed::CDirector::OnForceSurvivorPositions"
+			{
+				"signature"		"CDirector::OnForceSurvivorPositions"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"ignore"
+				"arguments"
+				{
+					"a1"
+					{
+						"type"	"objectptr"
+					}
+				}
+			}
 		}
 
 		"Signatures"
@@ -190,6 +206,19 @@
 				"linux"			"@_ZN9KeyValues6SetIntEPKci"
 				"windows"		"\x55\x8B\xEC\x8B\x45\x08\x6A\x01\x50\xE8\x2A\x2A\x2A\x2A\x85\xC0\x74\x2A\x8B\x4D\x0C\x89\x48\x0C\xC6\x40\x10\x02"
 								// 55 8B EC 8B 45 08 6A 01 50 E8 ? ? ? ? 85 C0 74 ? 8B 4D 0C 89 48 0C C6 40 10 02
+			}
+
+			// Copied from left4dhooks
+			/*
+			 * CDirector::OnForceSurvivorPositions()
+			 */
+			"CDirector::OnForceSurvivorPositions"
+			{
+				"library"	"server"
+				"linux"		"@_ZN9CDirector24OnForceSurvivorPositionsERK10CUtlVectorIP13CTerrorPlayer10CUtlMemoryIS2_iEE"
+				"windows"	"\x2A\x2A\x2A\x2A\x2A\x2A\x53\x56\x33\x2A\x57\x68\x2A\x2A\x2A\x2A\x33"
+				/* ? ? ? ? ? ? 53 56 33 ? 57 68 ? ? ? ? 33 */
+				/* Search "ESCAPED: %s %s\n" bottom of function returns the call to target function. */
 			}
 		}
 	}

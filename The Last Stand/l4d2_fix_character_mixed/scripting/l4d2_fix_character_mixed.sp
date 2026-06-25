@@ -7,7 +7,7 @@
 #include <@Forgetest/gamedatawrapper>
 
 #define DEBUG 0
-#define PLUGIN_VERSION "1.7"
+#define PLUGIN_VERSION "1.7.1"
 
 public Plugin myinfo = 
 {
@@ -72,6 +72,7 @@ public void OnPluginStart()
 	// delete gd.CreateDetourOrFail("l4d2_fix_character_mixed::CTerrorPlayer::InputTeleportToSurvivorPosition", DTR_InputTeleportToSurvivorPosition);
 	// delete gd.CreateDetourOrFail("l4d2_fix_character_mixed::CTerrorPlayer::InputReleaseFromSurvivorPosition", DTR_InputReleaseFromSurvivorPosition);
 	delete gd.CreateDetourOrFail("l4d2_fix_character_mixed::CGlobalEntityList::FindEntityByName", DTR_FindEntityByName);
+	delete gd.CreateDetourOrFail("l4d2_fix_character_mixed::CDirector::OnForceSurvivorPositions", DTR_OnForceSurvivorPositions, DTR_OnForceSurvivorPositions_Post);
 	delete gd;
 }
 
@@ -203,16 +204,18 @@ MRESReturn DTR_GetPlayerByCharacter(DHookReturn hReturn, DHookParam hParams)
 }
 
 bool g_bForceSurvivorPositions = false;
-public void L4D_OnForceSurvivorPositions_Pre()
+MRESReturn DTR_OnForceSurvivorPositions(int client, DHookParam hParams)
 {
 	DebugMsg("\x04>> ForceSurvivorPositions");
 	g_bForceSurvivorPositions = true;
+	return MRES_Ignored;
 }
 
-public void L4D_OnForceSurvivorPositions()
+MRESReturn DTR_OnForceSurvivorPositions_Post(int client, DHookParam hParams)
 {
 	DebugMsg("\x05<< ForceSurvivorPositions");
 	g_bForceSurvivorPositions = false;
+	return MRES_Ignored;
 }
 
 MRESReturn DTR_GetCharacterDisplayName(int client, DHookReturn hReturn)
