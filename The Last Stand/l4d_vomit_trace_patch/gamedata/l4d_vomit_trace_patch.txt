@@ -1,6 +1,6 @@
 "Games"
 {
-	"left4dead"
+	"#default"
 	{
 		"Functions"
 		{
@@ -20,7 +20,10 @@
 				"this"			"ignore"
 			}
 		}
-		
+	}
+
+	"left4dead"
+	{
 		"MemPatches"
 		{
 			"ShouldHitEntity_MyInfectedPointer"
@@ -175,6 +178,18 @@
 				"linux"			"@_Z14OnVomitCollideP13CTerrorPlayerP11CBaseEntityS2_i6VectorS3_"
 				"windows"		"\x81\xEC\x2A\x2A\x2A\x2A\x8B\x84\x24\x2A\x2A\x2A\x2A\x8B\x8C\x24\x2A\x2A\x2A\x2A\x8B\x94\x24"
 				/* 81 EC ? ? ? ? 8B 84 24 ? ? ? ? 8B 8C 24 ? ? ? ? 8B 94 24 */
+			}
+		}
+	}
+
+	"left4dead2"
+	{
+		"Offsets"
+		{
+			"CBaseEntity::PhysicsSolidMaskForEntity"
+			{
+				"linux"		"178"
+				"windows"	"177"
 			}
 		}
 	}

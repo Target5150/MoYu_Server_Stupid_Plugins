@@ -2,22 +2,25 @@
 #pragma newdecls required
 
 #include <sourcemod>
+#include <sdkhooks>
 #include <dhooks>
 #include <sourcescramble>
+#include <@Forgetest/gamedatawrapper>
 
-#define PLUGIN_VERSION "2.4.1"
+#define PLUGIN_VERSION "2.5"
 
 public Plugin myinfo =
 {
-	name = "[L4D] Vomit Trace Patch",
+	name = "[L4D & 2] Vomit Trace Patch",
 	author = "Forgetest",
-	description = "Fix vomit stuck on Infected teammates.",
+	description = "Fix vomit stuck on Infected teammates & allow stricter collision test.",
 	version = PLUGIN_VERSION,
 	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 }
 
-#define GAMEDATA_FILE "l4d_vomit_trace_patch"
 #define OP_CALL_SIZE 5
+
+bool g_bLeft4Dead2;
 
 MemoryPatch g_hPatch;
 DynamicHook g_hDHook;
@@ -25,47 +28,42 @@ int g_iPatchOffs, g_iFuncOffs;
 
 DynamicHook g_hDHook_PhysicsSolidMaskForEntity;
 
+ConVar g_cvStrictCollide;
+
+public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max)
+{
+	switch (GetEngineVersion())
+	{
+		case Engine_Left4Dead: { g_bLeft4Dead2 = false; }
+		case Engine_Left4Dead2: { g_bLeft4Dead2 = true; }
+		default: { strcopy(error, err_max, "Plugin supports L4D & 2 only."); return APLRes_SilentFailure; }
+	}
+	return APLRes_Success;
+}
+
 public void OnPluginStart()
 {
-	if (GetEngineVersion() != Engine_Left4Dead)
-		SetFailState("Plugin supports L4D only");
-	
-	Handle conf = LoadGameConfigFile(GAMEDATA_FILE);
-	if (conf == null)
-		SetFailState("Missing gamedata \"" ... GAMEDATA_FILE ... "\"");
-	
-	g_hPatch = MemoryPatch.CreateFromConf(conf, "ShouldHitEntity_MyInfectedPointer");
-	if (!g_hPatch.Validate())
-		SetFailState("Failed to validate patch \"ShouldHitEntity_MyInfectedPointer\"");
-	
-	g_hDHook = DynamicHook.FromConf(conf, "CBaseAbility::UpdateAbility");
-	if (g_hDHook == null)
-		SetFailState("Failed to create dynamic hook on \"CBaseAbility::UpdateAbility\"");
-	
-	g_hDHook_PhysicsSolidMaskForEntity = DynamicHook.FromConf(conf, "CBaseEntity::PhysicsSolidMaskForEntity");
-	if (g_hDHook_PhysicsSolidMaskForEntity == null)
-		SetFailState("Failed to create dynamic hook on \"CBaseEntity::PhysicsSolidMaskForEntity\"");
-	
-	Address pGetTeamNumberFuncAddr = GameConfGetAddress(conf, "CBaseEntity_GetTeamNumber");
-	if (pGetTeamNumberFuncAddr == Address_Null)
-		SetFailState("Missing address/signature \"CBaseEntity_GetTeamNumber\"");
-	
-	g_iPatchOffs = GameConfGetOffset(conf, "PatchOffset");
-	if (g_iPatchOffs == -1)
-		SetFailState("Missing offset \"PatchOffset\"");
-	
-	g_iFuncOffs =
-		view_as<int>(pGetTeamNumberFuncAddr) - (view_as<int>(g_hPatch.Address) + (g_iPatchOffs - 1) + OP_CALL_SIZE);
-	
-	if (!MemoryPatch.CreateFromConf(conf, "OnVomitCollide__TraceRayMask_patch").Enable())
-		SetFailState("Failed to patch \"OnVomitCollide__TraceRayMask_patch\"");
-	
-	if (!MemoryPatch.CreateFromConf(conf, "OnVomitCollide__ClipRayMask_patch").Enable())
-		SetFailState("Failed to patch \"OnVomitCollide__ClipRayMask_patch\"");
+	GameDataWrapper conf = new GameDataWrapper("l4d_vomit_trace_patch");
+
+	g_hDHook_PhysicsSolidMaskForEntity = conf.CreateDHookOrFail("CBaseEntity::PhysicsSolidMaskForEntity");
+
+	if (!g_bLeft4Dead2)
+	{
+		g_hPatch = conf.CreatePatchOrFail("ShouldHitEntity_MyInfectedPointer", false);
+		g_hDHook = conf.CreateDHookOrFail("CBaseAbility::UpdateAbility");
+		
+		Address pGetTeamNumberFuncAddr = conf.GetAddress("CBaseEntity_GetTeamNumber");
+		g_iPatchOffs = conf.GetOffset("PatchOffset");
+		g_iFuncOffs =
+			view_as<int>(pGetTeamNumberFuncAddr) - (view_as<int>(g_hPatch.Address) + (g_iPatchOffs - 1) + OP_CALL_SIZE);
+		
+		conf.CreatePatchOrFail("OnVomitCollide__TraceRayMask_patch", true);
+		conf.CreatePatchOrFail("OnVomitCollide__ClipRayMask_patch", true);
+	}
 	
 	delete conf;
-	
-	HookEvent("player_spawn", Event_PlayerSpawn);
+
+	g_cvStrictCollide = CreateConVar("vomit_collide_strict", "1", "Stricter vomit collision against hitbox instead of bounding box.", FCVAR_NONE, true, 0.0, true, 1.0);
 }
 
 void ApplyPatch(bool patch)
@@ -86,19 +84,27 @@ void ApplyPatch(bool patch)
 	}
 }
 
-void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
+public void OnEntityCreated(int entity, const char[] classname)
 {
-	int client = GetClientOfUserId(event.GetInt("userid"));
-	if (!client || GetClientTeam(client) != 3 || GetEntProp(client, Prop_Send, "m_zombieClass") != 2)
-		return;
-		
-	int ability = GetEntPropEnt(client, Prop_Send, "m_customAbility");
-	if (ability != -1)
+	if (classname[0] == 'a')
 	{
-		g_hDHook.HookEntity(Hook_Pre, ability, CVomit_UpdateAbility);
-		g_hDHook.HookEntity(Hook_Post, ability, CVomit_UpdateAbility_Post);
-		
-		g_hDHook_PhysicsSolidMaskForEntity.HookEntity(Hook_Pre, ability, CVomit_PhysicsSolidMaskForEntity);
+		if (!strcmp(classname, "ability_vomit"))
+		{
+			if (!g_bLeft4Dead2)
+			{
+				g_hDHook.HookEntity(Hook_Pre, entity, CVomit_UpdateAbility);
+				g_hDHook.HookEntity(Hook_Post, entity, CVomit_UpdateAbility_Post);
+			}
+			
+			g_hDHook_PhysicsSolidMaskForEntity.HookEntity(Hook_Post, entity, CVomit_PhysicsSolidMaskForEntity_Post);
+		}
+	}
+	else if (classname[0] == 'v')
+	{
+		if (!strcmp(classname, "vomit_particle"))
+		{
+			g_hDHook_PhysicsSolidMaskForEntity.HookEntity(Hook_Post, entity, CVomitParticle_PhysicsSolidMaskForEntity_Post);
+		}
 	}
 }
 
@@ -119,8 +125,25 @@ MRESReturn CVomit_UpdateAbility_Post(int pThis)
 	return MRES_Ignored;
 }
 
-MRESReturn CVomit_PhysicsSolidMaskForEntity(DHookReturn hReturn)
+MRESReturn CVomit_PhysicsSolidMaskForEntity_Post(DHookReturn hReturn)
 {
-	hReturn.Value = 0x2004003;
-	return MRES_Supercede;
+	// (L4D1) 0x200400B -> MASK_SOLID
+	// (L4D2) 0x2004003 -> MASK_SOLID & ~CONTENTS_GRATE
+
+	int flags = hReturn.Value;
+	
+	flags &= (~CONTENTS_GRATE);		// Unnecessary for L4D2 though
+
+	if (g_cvStrictCollide.BoolValue)
+	{
+		flags |= CONTENTS_HITBOX;
+	}
+
+	hReturn.Value = flags;
+	return MRES_Override;
+}
+
+MRESReturn CVomitParticle_PhysicsSolidMaskForEntity_Post(DHookReturn hReturn)
+{
+	return CVomit_PhysicsSolidMaskForEntity_Post(hReturn);
 }
