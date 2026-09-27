@@ -5,7 +5,7 @@
 #include <sdktools_functions>
 #include <actions>
 
-#define PLUGIN_VERSION "1.2"
+#define PLUGIN_VERSION "1.3"
 
 public Plugin myinfo = 
 {
@@ -78,10 +78,60 @@ methodmap CTongue
 	}
 }
 
+bool g_bFixSmoker, g_bFixBoomer, g_bFixInfected, g_bFixWitch;
+
 public void OnPluginStart()
 {
+	CreateConVarHook("l4d_fix_target_replace_smoker",
+				"1",
+				"Enable target fix for Smoker?",
+				FCVAR_NONE,
+				true, 0.0, true, 1.0,
+				CvarChg_FixSmoker);
+
+	CreateConVarHook("l4d_fix_target_replace_boomer",
+				"1",
+				"Enable target fix for Boomer?",
+				FCVAR_NONE,
+				true, 0.0, true, 1.0,
+				CvarChg_FixBoomer);
+
+	CreateConVarHook("l4d_fix_target_replace_infected",
+				"1",
+				"Enable target fix for the common infected?",
+				FCVAR_NONE,
+				true, 0.0, true, 1.0,
+				CvarChg_FixInfected);
+
+	CreateConVarHook("l4d_fix_target_replace_witch",
+				"1",
+				"Enable target fix for Witch?",
+				FCVAR_NONE,
+				true, 0.0, true, 1.0,
+				CvarChg_FixWitch);
+
 	HookEvent("player_bot_replace", Event_player_bot_replace);
 	HookEvent("bot_player_replace", Event_bot_player_replace);
+}
+
+void CvarChg_FixSmoker(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	g_bFixSmoker = convar.BoolValue;
+}
+
+void CvarChg_FixBoomer(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	g_bFixBoomer = convar.BoolValue;
+}
+
+void CvarChg_FixInfected(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	g_bFixInfected = convar.BoolValue;
+}
+
+void CvarChg_FixWitch(ConVar convar, const char[] oldValue, const char[] newValue)
+{
+	g_bFixWitch = convar.BoolValue;
 }
 
 void Event_player_bot_replace(Event event, const char[] name, bool dontBroadcast)
@@ -109,44 +159,59 @@ void HandlePlayerReplace(int replacer, int me)
 
 void NotifyNextbot(int newTarget, int oldTarget)
 {
-	int entity = MaxClients+1;
-	while ((entity = FindEntityByClassname(entity, "infected")) != INVALID_ENT_REFERENCE)
+	if (g_bFixInfected)
 	{
-		UTIL_ReplaceActionVictim(entity, "InfectedAttack", newTarget, oldTarget);
-		UTIL_ReplaceActionVictim(entity, "PunchVictim", newTarget, oldTarget);
-	}
-
-	entity = MaxClients+1;
-	while ((entity = FindEntityByClassname(entity, "witch")) != INVALID_ENT_REFERENCE)
-	{ 
-		UTIL_ReplaceActionVictim(entity, "WitchAttack", newTarget, oldTarget);
-		UTIL_ReplaceActionVictim(entity, "WitchKillIncapVictim", newTarget, oldTarget);
-		UTIL_ReplaceActionVictim(entity, "InfectedStandingActivity", newTarget, oldTarget);
-	}
-
-	for (int i = 1; i <= MaxClients; i++)
-	{
-		if (IsClientInGame(i) && IsFakeClient(i) && GetClientTeam(i) == 3 && IsPlayerAlive(i))
+		int entity = MaxClients+1;
+		while ((entity = FindEntityByClassname(entity, "infected")) != INVALID_ENT_REFERENCE)
 		{
-			switch (GetEntProp(i, Prop_Send, "m_zombieClass"))
-			{
-			case 1: 
-				{
-					UTIL_ReplaceActionVictim(i, "SmokerTongueVictim", newTarget, oldTarget);
+			UTIL_ReplaceActionVictim(entity, "InfectedAttack", newTarget, oldTarget);
+			UTIL_ReplaceActionVictim(entity, "PunchVictim", newTarget, oldTarget);
+		}
+	}
 
-					CTongue ability = CTongue.FromPlayer(i);
-					if (ability && ability.m_tongueState == STATE_TONGUE_EXTENDING)
+	if (g_bFixWitch)
+	{
+		int entity = MaxClients+1;
+		while ((entity = FindEntityByClassname(entity, "witch")) != INVALID_ENT_REFERENCE)
+		{ 
+			UTIL_ReplaceActionVictim(entity, "WitchAttack", newTarget, oldTarget);
+			UTIL_ReplaceActionVictim(entity, "WitchKillIncapVictim", newTarget, oldTarget);
+			UTIL_ReplaceActionVictim(entity, "InfectedStandingActivity", newTarget, oldTarget);
+		}
+	}
+
+	if (g_bFixSmoker || g_bFixBoomer)
+	{
+		for (int i = 1; i <= MaxClients; i++)
+		{
+			if (IsClientInGame(i) && IsFakeClient(i) && GetClientTeam(i) == 3 && IsPlayerAlive(i))
+			{
+				switch (GetEntProp(i, Prop_Send, "m_zombieClass"))
+				{
+				case 1:
 					{
-						if (ability.m_currentTipTarget == oldTarget)
+						if (g_bFixSmoker)
 						{
-							ability.m_currentTipTarget = newTarget;
+							UTIL_ReplaceActionVictim(i, "SmokerTongueVictim", newTarget, oldTarget);
+
+							CTongue ability = CTongue.FromPlayer(i);
+							if (ability && ability.m_tongueState == STATE_TONGUE_EXTENDING)
+							{
+								if (ability.m_currentTipTarget == oldTarget)
+								{
+									ability.m_currentTipTarget = newTarget;
+								}
+							}
 						}
 					}
-				}
 
-			case 2:
-				{
-					UTIL_ReplaceActionVictim(i, "BoomerVomitOnVictim", newTarget, oldTarget);
+				case 2:
+					{
+						if (g_bFixBoomer)
+						{
+							UTIL_ReplaceActionVictim(i, "BoomerVomitOnVictim", newTarget, oldTarget);
+						}
+					}
 				}
 			}
 		}
@@ -186,4 +251,25 @@ void _ReplaceActionVictim(BehaviorAction action, const char[] name, int newTarge
 
 	if (!strcmp(name, "WitchAttack"))
 		action.Set(56, GetEntProp(newTarget, Prop_Send, "m_survivorCharacter"));
+}
+
+stock ConVar CreateConVarHook(const char[] name,
+	const char[] defaultValue,
+	const char[] description="",
+	int flags=0,
+	bool hasMin=false, float min=0.0,
+	bool hasMax=false, float max=0.0,
+	ConVarChanged callback)
+{
+	ConVar cv = CreateConVar(name, defaultValue, description, flags, hasMin, min, hasMax, max);
+	
+	Call_StartFunction(INVALID_HANDLE, callback);
+	Call_PushCell(cv);
+	Call_PushNullString();
+	Call_PushNullString();
+	Call_Finish();
+	
+	cv.AddChangeHook(callback);
+	
+	return cv;
 }
