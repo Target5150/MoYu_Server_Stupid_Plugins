@@ -15,6 +15,39 @@
 
 <hr>
 
+### ConVars
+```
+// Enable target fix for Smoker?
+// -
+// Default: "1.000000"
+// Minimum: "0.000000"
+// Maximum: "1.000000"
+l4d_fix_target_replace_smoker "1"
+
+// Enable target fix for Boomer?
+// -
+// Default: "1.000000"
+// Minimum: "0.000000"
+// Maximum: "1.000000"
+l4d_fix_target_replace_boomer "1"
+
+// Enable target fix for the common infected?
+// -
+// Default: "1.000000"
+// Minimum: "0.000000"
+// Maximum: "1.000000"
+l4d_fix_target_replace_infected "1"
+
+// Enable target fix for Witch?
+// -
+// Default: "1.000000"
+// Minimum: "0.000000"
+// Maximum: "1.000000"
+l4d_fix_target_replace_witch "1"
+```
+
+<hr>
+
 ### Installation
 1. Put **plugins/l4d_fix_target_replace.smx** to your _plugins_ folder.
 
