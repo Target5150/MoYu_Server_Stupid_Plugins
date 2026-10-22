@@ -5,7 +5,7 @@
 #include <sdkhooks>
 #include <dhooks>
 
-#define PLUGIN_VERSION "1.4"
+#define PLUGIN_VERSION "1.5"
 
 public Plugin myinfo =
 {
@@ -40,6 +40,7 @@ methodmap CUserCmd
 
 int g_iOffs_m_pCurrentPlayer;
 int g_iOffs_m_isCurrentlyDoingCompensation;
+int g_iOffs_CTakeDamageInfo_m_hAttacker;
 methodmap CLagCompensationManager
 {
 	property Address m_pCurrentPlayer {
@@ -85,20 +86,60 @@ methodmap GameDataWrapper < GameData {
 	}
 }
 
+GlobalForward g_fwdPounceRewound;
+
 public void OnPluginStart()
 {
 	GameDataWrapper gd = new GameDataWrapper("l4d_lagcomp_skeet");
 	g_LagCompensationManager = view_as<CLagCompensationManager>(gd.GetAddress("g_LagCompensationManager"));
 	g_iOffs_m_pCurrentPlayer = gd.GetOffset("CLagCompensationManager::m_pCurrentPlayer");
 	g_iOffs_m_isCurrentlyDoingCompensation = gd.GetOffset("CLagCompensationManager::m_isCurrentlyDoingCompensation");
+	// riverside1: was hardcoded 52, the L4D2 layout. On L4D1 offset 52 is m_flBaseDamage (a
+	// float), so the attacker lookup failed on every hit and the plugin never did anything.
+	g_iOffs_CTakeDamageInfo_m_hAttacker = gd.GetOffset("CTakeDamageInfo::m_hAttacker");
 	delete gd.CreateDetourOrFail("CTerrorPlayer::OnTakeDamageInternal", DTR_OnTakeDamageInternal, DTR_OnTakeDamageInternal_Post);
 	delete gd;
+
+	g_fwdPounceRewound = new GlobalForward("L4D_OnLagCompPounce", ET_Ignore, Param_Cell, Param_Cell, Param_Cell);
+}
+
+// riverside3: tell skill_detect what we decided. It reads m_isAttemptingToPounce in TraceAttack,
+// which runs BEFORE this detour, so on a hunter the server had already landed but the shooter saw
+// in the air it read 0, and the killing pellet (the engine clears the flag in OnPounceEnded before
+// the death) was not a skeet. 51 of 54 such skeets went uncounted 2026-10-10..12.
+
+void SetPounceFlag(int victim, int attacker, int value)
+{
+	SetEntProp(victim, Prop_Send, "m_isAttemptingToPounce", value);
+	Call_StartForward(g_fwdPounceRewound);
+	Call_PushCell(victim);
+	Call_PushCell(attacker);
+	Call_PushCell(value);
+	Call_Finish();
 }
 
 int g_iSaveClient;
 int g_iSave_m_isAttemptingToPounce;
+int g_iSet_m_isAttemptingToPounce;
+// riverside2: how many OnTakeDamageInternal calls are on the stack. When the pounce interrupt
+// damage runs out the engine calls OnPounceEnded() (clears m_isAttemptingToPounce) and then
+// TakeDamage() on the hunter again, same attacker, damage += health. Re-arming the flag on that
+// nested call sent the engine back into the pounce branch with nothing left to subtract, forever:
+// match 628 on 2026-10-10 overflowed the stack ~7700 calls deep and crashed srcds. Only the
+// outermost call is ours to touch.
+int g_iDepth;
+
+public void OnMapStart()
+{
+	// riverside2: a missed post hook would leave the depth stuck above 0 and the plugin idle
+	g_iDepth = 0;
+}
+
 MRESReturn DTR_OnTakeDamageInternal(int victim, DHookParam hParams)
 {
+	if (++g_iDepth > 1)
+		return MRES_Ignored;
+
 	g_iSaveClient = -1;
 	g_iSave_m_isAttemptingToPounce = -1;
 
@@ -106,9 +147,7 @@ MRESReturn DTR_OnTakeDamageInternal(int victim, DHookParam hParams)
 	if (ability == -1 || !IsAbilityLunge(ability))
 		return MRES_Ignored;
 
-	static const int k_iOffs_CTakeDamageInfo_m_hAttacker = 52;
-
-	int attacker = hParams.GetObjectVar(1, k_iOffs_CTakeDamageInfo_m_hAttacker, ObjectValueType_Ehandle);
+	int attacker = hParams.GetObjectVar(1, g_iOffs_CTakeDamageInfo_m_hAttacker, ObjectValueType_Ehandle);
 	if (attacker <= 0 || attacker > MaxClients || !IsClientInGame(attacker) || GetClientTeam(attacker) != 2 || IsFakeClient(attacker))
 		return MRES_Ignored;
 	
@@ -119,6 +158,10 @@ MRESReturn DTR_OnTakeDamageInternal(int victim, DHookParam hParams)
 	 	return MRES_Ignored;
 	}
 
+	// riverside2: upstream #75, the command pointer can be null; reading tick_count off it throws
+	if (!GetPlayerCurrentCommand(attacker))
+		return MRES_Ignored;
+
 	g_iSaveClient = victim;
 	float flTargetTime = GetLagCompTargetTime(attacker);
 
@@ -126,8 +169,16 @@ MRESReturn DTR_OnTakeDamageInternal(int victim, DHookParam hParams)
 	{
 		float flLungeStartTime = GetEntPropFloat(ability, Prop_Send, "m_lungeStartTime");
 
-		g_iSave_m_isAttemptingToPounce = GetEntProp(victim, Prop_Send, "m_isAttemptingToPounce");
-		SetEntProp(victim, Prop_Send, "m_isAttemptingToPounce", flTargetTime >= flLungeStartTime);
+		// riverside4: only ever ARM the flag here. Clearing it when the shooter saw him before the
+		// lunge sent the damage down the non-pounce path, which still charges the pounce interrupt
+		// budget and, when that runs out, stuns the hunter for 0.5 s instead of killing him. Stock
+		// versus does neither: a lunging hunter takes pounce (skeet) damage. Owner chose stock 2026-10-16.
+		if (flTargetTime >= flLungeStartTime)
+		{
+			g_iSave_m_isAttemptingToPounce = GetEntProp(victim, Prop_Send, "m_isAttemptingToPounce");
+			g_iSet_m_isAttemptingToPounce = 1;
+			SetPounceFlag(victim, attacker, g_iSet_m_isAttemptingToPounce);
+		}
 	}
 	else
 	{
@@ -137,7 +188,8 @@ MRESReturn DTR_OnTakeDamageInternal(int victim, DHookParam hParams)
 			float flLungeEndTime = lungeCooldownTiemr.m_timestamp - lungeCooldownTiemr.m_duration;
 
 			g_iSave_m_isAttemptingToPounce = GetEntProp(victim, Prop_Send, "m_isAttemptingToPounce");
-			SetEntProp(victim, Prop_Send, "m_isAttemptingToPounce", flTargetTime < flLungeEndTime);
+			g_iSet_m_isAttemptingToPounce = flTargetTime < flLungeEndTime;
+			SetPounceFlag(victim, attacker, g_iSet_m_isAttemptingToPounce);
 		}
 	}
 
@@ -146,13 +198,19 @@ MRESReturn DTR_OnTakeDamageInternal(int victim, DHookParam hParams)
 
 MRESReturn DTR_OnTakeDamageInternal_Post(int victim, DHookParam hParams)
 {
+	if (g_iDepth > 0 && --g_iDepth > 0)
+		return MRES_Ignored;
+
 	if (g_iSaveClient != victim)
 		return MRES_Ignored;
 
 	g_iSaveClient = -1;
 	if (g_iSave_m_isAttemptingToPounce != -1)
 	{
-		SetEntProp(victim, Prop_Send, "m_isAttemptingToPounce", g_iSave_m_isAttemptingToPounce);
+		// riverside2: put the old value back only if the engine left ours alone. A skeet clears
+		// the flag in OnPounceEnded(); restoring a saved 1 over that would re-arm a dead pounce.
+		if (GetEntProp(victim, Prop_Send, "m_isAttemptingToPounce") == g_iSet_m_isAttemptingToPounce)
+			SetEntProp(victim, Prop_Send, "m_isAttemptingToPounce", g_iSave_m_isAttemptingToPounce);
 		g_iSave_m_isAttemptingToPounce = -1;
 	}
 

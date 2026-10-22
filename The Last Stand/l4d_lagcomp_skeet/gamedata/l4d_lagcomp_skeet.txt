@@ -70,6 +70,15 @@
 				"linux"			"20924"
 				"windows"		"20912"
 			}
+
+			// riverside1: CTakeDamageInfo datamap in server.so 1.0.4.5: m_hInflictor 36,
+			// m_hAttacker 40, m_flDamage 44, m_flMaxDamage 48, m_flBaseDamage 52;
+			// CTerrorPlayer::OnTakeDamageInternal reads the attacker handle at +0x28
+			"CTakeDamageInfo::m_hAttacker"
+			{
+				"linux"			"40"
+				"windows"		"40"
+			}
 		}
 
 		"Signatures"
@@ -120,6 +129,13 @@
 			{
 				"linux"			"84"
 				"windows"		"72"
+			}
+
+			// riverside1: the value the plugin hardcoded (L4D2 layout)
+			"CTakeDamageInfo::m_hAttacker"
+			{
+				"linux"			"52"
+				"windows"		"52"
 			}
 		}
 
