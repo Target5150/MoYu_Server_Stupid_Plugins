@@ -19,6 +19,7 @@ public Plugin myinfo =
 }
 
 #define GAMEDATA_FILE "l4d_fix_common_shove"
+bool g_bLeft4Dead2;
 
 Handle g_hCall_MyNextBotPointer;
 Handle g_hCall_GetBodyInterface;
@@ -136,6 +137,8 @@ public void OnPluginStart()
 	g_iOffs_ZombieBotLocomotion__m_ladder = gd.GetOffset("ZombieBotLocomotion::m_ladder");
 	
 	delete gd;
+
+	g_bLeft4Dead2 = GetEngineVersion() == Engine_Left4Dead2;
 	
 	CreateConVarHook("l4d_common_shove_flag",
 					"15",
@@ -167,7 +170,7 @@ Action InfectedShoved_OnStart(BehaviorAction action, int actor, any priorAction,
 	// riverside2: the game refuses the shove only when the common is on FALL AND off the ground
 	// (InfectedShoved::OnStart, server.so 0x7c2360). One grounded with FALL left over waited
 	// for a landing that never came, and InfectedShoved has no Update, so it stood frozen.
-	if (MyNextBotPointer(actor).GetBodyInterface().m_activity == (L4D_IsEngineLeft4Dead1() ? L4D1_ACT_TERROR_FALL : L4D2_ACT_TERROR_FALL) // falling check
+	if (MyNextBotPointer(actor).GetBodyInterface().m_activity == (g_bLeft4Dead2 ? L4D2_ACT_TERROR_FALL : L4D1_ACT_TERROR_FALL) // falling check
 		&& GetEntPropEnt(actor, Prop_Data, "m_hGroundEntity") == -1)
 	{
 		if (g_iShoveFlag & SHOVE_FALLING)
