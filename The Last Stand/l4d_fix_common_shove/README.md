@@ -9,7 +9,7 @@
 ### ConVars
 ```
 // Flag for fixing common shove.
-// 1 = Crouch, 2 = Falling, 4 = Landing, 8 = Climbing
+// 1 = Crouch, 2 = Falling, 4 = Landing, 8 = Climbing, 16 = Crouch to sit (requires 1=Crouch)
 // -
 // Default: "15"
 // Minimum: "0.000000"
