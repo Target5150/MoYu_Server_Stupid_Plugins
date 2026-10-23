@@ -27,16 +27,35 @@
 				"linux"			"220"
 				"windows"		"220"
 			}
-		}
-		
-		"Signatures"
-		{
-			"ZombieBotBody::SetDesiredPosture"
+
+			"ZombieBotBody::m_activity"
 			{
-				"library"		"server"
-				"linux"			"@_ZN13ZombieBotBody17SetDesiredPostureEN5IBody11PostureTypeE"
-				"windows"		"\x83\x2A\x2A\x2A\x2A\x8B\x2A\x2A\x2A\x2A\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x83\x2A\x2A\x8B"
-								/* 83 ? ? ? ? 8B ? ? ? ? 8B ? E8 ? ? ? ? 83 ? ? 8B */
+				"linux"			"80"
+				"windows"		"80"
+			}
+
+			"ZombieBotBody::m_activityType"
+			{
+				"linux"			"84"
+				"windows"		"84"
+			}
+
+			"ZombieBotBody::m_desiredPosture"
+			{
+				"linux"			"64"
+				"windows"		"64"
+			}
+
+			"ZombieBotBody::m_actualPosture"
+			{
+				"linux"			"68"
+				"windows"		"68"
+			}
+
+			"ZombieBotBody::m_isPostureChanging"
+			{
+				"linux"			"72"
+				"windows"		"72"
 			}
 		}
 	}
@@ -68,16 +87,35 @@
 				"linux"			"232"
 				"windows"		"232"
 			}
-		}
-		
-		"Signatures"
-		{
-			"ZombieBotBody::SetDesiredPosture"
+
+			"ZombieBotBody::m_activity"
 			{
-				"library"		"server"
-				"linux"			"@_ZN13ZombieBotBody17SetDesiredPostureEN5IBody11PostureTypeE"
-				"windows"		"\x55\x8B\x2A\x83\x2A\x2A\x2A\x8B\x2A\x2A\x2A\x2A\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x8B\x2A\x8B\x2A\x83\x2A\x2A\x74"
-								/* 55 8B ? 83 ? ? ? 8B ? ? ? ? 8B ? E8 ? ? ? ? 8B ? 8B ? 83 ? ? 74 */
+				"linux"			"80"
+				"windows"		"80"
+			}
+
+			"ZombieBotBody::m_activityType"
+			{
+				"linux"			"84"
+				"windows"		"84"
+			}
+
+			"ZombieBotBody::m_desiredPosture"
+			{
+				"linux"			"64"
+				"windows"		"64"
+			}
+
+			"ZombieBotBody::m_actualPosture"
+			{
+				"linux"			"68"
+				"windows"		"68"
+			}
+
+			"ZombieBotBody::m_isPostureChanging"
+			{
+				"linux"			"72"
+				"windows"		"72"
 			}
 		}
 	}
