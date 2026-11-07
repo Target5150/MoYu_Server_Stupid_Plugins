@@ -5,7 +5,7 @@
 #include <left4dhooks>
 
 #define DEBUG 0
-#define PLUGIN_VERSION "1.0"
+#define PLUGIN_VERSION "1.0.1"
 
 public Plugin myinfo = 
 {
@@ -25,6 +25,8 @@ public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max
 	// forward void L4D_OnPZRespawnHealth(int client, int zombieclass, int &health, int &maxHealth, float &healthMult, float &maxHealthMult);
 	g_fwd_OnInfectedSpawnHealth = new GlobalForward("L4D_OnPZSpawnHealth", ET_Ignore, Param_Cell, Param_Cell, Param_Cell, Param_CellByRef, Param_CellByRef, Param_FloatByRef, Param_FloatByRef);
 	g_fwd_OnInfectedRespawnHealth = new GlobalForward("L4D_OnPZRespawnHealth", ET_Ignore, Param_Cell, Param_Cell, Param_CellByRef, Param_CellByRef, Param_FloatByRef, Param_FloatByRef);
+
+	RegPluginLibrary("l4d_pz_health_forward");
 	return APLRes_Success;
 }
 
