@@ -1,0 +1,209 @@
+"Games"
+{
+	"#default"
+	{
+		"#supported"
+		{
+			"game"	"left4dead"
+			"game"	"left4dead2"
+		}
+
+		"Functions"
+		{
+			"l4d_fix_replace_maxhp::ZombieReplacement::Save"
+			{
+				"signature"		"ZombieReplacement::Save"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"address"
+				"arguments"
+				{
+					"player"
+					{
+						"type"	"cbaseentity"
+					}
+				}
+			}
+
+			"l4d_fix_replace_maxhp::ZombieReplacement::Restore"
+			{
+				"signature"		"ZombieReplacement::Restore"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"address"
+				"arguments"
+				{
+					"oldplayer"
+					{
+						"type"	"cbaseentity"
+					}
+					"newplayer"
+					{
+						"type"	"cbaseentity"
+					}
+				}
+			}
+
+			"l4d_fix_replace_maxhp::SurvivorReplacement::Save"
+			{
+				"signature"		"SurvivorReplacement::Save"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"address"
+				"arguments"
+				{
+					"player"
+					{
+						"type"	"cbaseentity"
+					}
+				}
+			}
+
+			"l4d_fix_replace_maxhp::SurvivorReplacement::Restore"
+			{
+				"signature"		"SurvivorReplacement::Restore"
+				"callconv"		"thiscall"
+				"return"		"void"
+				"this"			"address"
+				"arguments"
+				{
+					"oldplayer"
+					{
+						"type"	"cbaseentity"
+					}
+					"newplayer"
+					{
+						"type"	"cbaseentity"
+					}
+				}
+			}
+
+			"l4d_fix_replace_maxhp::ZombieManager::ReplaceTank"
+			{
+				"signature"		"ZombieManager::ReplaceTank"
+				"callconv"		"thiscall"
+				"return"		"bool"
+				"this"			"ignore"
+				"arguments"
+				{
+					"oldplayer"
+					{
+						"type"	"cbaseentity"
+					}
+					"newplayer"
+					{
+						"type"	"cbaseentity"
+					}
+				}
+			}
+		}
+	}
+	
+	"left4dead"
+	{
+		"Signatures"
+		{
+			"ZombieReplacement::Save"
+			{
+				"library"		"server"
+				"linux"			"@_ZN17ZombieReplacement4SaveEP13CTerrorPlayer"
+				"windows"		"\x83\xEC\x1C\x53\x55\x8B\x6C\x24\x28\x56"
+								/* 83 EC 1C 53 55 8B 6C 24 28 56 */
+			}
+			
+			"ZombieReplacement::Restore"
+			{
+				"library"		"server"
+				"linux"			"@_ZN17ZombieReplacement7RestoreEP13CTerrorPlayerS1_"
+				"windows"		"\x83\xEC\x0C\x53\x8B\x5C\x24\x18\x8B\x03"
+				//sub_10293580: 83 EC 0C 53 8B 5C 24 18 8B 03 
+			}
+
+			"SurvivorReplacement::Save"
+			{
+				"library"		"server"
+				"linux"			"@_ZN19SurvivorReplacement4SaveEP13CTerrorPlayer"
+				"windows"		"\x83\xEC\x1C\x53\x56\x8B\x74\x24\x28\x33\xDB"
+								/* 83 EC 1C 53 56 8B 74 24 28 33 DB */
+			}
+
+			//find string: RemovePlayer
+			"SurvivorReplacement::Restore"
+			{
+				"library"		"server"
+				"linux"			"@_ZN19SurvivorReplacement7RestoreEP13CTerrorPlayerS1_"
+				"windows"		"\x83\xEC\x14\x53\x55\x56\x8B\x74\x24\x28"
+				// sub_10293E90: 83 EC 14 53 55 56 8B 74 24 28 
+			}
+			
+			/**
+			 * ZombieManager::ReplaceTank(CTerrorPlayer*, CTerrorPlayer*)
+			 *
+			 * How to find on Windows:
+			 * 1. Search for the "TANK OFFER: Looking for players\n" string.
+			 * 2. The last function call in that function should be this function.
+			 **/
+			"ZombieManager::ReplaceTank"
+			{
+				"library"	"server"
+				"linux"		"@_ZN13ZombieManager11ReplaceTankEP13CTerrorPlayerS1_"
+				"windows"	"\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x8B\x2A\x8B\x90\x2A\x2A\x2A\x2A\x8B\x2A\x57\x8B\x2A\xFF\x2A\x84\x2A\x0F\x84\x2A\x2A\x2A\x2A\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x83\x2A\x2A\x0F\x85\x2A\x2A\x2A\x2A\x8B\x2A\x8B\x90\x2A\x2A\x2A\x2A\x8B\x2A\xFF\x2A\x83"
+						/* ? ? ? ? ? ? ? ? ? 8B ? 8B 90 ? ? ? ? 8B ? 57 8B ? FF ? 84 ? 0F 84 ? ? ? ? 8B ? E8 ? ? ? ? 83 ? ? 0F 85 ? ? ? ? 8B ? 8B 90 ? ? ? ? 8B ? FF ? 83 */
+			}
+		}
+	}
+
+	"left4dead2"
+	{
+		"Signatures"
+		{
+			"ZombieReplacement::Save"
+			{
+				"library"		"server"
+				"linux"			"@_ZN17ZombieReplacement4SaveEP13CTerrorPlayer"
+				"windows"		"\x55\x8B\xEC\x83\xEC\x20\x53\x56\x33\xDB"
+								/* sub_10325760: 55 8B EC 83 EC 20 53 56 33 DB */
+			}
+			
+			"ZombieReplacement::Restore"
+			{
+				"library"		"server"
+				"linux"			"@_ZN17ZombieReplacement7RestoreEP13CTerrorPlayerS1_"
+				"windows"		"\x55\x8B\xEC\x83\xEC\x08\x53\x56\x8B\x75\x0C\x8B\x06\x8B\x90\xC8\x08\x00\x00"
+				//sub_1031A960: 55 8B EC 83 EC 08 53 56 8B 75 0C 8B 06 8B 90 C8 08 00 00 
+			}
+
+			"SurvivorReplacement::Save"
+			{
+				"library"		"server"
+				"linux"			"@_ZN19SurvivorReplacement4SaveEP13CTerrorPlayer"
+				"windows"		"\x55\x8B\xEC\x83\xEC\x20\x53\x56\x8B\x75\x08\x33\xDB"
+								/* 55 8B EC 83 EC 20 53 56 8B 75 08 33 DB */
+			}
+
+			//find string: RemovePlayer
+			"SurvivorReplacement::Restore"
+			{
+				"library"		"server"
+				"linux"			"@_ZN19SurvivorReplacement7RestoreEP13CTerrorPlayerS1_"
+				"windows"		"\x55\x8B\xEC\x83\xEC\x18\x53\x56\x8B\x75\x0C\x8B\x06"
+				//sub_1031B7B0: 55 8B EC 83 EC 18 53 56 8B 75 0C 8B 06
+			}
+			
+			/**
+			 * ZombieManager::ReplaceTank(CTerrorPlayer*, CTerrorPlayer*)
+			 *
+			 * How to find on Windows:
+			 * 1. Search for the "TANK OFFER: Looking for players\n" string.
+			 * 2. The last function call in that function should be this function.
+			 **/
+			"ZombieManager::ReplaceTank"
+			{
+				"library"	"server"
+				"linux"		"@_ZN13ZombieManager11ReplaceTankEP13CTerrorPlayerS1_"
+				"windows"	"\x2A\x2A\x2A\x2A\x2A\x2A\x53\x56\x8B\x2A\x2A\x8B\x2A\x8B\x90\x2A\x2A\x2A\x2A\x57\x8B\x2A\x8B\x2A\xFF\x2A\x84\x2A\x0F\x84\x2A\x2A\x2A\x2A\x8B\x2A\xE8\x2A\x2A\x2A\x2A\x83\x2A\x2A\x0F\x85\x2A\x2A\x2A\x2A\x8B\x2A\x8B\x90\x2A\x2A\x2A\x2A\x8B\x2A\xFF\x2A\x83"
+						/* ? ? ? ? ? ? 53 56 8B ? ? 8B ? 8B 90 ? ? ? ? 57 8B ? 8B ? FF ? 84 ? 0F 84 ? ? ? ? 8B ? E8 ? ? ? ? 83 ? ? 0F 85 ? ? ? ? 8B ? 8B 90 ? ? ? ? 8B ? FF ? 83 */
+			}
+		}
+	}
+}
