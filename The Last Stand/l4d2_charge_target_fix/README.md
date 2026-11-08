@@ -8,6 +8,7 @@
 	- (Optional) Fix Survivors in pummel blocking movement of Infected Team.
 	- (Optional) Fix Survivors getting up from pummel blocking movement of Infected Team.
 	- (Since v1.9) Fix non-chargers stuck in pounding Survivors when they change team during queued pummel sections.
+	- (Since v1.11) Fix Survivors being able to shoot or shove between a slam and the pummel starting.
 - NOTE: Remove `l4d2_jockeyed_charger_fix` for duplication.
 
 <hr>
