@@ -2,8 +2,11 @@
 #pragma newdecls required
 
 #include <sourcemod>
+#include <dhooks>
 
-#define PLUGIN_VERSION "2.0"
+#include <@Forgetest/gamedatawrapper>
+
+#define PLUGIN_VERSION "3.0"
 
 public Plugin myinfo =
 {
@@ -14,50 +17,36 @@ public Plugin myinfo =
 	url = "https://github.com/Target5150/MoYu_Server_Stupid_Plugins"
 };
 
+ConVar g_cvTongueAirChokeTime;
+
 public void OnPluginStart()
 {
-	HookEvent("tongue_grab", Event_TongueGrab);
+	GameDataWrapper gd = new GameDataWrapper("l4d_tongue_float_fix");
+	delete gd.CreateDetourOrFail("l4d_tongue_float_fix::CTongue::UpdateAirChoke", DTR_UpdateAirChoke);
+	delete gd;
+
+	g_cvTongueAirChokeTime = CreateConVar("tongue_vertical_choke_time", "1.0", "Don't consider air choke unless victim is pulled for this long.", FCVAR_NONE, true, 0.0, false);
 }
 
-/**
- * ```cpp
- * void CTongue::UpdateAirChoke(CTongue *this)
- * {
- *   ...
- *
- *   if ( gpGlobals->curtime - m_tongueVictimLastOnGroundTime <= tongue_vertical_choke_time_off_ground.GetFloat() )
- *   {
- *     if ( ground height within cvar value )
- *     {
- *       pVictim->OnStopHangingFromTongue();
- *       return;
- *     }
- *   }
- *
- *   if ( pVictim->IsHangingFromLedge() )
- *   {
- *     pVictim->OnStopHangingFromTongue();
- *     return;
- *   }
- *
- *   pVictim->OnStartHangingFromTongue();
- *   ...
- * }
- * ```
- */
-
-void Event_TongueGrab(Event event, const char[] name, bool dontBroadcast)
+MRESReturn DTR_UpdateAirChoke(int ability)
 {
-	int client = GetClientOfUserId(event.GetInt("userid"));
-	if (!client || !IsClientInGame(client))
-		return;
+	int owner = GetEntPropEnt(ability, Prop_Send, "m_owner");
+	if (owner == -1)
+		return MRES_Ignored;
 	
-	int ability = GetEntPropEnt(client, Prop_Send, "m_customAbility");
-	if (!IsValidEdict(ability))
-		return;
+	int victim = GetEntPropEnt(owner, Prop_Send, "m_tongueVictim");
+	if (victim == -1)
+		return MRES_Ignored;
 	
-	if (!HasEntProp(ability, Prop_Send, "m_tongueVictimLastOnGroundTime"))
-		return;
+	if (GetEntProp(victim, Prop_Send, "m_isHangingFromTongue"))
+		return MRES_Ignored;
 	
-	SetEntPropFloat(ability, Prop_Send, "m_tongueVictimLastOnGroundTime", GetGameTime());
+	// Don't consider air choke unless victim is pulled for long enough time
+	if (g_cvTongueAirChokeTime.FloatValue < GetGameTime() - GetEntPropFloat(ability, Prop_Send, "m_tongueHitTimestamp"))
+		return MRES_Ignored;
+	
+	if (GetEntPropEnt(victim, Prop_Send, "m_hGroundEntity") != -1)
+		SetEntPropFloat(ability, Prop_Send, "m_tongueVictimLastOnGroundTime", GetGameTime());
+
+	return MRES_Supercede;
 }
